@@ -6,7 +6,7 @@ import { useChatStore } from '../store/chatStore';
 
 // This is a placeholder for the actual model component
 // In a real implementation, you would use the actual model path
-const MODEL_PATH = '/model.glb'; 
+const MODEL_PATH = '/model/An_ancient_android_gold_dress.glb'; 
 
 const Character = () => {
   const { scene, animations } = useGLTF(MODEL_PATH);
