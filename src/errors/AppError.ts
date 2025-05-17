@@ -28,3 +28,5 @@ export class ServiceError extends AppError {
     this.name = 'ServiceError';
   }
 }
+
+export default { AppError, ServiceError };

@@ -10,8 +10,9 @@ export interface SpeechResponse {
 }
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
-const EDGE_TTS_ENDPOINT = 'https://eastus2.api.cognitive.microsoft.com/';
-const VITE_EDGE_TTS_API_KEY = import.meta.env.VITE_EDGE_TTS_API_KEY;
+const EDGE_TTS_ENDPOINT = import.meta.env.VITE_EDGE_TTS_ENDPOINT;
+const EDGE_TTS_API_KEY = import.meta.env.VITE_EDGE_TTS_API_KEY;
+const VOICE_NAME = 'en-US-AriaNeural';
 
 export async function getAIResponse(input: string): Promise<AIResponse> {
   try {
@@ -50,41 +51,66 @@ export async function getAIResponse(input: string): Promise<AIResponse> {
     useChatStore.getState().setEmotion('neutral');
     
     throw new ServiceError(
-      'ai',
-      'network',
-      'Error getting AI response',
-      500,
-      error instanceof Error ? error.message : undefined
+      'ai', // service
+      'network', // type
+      'Error getting AI response', // message
+      undefined, // code
+      500, // statusCode
+      true // retry
     );
   }
 }
 
-export async function textToSpeech(text: string): Promise<SpeechResponse> {
+export async function textToSpeech(text: string): Promise<ArrayBuffer | null> {
   try {
-    const store = useChatStore.getState();
-    store.setSpeaking(true);
-    
     const response = await axios.post(
       EDGE_TTS_ENDPOINT,
       `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>
-        <voice name='en-US-AriaNeural'>
-          ${text}
+        <voice name='${VOICE_NAME}'>
+          <prosody rate="0.9" pitch="+0%">
+            ${text}
+          </prosody>
         </voice>
       </speak>`,
       {
         headers: {
-          'Ocp-Apim-Subscription-Key': VITE_EDGE_TTS_API_KEY,
+          'Ocp-Apim-Subscription-Key': EDGE_TTS_API_KEY,
           'Content-Type': 'application/ssml+xml',
-          'X-Microsoft-OutputFormat': 'audio-16khz-128kbitrate-mono-mp3'
-        }
+          'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3',
+          'Cache-Control': 'no-cache',
+        },
+        responseType: 'arraybuffer'
       }
     );
     
-    store.setSpeaking(false);
-    return { success: true, data: response.data };
+    return response.data;
   } catch (error) {
-    console.error('Error in text to speech:', error);
-    useChatStore.getState().setSpeaking(false);
-    return { success: false, error: new AppError('TTS_ERROR', 'Error in text to speech') };
+    console.error('Text to speech error:', error);
+    
+    throw new ServiceError(
+      'speech',
+      'network',
+      'Text to speech failed',
+      undefined,
+      500,
+      true
+    );
   }
+}
+
+export async function speakWithNative(text: string): Promise<void> {
+  if (!window.speechSynthesis) {
+    throw new Error('Speech synthesis not supported');
+  }
+
+  return new Promise((resolve, reject) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    
+  utterance.onend = () => resolve();
+  utterance.onerror = (event) => reject(new Error(`Speech synthesis failed: ${event.error}`));
+  
+  window.speechSynthesis.speak(utterance);
+});
 }

@@ -43,6 +43,17 @@ function App({ initialMuted = false }: AppProps) {
     };
   }, [setProcessing]);
 
+  useEffect(() => {
+    // Initialize voices
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      // Some browsers need a kick to load voices
+      speechSynthesis.addEventListener('voiceschanged', () => {
+        const voices = speechSynthesis.getVoices();
+        console.log('Available voices:', voices.map(v => v.name));
+      });
+    }
+  }, []);
+
   const handleVolumeToggle = () => {
     setIsMuted(prev => !prev);
   };

@@ -4,7 +4,51 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useChatStore } from '../store/chatStore';
 import { getAIResponse } from '../services/aiService';
 import { startListening, stopListening } from '../services/speechService';
-import { ChatMessageProps, Message, ServiceError } from '../types';
+let audioContext: AudioContext | null = null;
+
+export const textToSpeech = async (text: string): Promise<ArrayBuffer | null> => {
+  try {
+    const response = await fetch('/api/tts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!response.ok) {
+      throw new Error('TTS request failed');
+    }
+
+    return await response.arrayBuffer();
+  } catch (error) {
+    console.error('Text-to-speech error:', error);
+    return null;
+  }
+};
+
+export const playAudio = async (audioBuffer: ArrayBuffer): Promise<void> => {
+  try {
+    if (!audioContext) {
+      audioContext = new AudioContext();
+    }
+
+    const source = audioContext.createBufferSource();
+    const decodedBuffer = await audioContext.decodeAudioData(audioBuffer);
+    
+    source.buffer = decodedBuffer;
+    source.connect(audioContext.destination);
+    source.start(0);
+
+    return new Promise((resolve) => {
+      source.onended = () => resolve();
+    });
+  } catch (error) {
+    console.error('Audio playback error:', error);
+    throw error;
+  }
+};
+import { ChatMessageProps, ServiceError } from '../types';
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => (
   <div className={`mb-4 ${message.role === 'user' ? 'text-right' : ''}`}>
@@ -20,7 +64,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => (
   </div>
 );
 
-const ChatInterface: React.FC = () => {
+const ChatInterface = (): JSX.Element => {
   const [input, setInput] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -30,13 +74,48 @@ const ChatInterface: React.FC = () => {
     isProcessing, 
     isSpeaking, 
     isListening,
-    addMessage 
+    addMessage,
+    setProcessing,
+    setSpeaking 
   } = useChatStore();
+
+  const handleMessage = async (content: string) => {
+    try {
+      setProcessing(true);
+      const response = await getAIResponse(content);
+      if (response) {
+        addMessage({
+          role: 'assistant',
+          content: typeof response === 'string' ? response : response.content
+        });
+        
+        const text = typeof response === 'string' ? response : response.content;
+        try {
+          setSpeaking(true);
+          const audioBuffer = await textToSpeech(text);
+          if (audioBuffer) {
+            await playAudio(audioBuffer);
+          }
+          setSpeaking(false);
+        } catch (speechError) {
+          console.error('Speech synthesis failed:', speechError);
+          setSpeaking(false);
+          // The fallback is handled in textToSpeech
+        }
+      }
+    } catch (error) {
+      console.error('Error processing message:', error);
+      // Add error handling UI feedback here
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (!input.trim() || isProcessing) return;
+    const trimmedInput = input.trim();
+    if (!trimmedInput || isProcessing) return;
     
     try {
       addMessage({
@@ -46,13 +125,7 @@ const ChatInterface: React.FC = () => {
       
       setInput('');
       
-      const response = await getAIResponse(input);
-      if (response) {
-        addMessage({
-          role: 'assistant',
-          content: response.content // assuming AIResponse has a 'content' field of type string
-        });
-      }
+      await handleMessage(input);
     } catch (error) {
       console.error('Error processing message:', error);
       // Add error handling UI feedback here
@@ -68,7 +141,10 @@ const ChatInterface: React.FC = () => {
       }
     } catch (error) {
       console.error('Error toggling microphone:', error);
-      // Add error handling UI feedback here
+      if ((error as ServiceError)?.type === 'auth') {
+        // Handle permission errors
+        alert('Please allow microphone access to use speech recognition');
+      }
     }
   };
 

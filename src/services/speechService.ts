@@ -1,95 +1,222 @@
 import { useChatStore } from '../store/chatStore';
 import { getAIResponse, textToSpeech } from './aiService';
 import { SpeechResponse } from '../types';
+import { ServiceError } from '../errors/AppError';
 
-// Define proper TypeScript types
+// Add browser native speech synthesis
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+    webkitAudioContext: typeof AudioContext;
+    readonly speechSynthesis: SpeechSynthesis;
+    SpeechSynthesisUtterance: new () => SpeechSynthesisUtterance;
+  }
+}
+
+// Update SpeechRecognition types
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  start(): void;
+  stop(): void;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onerror: (event: SpeechRecognitionError) => void;
+  onend: () => void;
+}
+
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
 }
 
 interface SpeechRecognitionError extends Event {
-  error: string;
+  error: 'network' | 'no-speech' | 'audio-capture' | 'not-allowed' | 'service-not-allowed' | 'bad-grammar' | 'language-not-supported' | 'aborted';
+  message?: string;
 }
 
-// Extend the Window interface to include SpeechRecognition types
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
-}
+let recognition: SpeechRecognition | null = null;
+let isInitialized = false;
+let retryCount = 0;
+const MAX_RETRIES = 3;
 
-// Properly type the SpeechRecognition API
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition: InstanceType<typeof SpeechRecognition> | null = null;
-
-if (SpeechRecognition) {
-  recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.lang = 'en-US';
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
-}
+// Configuration
+const FALLBACK_VOICE_NAME = 'Google US English';
+let useNativeFallback = false;
 
 export async function initSpeechRecognition(): Promise<void> {
-  if (!recognition) {
-    console.error('Speech recognition not supported in this browser');
-    return;
+  try {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      useNativeFallback = true;
+      console.warn('Using browser native speech fallback');
+    }
+
+    // Check for microphone permission before initializing
+    await checkMicrophonePermission();
+
+    if (!useNativeFallback) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      setupRecognitionHandlers();
+    }
+
+    isInitialized = true;
+  } catch (error) {
+    console.error('Error initializing speech recognition:', error);
+    useNativeFallback = true;
   }
-  
+}
+
+async function checkMicrophonePermission(): Promise<void> {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Clean up the stream after permission check
+    stream.getTracks().forEach(track => track.stop());
+  } catch (error) {
+    throw new ServiceError(
+      'speech',
+      'auth',
+      'Microphone permission denied or not available'
+    );
+  }
+}
+
+function setupRecognitionHandlers(): void {
+  if (!recognition) return;
+
   recognition.onresult = async (event: SpeechRecognitionEvent) => {
-    const speechResult = event.results[0][0].transcript;
-    const store = useChatStore.getState();
-    
-    store.addMessage({
-      role: 'user',
-      content: speechResult
-    });
-    
-    store.setListening(false);
-    
     try {
-      const response = await getAIResponse(speechResult);
+      const speechResult = event.results[0][0].transcript;
+      const store = useChatStore.getState();
       
       store.addMessage({
-        role: 'assistant',
-        content: typeof response === 'string' ? response : response.content
+        role: 'user',
+        content: speechResult
       });
       
-      const text = typeof response === 'string' ? response : response.content;
-      const audioResult = await textToSpeech(text);
-      if (audioResult && 'audioBuffer' in audioResult) {
-        await playAudio(audioResult.audioBuffer as ArrayBuffer);
+      store.setListening(false);
+      
+      const response = await getAIResponse(speechResult);
+      if (response) {
+        store.addMessage({
+          role: 'assistant',
+          content: typeof response === 'string' ? response : response.content
+        });
+        
+        const text = typeof response === 'string' ? response : response.content;
+        const audioResult = await textToSpeech(text);
+        if (audioResult) {
+          await playAudio(audioResult);
+        }
       }
     } catch (error) {
-      console.error('Error processing speech:', error);
-      store.setListening(false);
-      store.setSpeaking(false);
+      console.error('Error processing speech result:', error);
+      handleSpeechError(error);
     }
   };
-  
+
   recognition.onerror = (event: SpeechRecognitionError) => {
     console.error('Speech recognition error:', event.error);
-    useChatStore.getState().setListening(false);
+    
+    switch (event.error) {
+      case 'network':
+        handleNetworkError();
+        break;
+      case 'audio-capture':
+        handleSpeechError(new ServiceError('speech', 'auth', 'No microphone detected'));
+        break;
+      case 'not-allowed':
+      case 'service-not-allowed':
+        handleSpeechError(new ServiceError('speech', 'auth', 'Microphone access denied'));
+        break;
+      case 'aborted':
+        // Ignore aborted errors as they're usually intentional
+        break;
+      default:
+        handleSpeechError(new ServiceError('speech', 'unknown', `Recognition error: ${event.error}`));
+    }
   };
-  
+
   recognition.onend = () => {
-    useChatStore.getState().setListening(false);
+    const store = useChatStore.getState();
+    if (store.isListening) {
+      // Only retry if we're still supposed to be listening
+      tryRestartRecognition();
+    } else {
+      store.setListening(false);
+    }
   };
+}
+
+function handleNetworkError(): void {
+  if (retryCount < MAX_RETRIES) {
+    retryCount++;
+    console.log(`Retrying speech recognition (attempt ${retryCount}/${MAX_RETRIES})...`);
+    setTimeout(() => {
+      tryRestartRecognition();
+    }, 1000 * retryCount); // Exponential backoff
+  } else {
+    handleSpeechError(new ServiceError(
+      'speech',
+      'network',
+      'Network connection failed after multiple retries'
+    ));
+  }
+}
+
+function tryRestartRecognition(): void {
+  try {
+    recognition?.start();
+  } catch (error) {
+    console.error('Error restarting speech recognition:', error);
+    handleSpeechError(error);
+  }
+}
+
+function handleSpeechError(error: any): void {
+  const store = useChatStore.getState();
+  store.setListening(false);
+  store.setSpeaking(false);
+  
+  if (error instanceof ServiceError) {
+    throw error;
+  }
+  
+  throw new ServiceError(
+    'speech',
+    'network',
+    error?.message || 'Speech recognition error',
+    error?.code || 500
+  );
 }
 
 export function startListening(): void {
-  if (!recognition) {
-    console.error('Speech recognition not supported');
+  if (!recognition || !isInitialized) {
+    initSpeechRecognition().then(() => {
+      tryStartListening();
+    }).catch((error) => {
+      console.error('Error initializing speech recognition:', error);
+      useChatStore.getState().setListening(false);
+    });
     return;
   }
-  
+
+  tryStartListening();
+}
+
+function tryStartListening(): void {
   try {
     useChatStore.getState().setListening(true);
-    recognition.start();
+    recognition?.start();
   } catch (error) {
     console.error('Error starting speech recognition:', error);
-    useChatStore.getState().setListening(false);
+    handleSpeechError(error);
   }
 }
 
@@ -104,28 +231,61 @@ export function stopListening(): void {
   }
 }
 
+// Add native TTS fallback
+async function speakWithNative(text: string): Promise<void> {
+  if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
+    throw new ServiceError('speech', 'unknown', 'Native speech synthesis not supported');
+  }
+
+  return new Promise((resolve, reject) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Try to find a suitable voice
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(voice => 
+      voice.name === FALLBACK_VOICE_NAME || 
+      (voice.lang === 'en-US' && voice.default)
+    );
+    
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+
+    utterance.onend = () => resolve();
+    utterance.onerror = (_error) => reject(new ServiceError('speech', 'unknown', 'Speech synthesis failed'));
+    
+    window.speechSynthesis.speak(utterance);
+  });
+}
+
 export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
-  if (!audioBuffer) return;
-  
-  const store = useChatStore.getState();
-  store.setSpeaking(true);
-  
   try {
-    const audioContext = new AudioContext();
-    const buffer = await audioContext.decodeAudioData(audioBuffer);
-    const source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(audioContext.destination);
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const audioSource = audioContext.createBufferSource();
     
-    source.onended = () => {
-      store.setSpeaking(false);
-      audioContext.close();
-    };
+    const decodedData = await audioContext.decodeAudioData(audioBuffer);
+    audioSource.buffer = decodedData;
+    audioSource.connect(audioContext.destination);
     
-    source.start();
+    return new Promise((resolve) => {
+      audioSource.onended = () => {
+        audioContext.close();
+        resolve();
+      };
+      audioSource.start(0);
+    });
   } catch (error) {
     console.error('Error playing audio:', error);
-    store.setSpeaking(false);
+    if (useNativeFallback) {
+      // Try native TTS as fallback
+      return await speakWithNative(new TextDecoder().decode(audioBuffer));
+    }
+    throw new ServiceError(
+      'speech',
+      'network',
+      'Failed to play audio' + (error instanceof Error ? `: ${error.message}` : ''),
+      304
+    );
   }
 }
 

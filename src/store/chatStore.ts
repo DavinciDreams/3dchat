@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ChatState, Message, Emotion, AppError } from '../types';
+import { ChatState, Message, Emotion } from '../types';
 
 export const MAX_MESSAGES = 10;
 

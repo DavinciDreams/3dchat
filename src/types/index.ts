@@ -116,8 +116,6 @@ export interface AppConfig {
 // Service response types
 export interface AIResponse {
   content: string;
-  emotion?: Emotion;
-  confidence?: number;
   error?: AppError;
 }
 
