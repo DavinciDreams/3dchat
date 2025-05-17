@@ -1,5 +1,7 @@
 import { create } from 'zustand';
-import { ChatState, Message } from '../types';
+import { ChatState, Message, Emotion, AppError } from '../types';
+
+export const MAX_MESSAGES = 10;
 
 export const useChatStore = create<ChatState>((set) => ({
   messages: [],
@@ -8,20 +10,27 @@ export const useChatStore = create<ChatState>((set) => ({
   isListening: false,
   emotion: 'neutral',
   
-  addMessage: (message) => set((state) => ({
-    messages: [
-      ...state.messages,
-      {
-        id: crypto.randomUUID(),
-        timestamp: Date.now(),
-        ...message,
-      }
-    ].slice(-10), // Keep only last 10 messages
-  })),
+  addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => set((state) => {
+    if (!message.content || !message.role) {
+      console.error('Invalid message format:', message);
+      return state;
+    }
+
+    return {
+      messages: [
+        ...state.messages,
+        {
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          ...message,
+        }
+      ].slice(-MAX_MESSAGES)
+    };
+  }),
   
-  setProcessing: (isProcessing) => set({ isProcessing }),
-  setSpeaking: (isSpeaking) => set({ isSpeaking }),
-  setListening: (isListening) => set({ isListening }),
-  setEmotion: (emotion) => set({ emotion }),
+  setProcessing: (isProcessing: boolean) => set({ isProcessing }),
+  setSpeaking: (isSpeaking: boolean) => set({ isSpeaking }),
+  setListening: (isListening: boolean) => set({ isListening }),
+  setEmotion: (emotion: Emotion) => set({ emotion }),
   clearMessages: () => set({ messages: [] }),
 }));

@@ -1,17 +1,51 @@
-import React, { useEffect, Suspense } from 'react';
-import { motion } from 'framer-motion';
-import { Brain, Volume2 } from 'lucide-react';
+import React, { useEffect, Suspense, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Brain, Volume2, VolumeX } from 'lucide-react';
 import { initSpeechRecognition } from './services/speechService';
+import { useChatStore } from './store/chatStore';
+import type { AppError } from './types';
 
 // Use lazy loading for performance optimization
 const ChatInterface = React.lazy(() => import('./components/ChatInterface'));
 const AvatarModel = React.lazy(() => import('./components/AvatarModel'));
 
-function App() {
+interface AppProps {
+  initialMuted?: boolean;
+}
+
+function App({ initialMuted = false }: AppProps) {
+  const [isMuted, setIsMuted] = useState(initialMuted);
+  const [error, setError] = useState<AppError | null>(null);
+  const { setProcessing } = useChatStore();
+
   // Initialize speech recognition on component mount
   useEffect(() => {
-    initSpeechRecognition();
-  }, []);
+    const initSpeech = async () => {
+      try {
+        setProcessing(true);
+        await initSpeechRecognition();
+      } catch (err) {
+        console.error('Failed to initialize speech recognition:', err);
+        setError({
+          type: 'auth',
+          message: 'Failed to initialize speech recognition'
+        });
+      } finally {
+        setProcessing(false);
+      }
+    };
+
+    initSpeech();
+
+    // Cleanup function
+    return () => {
+      setProcessing(false);
+    };
+  }, [setProcessing]);
+
+  const handleVolumeToggle = () => {
+    setIsMuted(prev => !prev);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white relative overflow-hidden">
@@ -51,14 +85,36 @@ function App() {
             className="flex gap-2"
           >
             <button 
+              onClick={handleVolumeToggle}
               className="p-2 bg-gray-800/50 rounded-full text-white/80 hover:text-white hover:bg-gray-700/50 transition-all"
-              title="Volume"
+              title={isMuted ? "Unmute" : "Mute"}
+              aria-label={isMuted ? "Unmute" : "Mute"}
             >
-              <Volume2 className="h-5 w-5" />
+              {isMuted ? (
+                <VolumeX className="h-5 w-5" />
+              ) : (
+                <Volume2 className="h-5 w-5" />
+              )}
             </button>
           </motion.div>
         </header>
         
+        {/* Error Messages */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="absolute top-20 left-0 right-0 flex justify-center z-20"
+            >
+              <div className="bg-red-500/90 text-white px-4 py-2 rounded-md shadow-lg">
+                {error.message}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Chat Interface */}
         <ChatInterface />
       </Suspense>
