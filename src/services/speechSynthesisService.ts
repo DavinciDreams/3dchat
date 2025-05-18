@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { ServiceError } from '../errors/AppError';
+import { useChatStore } from '../store/chatStore';
 
 const EDGE_TTS_ENDPOINT = import.meta.env.VITE_EDGE_TTS_ENDPOINT;
 const EDGE_TTS_API_KEY = import.meta.env.VITE_EDGE_TTS_API_KEY;
@@ -7,6 +8,7 @@ const VOICE_NAME = 'en-US-FableTurboMultilingualNeural';
 const FALLBACK_VOICE_NAME = 'Google US English';
 
 let useNativeFallback = false;
+let audioContext: AudioContext | null = null;
 
 export async function textToSpeech(text: string): Promise<ArrayBuffer | null> {
   if (useNativeFallback) {
@@ -70,9 +72,8 @@ async function speakWithNative(text: string): Promise<ArrayBuffer | null> {
     utterance.onerror = (error) => reject(new ServiceError(
       'speech',
       'unknown',
-      'Speech synthesis failed',
-      undefined,
-      error
+      'Speech synthesis failed: ' + error.error,
+      undefined
     ));
     
     window.speechSynthesis.speak(utterance);
@@ -80,22 +81,30 @@ async function speakWithNative(text: string): Promise<ArrayBuffer | null> {
 }
 
 export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
-  if (!audioBuffer) return;
-
   try {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const audioSource = audioContext.createBufferSource();
-    
+    // Initialize or resume AudioContext
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
+
+    // Decode the audio data
     const decodedData = await audioContext.decodeAudioData(audioBuffer);
-    audioSource.buffer = decodedData;
-    audioSource.connect(audioContext.destination);
-    
-    return new Promise((resolve) => {
-      audioSource.onended = () => {
-        audioContext.close();
+    const source = audioContext.createBufferSource();
+    source.buffer = decodedData;
+    source.connect(audioContext.destination);
+
+    // Play and handle completion
+    return new Promise((resolve, reject) => {
+      source.onended = () => {
         resolve();
       };
-      audioSource.start(0);
+      source.addEventListener('error', (error) => {
+        reject(new Error('Error playing audio: ' + error));
+      });
+      source.start(0);
     });
   } catch (error) {
     console.error('Error playing audio:', error);
@@ -103,8 +112,9 @@ export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
       'speech',
       'unknown',
       'Failed to play audio',
-      undefined,
-      error
+      0
     );
+  } finally {
+    useChatStore.getState().setSpeaking(false);
   }
 }

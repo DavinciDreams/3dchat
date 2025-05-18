@@ -74,40 +74,24 @@ const ChatInterface = (): JSX.Element => {
     isProcessing, 
     isSpeaking, 
     isListening,
-    addMessage,
-    setProcessing,
-    setSpeaking 
+    addMessage
   } = useChatStore();
 
   const handleMessage = async (content: string) => {
     try {
-      setProcessing(true);
       const response = await getAIResponse(content);
       if (response) {
-        addMessage({
-          role: 'assistant',
-          content: typeof response === 'string' ? response : response.content
-        });
-        
         const text = typeof response === 'string' ? response : response.content;
-        try {
-          setSpeaking(true);
-          const audioBuffer = await textToSpeech(text);
-          if (audioBuffer) {
-            await playAudio(audioBuffer);
-          }
-          setSpeaking(false);
-        } catch (speechError) {
-          console.error('Speech synthesis failed:', speechError);
-          setSpeaking(false);
-          // The fallback is handled in textToSpeech
+        useChatStore.getState().setSpeaking(true);
+        const audioBuffer = await textToSpeech(text);
+        if (audioBuffer) {
+          await playAudio(audioBuffer);
         }
       }
     } catch (error) {
       console.error('Error processing message:', error);
-      // Add error handling UI feedback here
     } finally {
-      setProcessing(false);
+      useChatStore.getState().setSpeaking(false);
     }
   };
 
