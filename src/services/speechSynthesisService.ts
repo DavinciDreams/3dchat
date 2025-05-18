@@ -36,7 +36,7 @@ export async function textToSpeech(text: string): Promise<ArrayBuffer | null> {
     );
 
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Text to speech error:', error);
     throw new ServiceError(
       'speech',
@@ -48,7 +48,7 @@ export async function textToSpeech(text: string): Promise<ArrayBuffer | null> {
   }
 }
 
-async function speakWithNative(text: string): Promise<ArrayBuffer | null> {
+export async function speakWithNative(text: string): Promise<ArrayBuffer | null> {
   return new Promise((resolve, reject) => {
     if (!window.speechSynthesis) {
       reject(new ServiceError('speech', 'auth', 'Speech synthesis not supported'));
@@ -61,7 +61,7 @@ async function speakWithNative(text: string): Promise<ArrayBuffer | null> {
     const voices = window.speechSynthesis.getVoices();
     const preferredVoice = voices.find(voice => 
       voice.name === FALLBACK_VOICE_NAME || 
-      (voice.lang === 'en-US' && voice.default)
+      (voice.lang === 'en-GB' && voice.default)
     );
     
     if (preferredVoice) {

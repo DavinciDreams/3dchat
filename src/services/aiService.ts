@@ -12,7 +12,7 @@ export interface SpeechResponse {
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const EDGE_TTS_ENDPOINT = import.meta.env.VITE_EDGE_TTS_ENDPOINT;
 const EDGE_TTS_API_KEY = import.meta.env.VITE_EDGE_TTS_API_KEY;
-const VOICE_NAME = 'en-US-AriaNeural';
+const VOICE_NAME = 'en-GB-LibbyNeural';
 
 export async function getAIResponse(input: string): Promise<AIResponse> {
   try {
@@ -65,7 +65,7 @@ export async function textToSpeech(text: string): Promise<ArrayBuffer | null> {
   try {
     const response = await axios.post(
       EDGE_TTS_ENDPOINT,
-      `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>
+      `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-GB'>
         <voice name='${VOICE_NAME}'>
           <prosody rate="0.9" pitch="+0%">
             ${text}
@@ -105,7 +105,7 @@ export async function speakWithNative(text: string): Promise<void> {
 
   return new Promise((resolve, reject) => {
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
+    utterance.lang = 'en-GB';
     utterance.rate = 0.9;
     
   utterance.onend = () => resolve();

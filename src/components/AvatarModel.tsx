@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, Suspense } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useChatStore } from '../store/chatStore';
@@ -12,11 +12,7 @@ const Character: React.FC<CharacterProps> = ({
   scale = 1,
   rotation = [0, 0, 0]
 }) => {
-  const { scene, animations } = useGLTF(MODEL_PATH, true, 
-    (error) => {
-      console.error('Error loading model:', error);
-    }
-  );
+  const { scene, animations } = useGLTF(MODEL_PATH, true);
   const store = useChatStore();
   const { emotion, isSpeaking } = store;
   

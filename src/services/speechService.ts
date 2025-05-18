@@ -244,7 +244,7 @@ async function speakWithNative(text: string): Promise<void> {
     const voices = window.speechSynthesis.getVoices();
     const preferredVoice = voices.find(voice => 
       voice.name === FALLBACK_VOICE_NAME || 
-      (voice.lang === 'en-US' && voice.default)
+      (voice.lang === 'en-GB' && voice.default)
     );
     
     if (preferredVoice) {
