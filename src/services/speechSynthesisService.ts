@@ -4,21 +4,16 @@ import { useChatStore } from '../store/chatStore';
 
 const EDGE_TTS_ENDPOINT = import.meta.env.VITE_EDGE_TTS_ENDPOINT;
 const EDGE_TTS_API_KEY = import.meta.env.VITE_EDGE_TTS_API_KEY;
-const VOICE_NAME = 'en-US-FableTurboMultilingualNeural';
+const VOICE_NAME = 'en-GB-AdaMultilingualNeural';
 const FALLBACK_VOICE_NAME = 'Google US English';
 
-let useNativeFallback = false;
 let audioContext: AudioContext | null = null;
 
 export async function textToSpeech(text: string): Promise<ArrayBuffer | null> {
-  if (useNativeFallback) {
-    return speakWithNative(text);
-  }
-
   try {
     const ssml = `
-      <speak version='1.0' xml:lang='en-US'>
-        <voice xml:lang='en-US' name='${VOICE_NAME}'>
+      <speak version='1.0' xml:lang='en-GB'>
+        <voice xml:lang='en-GB' name='${VOICE_NAME}'>
           <prosody rate="0.9" pitch="+0%">
             ${text}
           </prosody>
@@ -42,9 +37,14 @@ export async function textToSpeech(text: string): Promise<ArrayBuffer | null> {
 
     return response.data;
   } catch (error) {
-    console.error('Microsoft TTS error:', error);
-    useNativeFallback = true;
-    return speakWithNative(text);
+    console.error('Text to speech error:', error);
+    throw new ServiceError(
+      'speech',
+      'network',
+      'Text to speech failed',
+      undefined,
+      error?.response?.status || 500
+    );
   }
 }
 
