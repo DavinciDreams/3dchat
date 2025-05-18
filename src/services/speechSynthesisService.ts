@@ -4,7 +4,7 @@ import { useChatStore } from '../store/chatStore';
 
 const EDGE_TTS_ENDPOINT = import.meta.env.VITE_EDGE_TTS_ENDPOINT;
 const EDGE_TTS_API_KEY = import.meta.env.VITE_EDGE_TTS_API_KEY;
-const VOICE_NAME = 'en-GB-AdaMultilingualNeural';
+const VOICE_NAME = 'en-GB-LibbyNeural';
 const FALLBACK_VOICE_NAME = 'Google US English';
 
 let audioContext: AudioContext | null = null;
