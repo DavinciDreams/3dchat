@@ -1,9 +1,9 @@
 import axios from 'axios';
 import { ServiceError } from '../errors/AppError';
 
-const EDGE_TTS_ENDPOINT = 'https://eastus.tts.speech.microsoft.com/cognitiveservices/v1';
+const EDGE_TTS_ENDPOINT = import.meta.env.VITE_EDGE_TTS_ENDPOINT;
 const EDGE_TTS_API_KEY = import.meta.env.VITE_EDGE_TTS_API_KEY;
-const VOICE_NAME = 'en-US-AriaNeural';
+const VOICE_NAME = 'en-US-FableTurboMultilingualNeural';
 const FALLBACK_VOICE_NAME = 'Google US English';
 
 let useNativeFallback = false;
@@ -14,26 +14,30 @@ export async function textToSpeech(text: string): Promise<ArrayBuffer | null> {
   }
 
   try {
-    const response = await axios.post(
-      EDGE_TTS_ENDPOINT,
-      `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>
-        <voice name='${VOICE_NAME}'>
+    const ssml = `
+      <speak version='1.0' xml:lang='en-US'>
+        <voice xml:lang='en-US' name='${VOICE_NAME}'>
           <prosody rate="0.9" pitch="+0%">
             ${text}
           </prosody>
         </voice>
-      </speak>`,
+      </speak>
+    `.trim();
+
+    const response = await axios.post(
+      `${EDGE_TTS_ENDPOINT}cognitiveservices/v1`,
+      ssml,
       {
         headers: {
           'Ocp-Apim-Subscription-Key': EDGE_TTS_API_KEY,
-          'Content-Type': 'application/ssml+xml',
           'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3',
-          'Cache-Control': 'no-cache',
+          'Content-Type': 'application/ssml+xml',
+          'User-Agent': '3dchat-assistant'
         },
         responseType: 'arraybuffer'
       }
     );
-    
+
     return response.data;
   } catch (error) {
     console.error('Microsoft TTS error:', error);
