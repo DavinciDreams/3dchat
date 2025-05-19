@@ -8,7 +8,7 @@ import { VisemeData, CharacterProps, SceneProps } from '../types';
 const MODEL_PATH = '/model/An_ancient_android_gold_dress.glb';
 
 const Character: React.FC<CharacterProps> = ({
-  position = [0, -1, 0],
+  position = [0, 0, 0],
   scale = 1,
   rotation = [0, 0, 0]
 }) => {
@@ -19,19 +19,17 @@ const Character: React.FC<CharacterProps> = ({
   const mixer = useRef<THREE.AnimationMixer | null>(null);
   const currentActions = useRef<Record<string, THREE.AnimationAction>>({});
   const lastUpdate = useRef<number>(0);
-  const frameSkip = useRef<number>(1); // Adjust this value to skip frames if needed
+  const frameSkip = useRef<number>(1);
 
   useEffect(() => {
     if (scene) {
       mixer.current = new THREE.AnimationMixer(scene);
       
-      // Load and setup animations
       animations.forEach(clip => {
         const action = mixer.current!.clipAction(clip);
         currentActions.current[clip.name] = action;
       });
 
-      // Start idle animation
       if (currentActions.current['idle']) {
         currentActions.current['idle'].play();
       }
@@ -75,19 +73,16 @@ const Character: React.FC<CharacterProps> = ({
   }, [emotion, isSpeaking]);
 
   useFrame((_, delta) => {
-    // Skip frames if performance is low
     if (frameSkip.current > 1) {
       lastUpdate.current++;
       if (lastUpdate.current % frameSkip.current !== 0) return;
     }
 
-    // Only update mixer if it exists and delta is reasonable
     if (mixer.current && delta < 0.1) {
       mixer.current.update(delta);
     }
   });
 
-  // Monitor performance and adjust frame skip
   useEffect(() => {
     let frameCount = 0;
     let lastTime = performance.now();
@@ -96,10 +91,9 @@ const Character: React.FC<CharacterProps> = ({
       const currentTime = performance.now();
       const elapsed = currentTime - lastTime;
       
-      if (elapsed >= 1000) { // Check every second
+      if (elapsed >= 1000) {
         const fps = frameCount / (elapsed / 1000);
         
-        // Adjust frame skip based on FPS
         if (fps < 30) {
           frameSkip.current = 2;
         } else if (fps < 20) {
@@ -132,25 +126,6 @@ const Character: React.FC<CharacterProps> = ({
 
 useGLTF.preload(MODEL_PATH);
 
-interface VisemeBlendshapesProps {
-  onVisemeUpdate?: (visemes: VisemeData[]) => void;
-}
-
-const VisemeBlendshapes: React.FC<VisemeBlendshapesProps> = ({ onVisemeUpdate }) => {
-  const { isSpeaking } = useChatStore();
-
-  useEffect(() => {
-    if (!isSpeaking) return;
-
-    // Implement viseme updates here
-    const visemes: VisemeData[] = [];
-    onVisemeUpdate?.(visemes);
-
-  }, [isSpeaking, onVisemeUpdate]);
-
-  return null;
-};
-
 const MemoizedCharacter = React.memo(Character);
 
 const Scene: React.FC<SceneProps> = ({
@@ -163,11 +138,10 @@ const Scene: React.FC<SceneProps> = ({
         position={[10, 10, 5]}
         intensity={1}
         castShadow={shadows}
-        shadow-mapSize={[1024, 1024]} // Reduced shadow map size
+        shadow-mapSize={[1024, 1024]}
       />
       <Suspense fallback={null}>
         <MemoizedCharacter />
-        <VisemeBlendshapes />
       </Suspense>
       
       <OrbitControls
@@ -175,8 +149,9 @@ const Scene: React.FC<SceneProps> = ({
         enableZoom={true}
         minPolarAngle={Math.PI / 4}
         maxPolarAngle={Math.PI / 2}
-        minDistance={2}
-        maxDistance={5}
+        minDistance={1.5}
+        maxDistance={3}
+        target={[0, 1.5, 0]}
         enableDamping={true}
         dampingFactor={0.05}
       />
@@ -190,7 +165,7 @@ const AvatarModel: React.FC = () => {
       <Canvas
         shadows
         gl={{
-          antialias: false, // Disable antialiasing for better performance
+          antialias: false,
           alpha: true,
           powerPreference: 'high-performance',
           precision: 'lowp',
@@ -199,13 +174,13 @@ const AvatarModel: React.FC = () => {
           fov: 45,
           near: 1,
           far: 1000,
-          position: [0, 1.5, 3]
+          position: [0, 1.75, 2]
         }}
         performance={{
-          min: 0.5, // Minimum frame rate before quality reduction
-          max: 1 // Maximum quality
+          min: 0.5,
+          max: 1
         }}
-        dpr={[1, 2]} // Limit pixel ratio range
+        dpr={[1, 2]}
       >
         <Scene />
       </Canvas>
