@@ -1,71 +1,67 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, MicOff, Loader2 } from 'lucide-react';
+import { Send, Mic, MicOff, Loader2, Copy, Download, StopCircle, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChatStore } from '../store/chatStore';
 import { getAIResponse } from '../services/aiService';
 import { startListening, stopListening } from '../services/speechService';
-let audioContext: AudioContext | null = null;
-
-export const textToSpeech = async (text: string): Promise<ArrayBuffer | null> => {
-  try {
-    const response = await fetch('/api/tts', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ text }),
-    });
-
-    if (!response.ok) {
-      throw new Error('TTS request failed');
-    }
-
-    return await response.arrayBuffer();
-  } catch (error) {
-    console.error('Text-to-speech error:', error);
-    return null;
-  }
-};
-
-export const playAudio = async (audioBuffer: ArrayBuffer): Promise<void> => {
-  try {
-    if (!audioContext) {
-      audioContext = new AudioContext();
-    }
-
-    const source = audioContext.createBufferSource();
-    const decodedBuffer = await audioContext.decodeAudioData(audioBuffer);
-    
-    source.buffer = decodedBuffer;
-    source.connect(audioContext.destination);
-    source.start(0);
-
-    return new Promise((resolve) => {
-      source.onended = () => resolve();
-    });
-  } catch (error) {
-    console.error('Audio playback error:', error);
-    throw error;
-  }
-};
+import { supabase } from '../lib/supabaseClient';
 import { ChatMessageProps, ServiceError } from '../types';
 
-const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => (
-  <div className={`mb-4 ${message.role === 'user' ? 'text-right' : ''}`}>
-    <div 
-      className={`inline-block px-4 py-2 rounded-lg max-w-[80%] ${
-        message.role === 'user' 
-          ? 'bg-teal-500 text-white rounded-tr-none'
-          : 'bg-gray-700 text-white rounded-tl-none'
-      }`}
-    >
-      {message.content}
+const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
+  const copyToClipboard = async () => {
+    await navigator.clipboard.writeText(message.content);
+  };
+
+  const downloadText = () => {
+    const blob = new Blob([message.content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat-message-${new Date().toISOString()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className={`mb-4 ${message.role === 'user' ? 'text-right' : ''}`}>
+      <div className="flex items-start gap-2">
+        {message.role === 'assistant' && (
+          <div className="flex flex-col gap-1">
+            <button
+              onClick={copyToClipboard}
+              className="p-1 hover:bg-gray-700 rounded"
+              title="Copy message"
+            >
+              <Copy size={14} />
+            </button>
+            <button
+              onClick={downloadText}
+              className="p-1 hover:bg-gray-700 rounded"
+              title="Download message"
+            >
+              <Download size={14} />
+            </button>
+          </div>
+        )}
+        <div 
+          className={`inline-block px-4 py-2 rounded-lg max-w-[80%] ${
+            message.role === 'user' 
+              ? 'bg-teal-500 text-white rounded-tr-none'
+              : 'bg-gray-700 text-white rounded-tl-none'
+          }`}
+        >
+          {message.content}
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const ChatInterface = (): JSX.Element => {
   const [input, setInput] = useState<string>('');
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   
@@ -74,14 +70,46 @@ const ChatInterface = (): JSX.Element => {
     isProcessing, 
     isSpeaking, 
     isListening,
-    addMessage
+    addMessage,
+    clearMessages
   } = useChatStore();
+
+  useEffect(() => {
+    const createNewChat = async () => {
+      const { data, error } = await supabase
+        .from('chats')
+        .insert([{ created_at: new Date().toISOString() }])
+        .select();
+
+      if (error) {
+        console.error('Error creating new chat:', error);
+        return;
+      }
+
+      if (data && data[0]) {
+        setCurrentChatId(data[0].id);
+      }
+    };
+
+    createNewChat();
+  }, []);
 
   const handleMessage = async (content: string) => {
     try {
       const response = await getAIResponse(content);
       if (response) {
         const text = typeof response === 'string' ? response : response.content;
+        
+        if (currentChatId) {
+          await supabase
+            .from('chat_messages')
+            .insert([{
+              chat_id: currentChatId,
+              content: text,
+              role: 'assistant'
+            }]);
+        }
+
         useChatStore.getState().setSpeaking(true);
         const audioBuffer = await textToSpeech(text);
         if (audioBuffer) {
@@ -102,18 +130,51 @@ const ChatInterface = (): JSX.Element => {
     if (!trimmedInput || isProcessing) return;
     
     try {
+      if (currentChatId) {
+        await supabase
+          .from('chat_messages')
+          .insert([{
+            chat_id: currentChatId,
+            content: trimmedInput,
+            role: 'user'
+          }]);
+      }
+
       addMessage({
         role: 'user',
-        content: input.trim()
+        content: trimmedInput
       });
       
       setInput('');
       
-      await handleMessage(input);
+      await handleMessage(trimmedInput);
     } catch (error) {
       console.error('Error processing message:', error);
-      // Add error handling UI feedback here
     }
+  };
+
+  const handleNewChat = async () => {
+    clearMessages();
+    const { data, error } = await supabase
+      .from('chats')
+      .insert([{ created_at: new Date().toISOString() }])
+      .select();
+
+    if (error) {
+      console.error('Error creating new chat:', error);
+      return;
+    }
+
+    if (data && data[0]) {
+      setCurrentChatId(data[0].id);
+    }
+  };
+
+  const handleStopSpeaking = () => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    useChatStore.getState().setSpeaking(false);
   };
 
   const handleMicToggle = async () => {
@@ -126,20 +187,17 @@ const ChatInterface = (): JSX.Element => {
     } catch (error) {
       console.error('Error toggling microphone:', error);
       if ((error as ServiceError)?.type === 'auth') {
-        // Handle permission errors
         alert('Please allow microphone access to use speech recognition');
       }
     }
   };
 
-  // Focus input when listening stops
   useEffect(() => {
     if (!isListening && inputRef.current) {
       inputRef.current.focus();
     }
   }, [isListening]);
 
-  // Auto-scroll to bottom when messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -151,7 +209,25 @@ const ChatInterface = (): JSX.Element => {
         animate={{ opacity: 1, y: 0 }}
         className="bg-white/10 backdrop-blur-md rounded-t-xl overflow-hidden border border-white/20 shadow-lg"
       >
-        {/* Messages */}
+        <div className="flex items-center justify-between p-2 border-b border-white/10">
+          <button
+            onClick={handleNewChat}
+            className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-gray-700 transition-colors"
+          >
+            <Plus size={16} />
+            <span>New Chat</span>
+          </button>
+          {isSpeaking && (
+            <button
+              onClick={handleStopSpeaking}
+              className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-gray-700 transition-colors text-red-400"
+            >
+              <StopCircle size={16} />
+              <span>Stop Speaking</span>
+            </button>
+          )}
+        </div>
+
         <div className="h-[30vh] overflow-y-auto py-4 px-6 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent">
           <AnimatePresence>
             {messages.length === 0 ? (
@@ -179,7 +255,6 @@ const ChatInterface = (): JSX.Element => {
           <div ref={messagesEndRef} />
         </div>
         
-        {/* Input form */}
         <form 
           onSubmit={handleSubmit}
           className="flex items-center p-3 border-t border-white/10 bg-white/5"
@@ -229,7 +304,6 @@ const ChatInterface = (): JSX.Element => {
         </form>
       </motion.div>
       
-      {/* Processing indicators */}
       <AnimatePresence>
         {(isProcessing || isSpeaking) && (
           <motion.div 
