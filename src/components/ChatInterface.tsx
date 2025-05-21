@@ -76,9 +76,21 @@ const ChatInterface = (): JSX.Element => {
 
   useEffect(() => {
     const createNewChat = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        console.error('No authenticated user found');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('chats')
-        .insert([{ created_at: new Date().toISOString() }])
+        .insert([{ 
+          created_at: new Date().toISOString(),
+          user_id: user.id
+        }])
         .select();
 
       if (error) {
@@ -155,9 +167,21 @@ const ChatInterface = (): JSX.Element => {
 
   const handleNewChat = async () => {
     clearMessages();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      console.error('No authenticated user found');
+      return;
+    }
+
     const { data, error } = await supabase
       .from('chats')
-      .insert([{ created_at: new Date().toISOString() }])
+      .insert([{ 
+        created_at: new Date().toISOString(),
+        user_id: user.id
+      }])
       .select();
 
     if (error) {
