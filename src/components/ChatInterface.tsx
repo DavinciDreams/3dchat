@@ -62,6 +62,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
 const ChatInterface = (): JSX.Element => {
   const [input, setInput] = useState<string>('');
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   
@@ -75,38 +76,38 @@ const ChatInterface = (): JSX.Element => {
   } = useChatStore();
 
   useEffect(() => {
-    const createNewChat = async () => {
+    const checkAuth = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      setIsAuthenticated(!!user);
 
-      if (!user) {
-        console.error('No authenticated user found');
-        return;
-      }
+      if (user) {
+        const { data, error } = await supabase
+          .from('chats')
+          .insert([{ 
+            created_at: new Date().toISOString(),
+            user_id: user.id
+          }])
+          .select();
 
-      const { data, error } = await supabase
-        .from('chats')
-        .insert([{ 
-          created_at: new Date().toISOString(),
-          user_id: user.id
-        }])
-        .select();
+        if (error) {
+          console.error('Error creating new chat:', error);
+          return;
+        }
 
-      if (error) {
-        console.error('Error creating new chat:', error);
-        return;
-      }
-
-      if (data && data[0]) {
-        setCurrentChatId(data[0].id);
+        if (data && data[0]) {
+          setCurrentChatId(data[0].id);
+        }
       }
     };
 
-    createNewChat();
+    checkAuth();
   }, []);
 
   const handleMessage = async (content: string) => {
+    if (!isAuthenticated) return;
+
     try {
       const response = await getAIResponse(content);
       if (response) {
@@ -138,6 +139,11 @@ const ChatInterface = (): JSX.Element => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
+    if (!isAuthenticated) {
+      alert('Please log in to send messages');
+      return;
+    }
+
     const trimmedInput = input.trim();
     if (!trimmedInput || isProcessing) return;
     
@@ -166,6 +172,11 @@ const ChatInterface = (): JSX.Element => {
   };
 
   const handleNewChat = async () => {
+    if (!isAuthenticated) {
+      alert('Please log in to start a new chat');
+      return;
+    }
+
     clearMessages();
     const {
       data: { user },
@@ -202,6 +213,11 @@ const ChatInterface = (): JSX.Element => {
   };
 
   const handleMicToggle = async () => {
+    if (!isAuthenticated) {
+      alert('Please log in to use voice input');
+      return;
+    }
+
     try {
       if (isListening) {
         await stopListening();
@@ -261,7 +277,11 @@ const ChatInterface = (): JSX.Element => {
                 exit={{ opacity: 0 }}
                 className="flex h-full items-center justify-center text-white/70 text-center px-4"
               >
-                <p>Ask me anything! I'm a 3D AI assistant ready to help you.</p>
+                <p>
+                  {isAuthenticated 
+                    ? "Ask me anything! I'm a 3D AI assistant ready to help you."
+                    : "Please log in to start chatting with the AI assistant."}
+                </p>
               </motion.div>
             ) : (
               messages.map((message) => (
@@ -287,12 +307,12 @@ const ChatInterface = (): JSX.Element => {
             type="button"
             whileTap={{ scale: 0.9 }}
             onClick={handleMicToggle}
-            disabled={isProcessing}
+            disabled={isProcessing || !isAuthenticated}
             className={`p-2 rounded-full mr-2 transition-colors ${
               isListening 
                 ? 'bg-red-500 text-white' 
                 : 'bg-gray-700 text-white hover:bg-gray-600'
-            } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+            } ${(isProcessing || !isAuthenticated) ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isListening ? (
               <MicOff className="h-5 w-5" />
@@ -306,17 +326,23 @@ const ChatInterface = (): JSX.Element => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            disabled={isProcessing || isListening}
-            placeholder={isListening ? "Listening..." : "Type your message..."}
+            disabled={isProcessing || isListening || !isAuthenticated}
+            placeholder={
+              !isAuthenticated 
+                ? "Please log in to chat" 
+                : isListening 
+                  ? "Listening..." 
+                  : "Type your message..."
+            }
             className="flex-1 bg-transparent border border-white/20 rounded-md px-4 py-2 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-teal-500/50 disabled:opacity-50"
           />
           
           <motion.button
             type="submit"
             whileTap={{ scale: 0.9 }}
-            disabled={!input.trim() || isProcessing}
+            disabled={!input.trim() || isProcessing || !isAuthenticated}
             className={`p-2 rounded-full ml-2 bg-teal-500 text-white transition-opacity hover:bg-teal-400 ${
-              !input.trim() || isProcessing ? 'opacity-50 cursor-not-allowed' : ''
+              !input.trim() || isProcessing || !isAuthenticated ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
             {isProcessing ? (
