@@ -13,6 +13,7 @@ const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const EDGE_TTS_ENDPOINT = import.meta.env.VITE_EDGE_TTS_ENDPOINT;
 const EDGE_TTS_API_KEY = import.meta.env.VITE_EDGE_TTS_API_KEY;
 const VOICE_NAME = 'en-GB-LibbyNeural';
+const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'qwen/qwen3-235b-a22b:free';
 
 export async function getAIResponse(input: string): Promise<AIResponse> {
   try {
@@ -23,7 +24,7 @@ export async function getAIResponse(input: string): Promise<AIResponse> {
     const response = await axios.post(
       'https://openrouter.ai/api/v1/chat/completions',
       {
-        model: 'qwen/qwen3-235b-a22b:free',
+        model: OPENROUTER_MODEL,
         messages: [
           ...store.messages.map(msg => ({
             role: msg.role,
