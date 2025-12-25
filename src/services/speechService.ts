@@ -1,5 +1,6 @@
 import { useChatStore } from '../store/chatStore';
-import { getAIResponse, textToSpeech } from './aiService';
+import { getAIResponse } from './aiService';
+import { textToSpeech, playAudio } from './speechSynthesisService';
 import { SpeechResponse } from '../types';
 import { ServiceError } from '../errors/AppError';
 
@@ -41,35 +42,27 @@ let isInitialized = false;
 let retryCount = 0;
 const MAX_RETRIES = 3;
 
-// Configuration
-const FALLBACK_VOICE_NAME = 'Google US English';
-let useNativeFallback = false;
-
 export async function initSpeechRecognition(): Promise<void> {
   try {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
     if (!SpeechRecognition) {
-      useNativeFallback = true;
-      console.warn('Using browser native speech fallback');
+      console.warn('Speech recognition not supported');
     }
 
     // Check for microphone permission before initializing
     await checkMicrophonePermission();
 
-    if (!useNativeFallback) {
-      recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.lang = 'en-US';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-      setupRecognitionHandlers();
-    }
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    setupRecognitionHandlers();
 
     isInitialized = true;
   } catch (error) {
     console.error('Error initializing speech recognition:', error);
-    useNativeFallback = true;
   }
 }
 
@@ -228,64 +221,6 @@ export function stopListening(): void {
     useChatStore.getState().setListening(false);
   } catch (error) {
     console.error('Error stopping speech recognition:', error);
-  }
-}
-
-// Add native TTS fallback
-async function speakWithNative(text: string): Promise<void> {
-  if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
-    throw new ServiceError('speech', 'unknown', 'Native speech synthesis not supported');
-  }
-
-  return new Promise((resolve, reject) => {
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Try to find a suitable voice
-    const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(voice => 
-      voice.name === FALLBACK_VOICE_NAME || 
-      (voice.lang === 'en-GB' && voice.default)
-    );
-    
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
-    }
-
-    utterance.onend = () => resolve();
-    utterance.onerror = (_error) => reject(new ServiceError('speech', 'unknown', 'Speech synthesis failed'));
-    
-    window.speechSynthesis.speak(utterance);
-  });
-}
-
-export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
-  try {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const audioSource = audioContext.createBufferSource();
-    
-    const decodedData = await audioContext.decodeAudioData(audioBuffer);
-    audioSource.buffer = decodedData;
-    audioSource.connect(audioContext.destination);
-    
-    return new Promise((resolve) => {
-      audioSource.onended = () => {
-        audioContext.close();
-        resolve();
-      };
-      audioSource.start(0);
-    });
-  } catch (error) {
-    console.error('Error playing audio:', error);
-    if (useNativeFallback) {
-      // Try native TTS as fallback
-      return await speakWithNative(new TextDecoder().decode(audioBuffer));
-    }
-    throw new ServiceError(
-      'speech',
-      'network',
-      'Failed to play audio' + (error instanceof Error ? `: ${error.message}` : ''),
-      304
-    );
   }
 }
 
