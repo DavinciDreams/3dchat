@@ -45,7 +45,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-md mx-auto bg-gradient-to-br from-blue-700 via-blue-500 to-teal-400 p-8 rounded-xl shadow-2xl border border-blue-200/30"
+      className="w-full max-w-md mx-auto bg-gradient-to-br from-blue-700 via-blue-500 to-teal-400 p-8 rounded-xl shadow-2xl border border-blue-200/30 z-30 relative"
+      style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}
     >
       <h2 className="text-2xl font-bold mb-6 text-center">
         {isLogin ? 'Welcome Back' : 'Create Account'}
