@@ -46,7 +46,8 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     if (scene) {
       scene.position.set(position[0], position[1], position[2]);
       scene.scale.setScalar(scale);
-      scene.rotation.set(rotation[0], rotation[1], rotation[2]);
+      // Rotate 180 degrees around Y-axis to face the camera
+      scene.rotation.set(rotation[0], rotation[1] + Math.PI, rotation[2]);
       
       // Setup animation mixer
       mixer.current = new THREE.AnimationMixer(scene);
