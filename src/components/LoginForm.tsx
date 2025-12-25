@@ -45,7 +45,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-md mx-auto bg-white/10 backdrop-blur-lg p-6 rounded-lg shadow-xl border border-white/20"
+      className="w-full max-w-md mx-auto bg-gradient-to-br from-blue-700 via-blue-500 to-teal-400 p-8 rounded-xl shadow-2xl border border-blue-200/30"
     >
       <h2 className="text-2xl font-bold mb-6 text-center">
         {isLogin ? 'Welcome Back' : 'Create Account'}
@@ -53,7 +53,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium mb-1">
+          <label htmlFor="email" className="block text-sm font-semibold mb-1 text-white drop-shadow">
             Email
           </label>
           <input
@@ -61,14 +61,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2 rounded-md bg-white/5 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+            className="w-full px-4 py-2 rounded-md bg-white/90 border border-blue-200 text-blue-900 placeholder:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/70 shadow"
             placeholder="Enter your email"
             required
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium mb-1">
+          <label htmlFor="password" className="block text-sm font-semibold mb-1 text-white drop-shadow">
             Password
           </label>
           <input
@@ -76,7 +76,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2 rounded-md bg-white/5 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+            className="w-full px-4 py-2 rounded-md bg-white/90 border border-blue-200 text-blue-900 placeholder:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/70 shadow"
             placeholder="Enter your password"
             required
           />
@@ -95,7 +95,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2 px-4 bg-teal-500 text-white rounded-md hover:bg-teal-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow"
         >
           {loading ? (
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -115,7 +115,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         <button
           type="button"
           onClick={() => setIsLogin(!isLogin)}
-          className="w-full text-sm text-white/70 hover:text-white transition-colors"
+          className="w-full text-sm text-white/90 hover:text-yellow-200 transition-colors mt-2 drop-shadow"
         >
           {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
         </button>
