@@ -1,51 +1,117 @@
-import React, { useRef, useEffect, Suspense } from 'react';
+import React, { useRef, useEffect, Suspense, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useChatStore } from '../store/chatStore';
-import { VisemeData, CharacterProps, SceneProps } from '../types';
+import { CharacterProps, SceneProps } from '../types';
+
+export interface ExtendedCharacterProps extends CharacterProps {
+  selectedModel?: string;
+}
+
+
+// Available VRM models with blend shapes
+const VRM_MODELS: Record<string, string> = {
+  'Billy.vrm': '/model/Billy.vrm',
+  'Glenda.vrm': '/model/Glenda.vrm',
+  'Peach.vrm': '/model/peach.vrm'
+};
+
+const DEFAULT_MODEL = 'Billy.vrm'; // Billy.vrm likely has better blend shapes
 
 const MODEL_PATH = '/model/An_ancient_android_gold_dress.glb';
+const MODEL_PATH_VRM = '/model/Billy.vrm';
 
-const Character: React.FC<CharacterProps> = ({
+const Character: React.FC<ExtendedCharacterProps> = ({
   position = [0, 0, 0],
   scale = 1,
-  rotation = [0, 0, 0]
+  rotation = [0, 0, 0],
+  selectedModel,
 }) => {
-  const { scene, animations } = useGLTF(MODEL_PATH, true);
   const store = useChatStore();
-  const { emotion, isSpeaking } = store;
+  const { emotion, isSpeaking, visemes } = store;
   
   const mixer = useRef<THREE.AnimationMixer | null>(null);
   const currentActions = useRef<Record<string, THREE.AnimationAction>>({});
+  const lastVisemeIndex = useRef<number>(-1);
+  const visemeStartTime = useRef<number>(0);
   const lastUpdate = useRef<number>(0);
   const frameSkip = useRef<number>(1);
 
+  // Load VRM model
+  const gltf = useGLTF(MODEL_PATH_VRM);
+  const scene = gltf.scene;
+
   useEffect(() => {
     if (scene) {
+      scene.position.set(position[0], position[1], position[2]);
+      scene.scale.setScalar(scale);
+      scene.rotation.set(rotation[0], rotation[1], rotation[2]);
+      
+      // Setup animation mixer
       mixer.current = new THREE.AnimationMixer(scene);
+      const animations = gltf.animations;
       
       animations.forEach(clip => {
         const action = mixer.current!.clipAction(clip);
         currentActions.current[clip.name] = action;
       });
 
+      // Start idle animation if available
       if (currentActions.current['idle']) {
         currentActions.current['idle'].play();
       }
+      
+      console.log('VRM model loaded:', gltf);
+      console.log('Available animations:', animations.map(a => a.name));
     }
-
+    
     return () => {
       if (mixer.current) {
         mixer.current.stopAllAction();
       }
     };
-  }, [scene, animations]);
+  }, [position, scale, rotation, selectedModel]);
 
+  // Handle viseme animation (simplified for GLB model - log viseme changes)
+useFrame((_, delta) => {
+  if (frameSkip.current > 1) {
+    lastUpdate.current++;
+    if (lastUpdate.current % frameSkip.current !== 0) return;
+  }
+
+  if (mixer.current && delta < 0.1) {
+    mixer.current.update(delta);
+  }
+
+  // Handle viseme animation when speaking
+  if (isSpeaking && visemes.length > 0) {
+    const currentTime = visemeStartTime.current + delta;
+    const viseme = visemes[Math.floor(currentTime / 0.15) % visemes.length];
+    
+    // Only update when viseme changes
+    const currentViseme = visemes[lastVisemeIndex.current];
+    if (viseme !== currentViseme?.name) {
+      // Log viseme change for debugging
+      console.log('Viseme change:', currentViseme?.name, '->', viseme);
+      
+      lastVisemeIndex.current = visemes.findIndex(v => v.name === viseme);
+      if (lastVisemeIndex.current !== -1) {
+        visemeStartTime.current = currentTime;
+      }
+    } else {
+      visemeStartTime.current = currentTime;
+    }
+  } else if (!isSpeaking) {
+    lastVisemeIndex.current = -1;
+  }
+});
+
+  // Handle emotion animations
   useEffect(() => {
     if (!mixer.current || !currentActions.current) return;
 
-    const fadeToAction = (actionName: string, duration: number = 0.5) => {
+    const fadeToAction = (actionName: string, duration: number = 0.3) => {
       const action = currentActions.current[actionName];
       if (!action) return;
 
@@ -72,17 +138,7 @@ const Character: React.FC<CharacterProps> = ({
     }
   }, [emotion, isSpeaking]);
 
-  useFrame((_, delta) => {
-    if (frameSkip.current > 1) {
-      lastUpdate.current++;
-      if (lastUpdate.current % frameSkip.current !== 0) return;
-    }
-
-    if (mixer.current && delta < 0.1) {
-      mixer.current.update(delta);
-    }
-  });
-
+  // Performance monitoring
   useEffect(() => {
     let frameCount = 0;
     let lastTime = performance.now();
@@ -114,17 +170,8 @@ const Character: React.FC<CharacterProps> = ({
     return () => cancelAnimationFrame(handle);
   }, []);
 
-  return (
-    <primitive 
-      object={scene} 
-      position={position} 
-      scale={scale} 
-      rotation={rotation} 
-    />
-  );
+  return scene ? <primitive object={scene} /> : null;
 };
-
-useGLTF.preload(MODEL_PATH);
 
 const MemoizedCharacter = React.memo(Character);
 
@@ -133,12 +180,16 @@ const Scene: React.FC<SceneProps> = ({
 }) => {
   return (
     <>
-      <ambientLight intensity={0.5} />
+      <ambientLight intensity={0.6} />
       <directionalLight
-        position={[10, 10, 5]}
-        intensity={1}
+        position={[5, 10, 7.5]}
+        intensity={1.2}
         castShadow={shadows}
         shadow-mapSize={[1024, 1024]}
+      />
+      <directionalLight
+        position={[-5, 5, -5]}
+        intensity={0.3}
       />
       <Suspense fallback={null}>
         <MemoizedCharacter />
@@ -147,11 +198,11 @@ const Scene: React.FC<SceneProps> = ({
       <OrbitControls
         enablePan={false}
         enableZoom={true}
-        minPolarAngle={Math.PI / 4}
-        maxPolarAngle={Math.PI / 2}
-        minDistance={1.5}
-        maxDistance={3}
-        target={[0, 1.5, 0]}
+        minPolarAngle={Math.PI / 6}
+        maxPolarAngle={Math.PI / 2.2}
+        minDistance={2}
+        maxDistance={5}
+        target={[0, 1.2, 0]}
         enableDamping={true}
         dampingFactor={0.05}
       />
@@ -171,10 +222,10 @@ const AvatarModel: React.FC = () => {
           precision: 'lowp',
         }}
         camera={{
-          fov: 45,
-          near: 1,
-          far: 1000,
-          position: [0, 1.75, 2]
+          fov: 40,
+          near: 0.1,
+          far: 100,
+          position: [0, 1.4, 3.5]
         }}
         performance={{
           min: 0.5,
