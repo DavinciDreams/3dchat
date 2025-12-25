@@ -3,13 +3,21 @@ import {
 } from 'edge-tts-universal';
 import { ServiceError } from '../errors/AppError';
 import { useChatStore } from '../store/chatStore';
+import { VisemeData } from '../types';
+import { textToVisemes } from './visemeService';
 
 const VOICE_NAME = 'en-GB-LibbyNeural';
 const FALLBACK_VOICE_NAME = 'Google US English';
 
 let audioContext: AudioContext | null = null;
 
-export async function textToSpeech(text: string): Promise<ArrayBuffer | null> {
+export interface TTSResult {
+  audioBuffer: ArrayBuffer;
+  visemes: VisemeData[];
+  duration: number;
+}
+
+export async function textToSpeech(text: string): Promise<TTSResult | null> {
   try {
     const tts = new EdgeTTS(text, VOICE_NAME, {
       rate: '+0%',
@@ -22,7 +30,18 @@ export async function textToSpeech(text: string): Promise<ArrayBuffer | null> {
     }
     // result.audio is a Blob in browser, convert to ArrayBuffer
     const arrayBuffer = await result.audio.arrayBuffer();
-    return arrayBuffer;
+    
+    // Generate visemes from the text
+    const visemes = textToVisemes(text);
+    
+    // Estimate duration from audio (will be refined when played)
+    const duration = text.length * 0.15; // Rough estimate
+    
+    return {
+      audioBuffer: arrayBuffer,
+      visemes,
+      duration
+    };
   } catch (error) {
     console.error('Text to speech error:', error);
     let statusCode = 500;

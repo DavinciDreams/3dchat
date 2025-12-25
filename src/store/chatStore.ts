@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ChatState, Message, Emotion } from '../types';
+import { ChatState, Message, Emotion, VisemeData } from '../types';
 
 export const MAX_MESSAGES = 10;
 
@@ -10,6 +10,8 @@ export const useChatStore = create<ChatState>((set) => ({
   isListening: false,
   isMuted: false,
   emotion: 'neutral',
+  visemes: [],
+  visemeDuration: 0,
   
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => set((state) => {
     if (!message.content || !message.role) {
@@ -34,5 +36,7 @@ export const useChatStore = create<ChatState>((set) => ({
   setListening: (isListening: boolean) => set({ isListening }),
   setIsMuted: (isMuted: boolean) => set({ isMuted }),
   setEmotion: (emotion: Emotion) => set({ emotion }),
+  setVisemes: (visemes: VisemeData[]) => set({ visemes }),
+  setVisemeDuration: (duration: number) => set({ visemeDuration: duration }),
   clearMessages: () => set({ messages: [] }),
 }));
