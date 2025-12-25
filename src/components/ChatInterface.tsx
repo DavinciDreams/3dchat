@@ -127,12 +127,16 @@ const ChatInterface = (): JSX.Element => {
         useChatStore.getState().setSpeaking(true);
         try {
           const audioBuffer = await textToSpeech(text);
+          console.log('TTS result received from textToSpeech:', audioBuffer);
+          console.log('TTS result keys:', audioBuffer ? Object.keys(audioBuffer) : 'null/undefined');
           if (!audioBuffer) {
             console.warn('TTS returned null or empty audioBuffer');
           } else {
-            console.log('TTS audioBuffer received, length:', audioBuffer.byteLength);
+            console.log('TTS audioBuffer.audioBuffer:', audioBuffer.audioBuffer);
+            console.log('TTS audioBuffer.audioBuffer type:', typeof audioBuffer.audioBuffer);
+            console.log('TTS audioBuffer.audioBuffer byteLength:', audioBuffer.audioBuffer?.byteLength);
             try {
-              await playAudio(audioBuffer);
+              await playAudio(audioBuffer.audioBuffer);
               console.log('Audio playback finished');
             } catch (playError) {
               console.error('Error during audio playback:', playError);

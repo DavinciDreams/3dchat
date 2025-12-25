@@ -105,7 +105,7 @@ function setupRecognitionHandlers(): void {
         const text = typeof response === 'string' ? response : response.content;
         const audioResult = await textToSpeech(text);
         if (audioResult) {
-          await playAudio(audioResult);
+          await playAudio(audioResult.audioBuffer);
         }
       }
     } catch (error) {
