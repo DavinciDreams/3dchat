@@ -13,7 +13,7 @@ const LoginForm = React.lazy(() => import('./components/LoginForm'));
 
 function App() {
   const [error, setError] = useState<AppError | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(true); // Temporarily set to true for debugging
   const { setProcessing, isMuted, setIsMuted } = useChatStore();
 
   useEffect(() => {

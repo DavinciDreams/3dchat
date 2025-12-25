@@ -37,11 +37,18 @@ export async function textToSpeech(text: string): Promise<TTSResult | null> {
     // Estimate duration from audio (will be refined when played)
     const duration = text.length * 0.15; // Rough estimate
     
-    return {
+    const ttsResult = {
       audioBuffer: arrayBuffer,
       visemes,
       duration
     };
+    console.log('TTS result returning:', JSON.stringify({
+      audioBufferLength: ttsResult.audioBuffer?.byteLength,
+      audioBufferType: typeof ttsResult.audioBuffer,
+      visemesCount: ttsResult.visemes?.length,
+      duration: ttsResult.duration
+    }, null, 2));
+    return ttsResult;
   } catch (error) {
     console.error('Text to speech error:', error);
     let statusCode = 500;
