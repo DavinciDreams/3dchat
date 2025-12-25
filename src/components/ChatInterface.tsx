@@ -32,14 +32,14 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
           <div className="flex flex-col gap-1">
             <button
               onClick={copyToClipboard}
-              className="p-1 hover:bg-gray-700 rounded"
+              className="p-1 hover:bg-gray-800 rounded"
               title="Copy message"
             >
               <Copy size={14} />
             </button>
             <button
               onClick={downloadText}
-              className="p-1 hover:bg-gray-700 rounded"
+              className="p-1 hover:bg-gray-800 rounded"
               title="Download message"
             >
               <Download size={14} />
@@ -50,7 +50,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
           className={`inline-block px-4 py-2 rounded-lg max-w-[80%] ${
             message.role === 'user' 
               ? 'bg-teal-500 text-white rounded-tr-none'
-              : 'bg-gray-700 text-white rounded-tl-none'
+              : 'bg-gray-800 text-white rounded-tl-none'
           }`}
         >
           {message.content}
@@ -260,12 +260,12 @@ const ChatInterface = (): JSX.Element => {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/10 backdrop-blur-md rounded-t-xl overflow-hidden border border-white/20 shadow-lg"
+        className="bg-gray-900/90 backdrop-blur-md rounded-t-xl overflow-hidden border border-gray-700 shadow-lg"
       >
         <div className="flex items-center justify-between p-2 border-b border-white/10">
           <button
             onClick={handleNewChat}
-            className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-gray-700 transition-colors"
+            className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-gray-800 transition-colors"
           >
             <Plus size={16} />
             <span>New Chat</span>
@@ -273,7 +273,7 @@ const ChatInterface = (): JSX.Element => {
           {isSpeaking && (
             <button
               onClick={handleStopSpeaking}
-              className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-gray-700 transition-colors text-red-400"
+              className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-gray-800 transition-colors text-red-400"
             >
               <StopCircle size={16} />
               <span>Stop Speaking</span>
@@ -314,7 +314,7 @@ const ChatInterface = (): JSX.Element => {
         
         <form 
           onSubmit={handleSubmit}
-          className="flex items-center p-3 border-t border-white/10 bg-white/5"
+          className="flex items-center p-3 border-t border-gray-700 bg-gray-800/50"
         >
           <motion.button
             type="button"
@@ -324,13 +324,13 @@ const ChatInterface = (): JSX.Element => {
             className={`p-2 rounded-full mr-2 transition-colors ${
               isListening 
                 ? 'bg-red-500 text-white' 
-                : 'bg-gray-700 text-white hover:bg-gray-600'
+                : 'bg-gray-800 text-white hover:bg-gray-700'
             } ${(isProcessing || !isAuthenticated) ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isListening ? (
-              <MicOff className="h-5 w-5" />
-            ) : (
               <Mic className="h-5 w-5" />
+            ) : (
+              <MicOff className="h-5 w-5" />
             )}
           </motion.button>
           
@@ -347,7 +347,7 @@ const ChatInterface = (): JSX.Element => {
                   ? "Listening..." 
                   : "Type your message..."
             }
-            className="flex-1 bg-transparent border border-white/20 rounded-md px-4 py-2 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-teal-500/50 disabled:opacity-50"
+            className="flex-1 bg-gray-800/90 border border-gray-600 rounded-md px-4 py-2 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-teal-500/50 disabled:opacity-50"
           />
           
           <motion.button
