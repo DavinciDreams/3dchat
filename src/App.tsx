@@ -1,13 +1,15 @@
 import React, { useEffect, Suspense, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Volume2, VolumeX } from 'lucide-react';
+import { Brain, Volume2, VolumeX, LogOut } from 'lucide-react';
 import { initSpeechRecognition } from './services/speechService';
 import { useChatStore } from './store/chatStore';
+import { supabase } from './lib/supabaseClient';
 import type { AppError } from './types';
 
 // Use lazy loading for performance optimization
 const ChatInterface = React.lazy(() => import('./components/ChatInterface'));
 const AvatarModel = React.lazy(() => import('./components/AvatarModel'));
+const LoginForm = React.lazy(() => import('./components/LoginForm'));
 
 interface AppProps {
   initialMuted?: boolean;
@@ -16,7 +18,16 @@ interface AppProps {
 function App({ initialMuted = false }: AppProps) {
   const [isMuted, setIsMuted] = useState(initialMuted);
   const [error, setError] = useState<AppError | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { setProcessing } = useChatStore();
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Initialize speech recognition on component mount
   useEffect(() => {
@@ -37,7 +48,6 @@ function App({ initialMuted = false }: AppProps) {
 
     initSpeech();
 
-    // Cleanup function
     return () => {
       setProcessing(false);
     };
@@ -56,6 +66,10 @@ function App({ initialMuted = false }: AppProps) {
 
   const handleVolumeToggle = () => {
     setIsMuted(prev => !prev);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
   };
 
   return (
@@ -107,6 +121,16 @@ function App({ initialMuted = false }: AppProps) {
                 <Volume2 className="h-5 w-5" />
               )}
             </button>
+            {isAuthenticated && (
+              <button
+                onClick={handleLogout}
+                className="p-2 bg-gray-800/50 rounded-full text-white/80 hover:text-white hover:bg-gray-700/50 transition-all"
+                title="Logout"
+                aria-label="Logout"
+              >
+                <LogOut className="h-5 w-5" />
+              </button>
+            )}
           </motion.div>
         </header>
         
@@ -126,8 +150,14 @@ function App({ initialMuted = false }: AppProps) {
           )}
         </AnimatePresence>
 
-        {/* Chat Interface */}
-        <ChatInterface />
+        {/* Main Content */}
+        <div className="relative z-10 min-h-screen flex items-center justify-center">
+          {!isAuthenticated ? (
+            <LoginForm onSuccess={() => setIsAuthenticated(true)} />
+          ) : (
+            <ChatInterface />
+          )}
+        </div>
       </Suspense>
     </div>
   );
