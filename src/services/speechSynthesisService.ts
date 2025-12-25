@@ -1,9 +1,9 @@
-import axios from 'axios';
+import {
+  EdgeTTS
+} from 'edge-tts-universal';
 import { ServiceError } from '../errors/AppError';
 import { useChatStore } from '../store/chatStore';
 
-const EDGE_TTS_ENDPOINT = import.meta.env.VITE_EDGE_TTS_ENDPOINT;
-const EDGE_TTS_API_KEY = import.meta.env.VITE_EDGE_TTS_API_KEY;
 const VOICE_NAME = 'en-GB-LibbyNeural';
 const FALLBACK_VOICE_NAME = 'Google US English';
 
@@ -11,39 +11,33 @@ let audioContext: AudioContext | null = null;
 
 export async function textToSpeech(text: string): Promise<ArrayBuffer | null> {
   try {
-    const ssml = `
-      <speak version='1.0' xml:lang='en-GB'>
-        <voice xml:lang='en-GB' name='${VOICE_NAME}'>
-          <prosody rate="0.9" pitch="+0%">
-            ${text}
-          </prosody>
-        </voice>
-      </speak>
-    `.trim();
-
-    const response = await axios.post(
-      `${EDGE_TTS_ENDPOINT}cognitiveservices/v1`,
-      ssml,
-      {
-        headers: {
-          'Ocp-Apim-Subscription-Key': EDGE_TTS_API_KEY,
-          'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3',
-          'Content-Type': 'application/ssml+xml',
-          'User-Agent': '3dchat-assistant'
-        },
-        responseType: 'arraybuffer'
-      }
-    );
-
-    return response.data;
-  } catch (error: any) {
+    const tts = new EdgeTTS(text, VOICE_NAME, {
+      rate: '+0%',
+      volume: '+0%',
+      pitch: '+0Hz',
+    });
+    const result = await tts.synthesize();
+    if (!result.audio) {
+      throw new ServiceError('speech', 'unknown', 'No audio returned from TTS');
+    }
+    // result.audio is a Blob in browser, convert to ArrayBuffer
+    const arrayBuffer = await result.audio.arrayBuffer();
+    return arrayBuffer;
+  } catch (error) {
     console.error('Text to speech error:', error);
+    let statusCode = 500;
+    if (error && typeof error === 'object' && 'response' in error) {
+      const errObj = error as { response?: { status?: number } };
+      if (errObj.response && typeof errObj.response.status === 'number') {
+        statusCode = errObj.response.status;
+      }
+    }
     throw new ServiceError(
       'speech',
       'network',
       'Text to speech failed',
       undefined,
-      error?.response?.status || 500
+      statusCode
     );
   }
 }
@@ -82,29 +76,36 @@ export async function speakWithNative(text: string): Promise<ArrayBuffer | null>
 
 export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
   try {
-    // Initialize or resume AudioContext
+    if (!audioBuffer || audioBuffer.byteLength === 0) {
+      console.warn('playAudio received empty or null audioBuffer');
+      throw new ServiceError('speech', 'unknown', 'Audio buffer is empty', 0);
+    }
     if (!audioContext) {
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
     if (audioContext.state === 'suspended') {
       await audioContext.resume();
     }
-
-    // Decode the audio data
     const decodedData = await audioContext.decodeAudioData(audioBuffer);
     const source = audioContext.createBufferSource();
     source.buffer = decodedData;
     source.connect(audioContext.destination);
-
     // Play and handle completion
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       source.onended = () => {
+        console.log('Audio playback ended');
         resolve();
       };
       source.addEventListener('error', (error) => {
+        console.error('AudioSource error:', error);
         reject(new Error('Error playing audio: ' + error));
       });
-      source.start(0);
+      try {
+        source.start(0);
+      } catch (startError) {
+        console.error('Error starting audio source:', startError);
+        reject(startError);
+      }
     });
   } catch (error) {
     console.error('Error playing audio:', error);

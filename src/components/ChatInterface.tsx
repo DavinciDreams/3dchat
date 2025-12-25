@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useChatStore } from '../store/chatStore';
 import { getAIResponse } from '../services/aiService';
 import { startListening, stopListening } from '../services/speechService';
+import { textToSpeech, playAudio } from '../services/speechSynthesisService';
 import { supabase } from '../lib/supabaseClient';
 import { ChatMessageProps, ServiceError } from '../types';
 
@@ -124,9 +125,21 @@ const ChatInterface = (): JSX.Element => {
         }
 
         useChatStore.getState().setSpeaking(true);
-        const audioBuffer = await textToSpeech(text);
-        if (audioBuffer) {
-          await playAudio(audioBuffer);
+        try {
+          const audioBuffer = await textToSpeech(text);
+          if (!audioBuffer) {
+            console.warn('TTS returned null or empty audioBuffer');
+          } else {
+            console.log('TTS audioBuffer received, length:', audioBuffer.byteLength);
+            try {
+              await playAudio(audioBuffer);
+              console.log('Audio playback finished');
+            } catch (playError) {
+              console.error('Error during audio playback:', playError);
+            }
+          }
+        } catch (ttsError) {
+          console.error('Error during TTS:', ttsError);
         }
       }
     } catch (error) {
