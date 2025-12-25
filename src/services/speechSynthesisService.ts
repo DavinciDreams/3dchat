@@ -89,7 +89,16 @@ export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
     const decodedData = await audioContext.decodeAudioData(audioBuffer);
     const source = audioContext.createBufferSource();
     source.buffer = decodedData;
-    source.connect(audioContext.destination);
+    
+    // Get the mute state from the store
+    const isMuted = useChatStore.getState().isMuted;
+    
+    // Use a GainNode to control volume based on mute state
+    const gainNode = audioContext.createGain();
+    gainNode.gain.value = isMuted ? 0 : 1;
+    
+    source.connect(gainNode);
+    gainNode.connect(audioContext.destination);
     // Play and handle completion
     await new Promise<void>((resolve, reject) => {
       source.onended = () => {

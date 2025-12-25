@@ -8,6 +8,7 @@ export const useChatStore = create<ChatState>((set) => ({
   isProcessing: false,
   isSpeaking: false,
   isListening: false,
+  isMuted: false,
   emotion: 'neutral',
   
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => set((state) => {
@@ -31,6 +32,7 @@ export const useChatStore = create<ChatState>((set) => ({
   setProcessing: (isProcessing: boolean) => set({ isProcessing }),
   setSpeaking: (isSpeaking: boolean) => set({ isSpeaking }),
   setListening: (isListening: boolean) => set({ isListening }),
+  setIsMuted: (isMuted: boolean) => set({ isMuted }),
   setEmotion: (emotion: Emotion) => set({ emotion }),
   clearMessages: () => set({ messages: [] }),
 }));
