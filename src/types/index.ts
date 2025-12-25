@@ -40,11 +40,13 @@ export interface ChatState {
   isProcessing: boolean;
   isSpeaking: boolean;
   isListening: boolean;
+  isMuted: boolean;
   emotion: Emotion;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
   setProcessing: (isProcessing: boolean) => void;
   setSpeaking: (isSpeaking: boolean) => void;
   setListening: (isListening: boolean) => void;
+  setIsMuted: (isMuted: boolean) => void;
   setEmotion: (emotion: Emotion) => void;
   clearMessages: () => void;
 }
