@@ -42,12 +42,16 @@ export interface ChatState {
   isListening: boolean;
   isMuted: boolean;
   emotion: Emotion;
+  visemes: VisemeData[];
+  visemeDuration: number;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
   setProcessing: (isProcessing: boolean) => void;
   setSpeaking: (isSpeaking: boolean) => void;
   setListening: (isListening: boolean) => void;
   setIsMuted: (isMuted: boolean) => void;
   setEmotion: (emotion: Emotion) => void;
+  setVisemes: (visemes: VisemeData[]) => void;
+  setVisemeDuration: (duration: number) => void;
   clearMessages: () => void;
 }
 
@@ -126,4 +130,10 @@ export interface SpeechResponse {
   visemes: VisemeData[];
   duration: number;
   error?: AppError;
+}
+
+export interface TTSResult {
+  audioBuffer: ArrayBuffer;
+  visemes: VisemeData[];
+  duration: number;
 }
