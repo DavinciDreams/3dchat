@@ -11,15 +11,10 @@ const ChatInterface = React.lazy(() => import('./components/ChatInterface'));
 const AvatarModel = React.lazy(() => import('./components/AvatarModel'));
 const LoginForm = React.lazy(() => import('./components/LoginForm'));
 
-interface AppProps {
-  initialMuted?: boolean;
-}
-
-function App({ initialMuted = false }: AppProps) {
-  const [isMuted, setIsMuted] = useState(initialMuted);
+function App() {
   const [error, setError] = useState<AppError | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const { setProcessing } = useChatStore();
+  const { setProcessing, isMuted, setIsMuted } = useChatStore();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -65,7 +60,7 @@ function App({ initialMuted = false }: AppProps) {
   }, []);
 
   const handleVolumeToggle = () => {
-    setIsMuted(prev => !prev);
+    setIsMuted(!isMuted);
   };
 
   const handleLogout = async () => {
@@ -111,7 +106,7 @@ function App({ initialMuted = false }: AppProps) {
           >
             <button 
               onClick={handleVolumeToggle}
-              className="p-2 bg-gray-800/50 rounded-full text-white/80 hover:text-white hover:bg-gray-700/50 transition-all"
+              className="p-2 bg-gray-800 rounded-full text-white/80 hover:text-white hover:bg-gray-700 transition-all"
               title={isMuted ? "Unmute" : "Mute"}
               aria-label={isMuted ? "Unmute" : "Mute"}
             >
@@ -124,7 +119,7 @@ function App({ initialMuted = false }: AppProps) {
             {isAuthenticated && (
               <button
                 onClick={handleLogout}
-                className="p-2 bg-gray-800/50 rounded-full text-white/80 hover:text-white hover:bg-gray-700/50 transition-all"
+                className="p-2 bg-gray-800 rounded-full text-white/80 hover:text-white hover:bg-gray-700 transition-all"
                 title="Logout"
                 aria-label="Logout"
               >
