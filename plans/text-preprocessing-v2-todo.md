@@ -441,6 +441,122 @@ interface ListData {
 }
 ```
 
+#### 2.5.4 Automatic Markdown Rendering
+
+**Description:** Automatically render markdown elements in the UI based on preprocessing system metadata.
+
+**Feature Overview:**
+The text preprocessing system already handles markdown heading markers (###) by removing them from speech text. This feature extends the preprocessing system to enable automatic rendering of markdown elements in the chat UI, providing a richer visual experience while maintaining clean text for text-to-speech processing.
+
+**Implementation Approach:**
+
+1. **Leverage Preprocessing Metadata**
+   - Use existing metadata from [`PunctuationProcessor`](../src/services/textPreprocessing/processors/PunctuationProcessor.ts:27) for emphasis markers
+   - Extend metadata to include markdown element types and positions
+   - Store rendering hints alongside speech-related metadata
+
+2. **Supported Markdown Elements**
+   - **Headings**: Render `### Heading` as styled heading text (H3 level)
+   - **Emphasis**: Render `*text*` as italic text
+   - **Bold**: Render `**text**` as bold text
+   - **Code**: Render `` `text` `` as inline code with monospace font
+   - **Code Blocks**: Render ```text``` as code blocks with syntax highlighting (optional)
+   - **Lists**: Render bulleted and numbered lists with proper indentation
+
+3. **Rendering Strategy**
+   - Preserve clean text for TTS (text-to-speech) processing
+   - Generate display text with markdown formatting applied
+   - Use metadata to drive UI rendering decisions
+   - Maintain separation between speech text and display text
+
+**Technical Considerations:**
+
+1. **Integration with Existing Components**
+   - Integrate with [`renderMessageContent`](../src/components/ChatInterface.tsx:1) function in [`ChatInterface.tsx`](../src/components/ChatInterface.tsx:1)
+   - Extend [`TextMetadata`](../src/types/index.ts:151) interface to include markdown rendering hints
+   - Ensure backward compatibility with existing message rendering
+
+2. **Markdown Library Options**
+   - Consider using `react-markdown` for robust markdown parsing and rendering
+   - Alternative: Custom rendering based on preprocessing metadata (lighter weight)
+   - Evaluate trade-offs: library overhead vs. custom implementation
+
+3. **Styling Considerations**
+   - Define consistent styling for markdown elements using Tailwind CSS
+   - Ensure responsive design for headings and code blocks
+   - Maintain accessibility with proper semantic HTML elements
+   - Consider dark mode compatibility
+
+4. **Performance Considerations**
+   - Cache rendered markdown to avoid re-processing
+   - Lazy load markdown library if chosen
+   - Optimize for long messages with multiple markdown elements
+
+**Example Metadata Structure:**
+```typescript
+interface MarkdownElement {
+  type: 'heading' | 'emphasis' | 'bold' | 'code' | 'code-block' | 'list';
+  startIndex: number;
+  endIndex: number;
+  level?: number; // For headings (1-6) and list nesting
+  content?: string; // Original content for code blocks
+}
+
+interface TextMetadata {
+  // Existing fields...
+  emphasis: EmphasisData[];
+  emojis: EmojiData[];
+  links: LinkData[];
+  
+  // New field for markdown rendering
+  markdownElements?: MarkdownElement[];
+}
+```
+
+**Example Rendering Flow:**
+```typescript
+// Input text
+const input = "### Important Note\nThis is *emphasized* and code: `example`";
+
+// Preprocessed result
+const result = {
+  cleanText: "Important Note\nThis is emphasized and code: example", // For TTS
+  displayText: "### Important Note\nThis is *emphasized* and code: `example`", // For UI
+  metadata: {
+    markdownElements: [
+      { type: 'heading', startIndex: 0, endIndex: 14, level: 3 },
+      { type: 'emphasis', startIndex: 23, endIndex: 33 },
+      { type: 'code', startIndex: 48, endIndex: 56 }
+    ]
+  }
+};
+
+// UI renders styled elements based on metadata
+```
+
+**Priority:** Medium
+- **Justification:** Enhances UI experience and visual appeal
+- **Not Blocking:** System functions correctly without markdown rendering
+- **User Value:** High - improves readability and professional appearance
+- **Estimated Effort:** 2-3 days
+
+**Dependencies:**
+- Completion of markdown-style formatting detection (2.5.1)
+- Extension of [`TextMetadata`](../src/types/index.ts:151) interface
+- Updates to [`ChatInterface.tsx`](../src/components/ChatInterface.tsx:1) rendering logic
+
+**Acceptance Criteria:**
+- [ ] Headings (###) render as styled heading text
+- [ ] Emphasis (*text*) renders as italic text
+- [ ] Bold (**text**) renders as bold text
+- [ ] Inline code (`` `text` ``) renders with monospace font
+- [ ] Code blocks render with proper formatting
+- [ ] Lists render with correct indentation and styling
+- [ ] Clean text for TTS remains unchanged
+- [ ] Performance impact is minimal (< 50ms additional processing)
+- [ ] Styling is consistent with existing UI design
+- [ ] Dark mode compatibility is maintained
+
 ---
 
 ### 2.6 Performance Optimizations

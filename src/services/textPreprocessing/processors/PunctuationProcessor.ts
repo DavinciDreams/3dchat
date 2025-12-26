@@ -3,11 +3,16 @@ import { TextMetadata } from '../../../types';
 
 /**
  * Processor for handling punctuation-based emphasis markers.
- * 
+ *
  * Detects and processes:
  * - Asterisk-wrapped text: *text* or **text**
  * - CAPS words (3+ characters) for emphasis
+ * - Markdown heading markers: ### Heading
  */
+
+// Pattern to match markdown heading markers (1-6 hash characters at start of line)
+const HEADING_MARKER_PATTERN = /^#{1,6}\s+/gm;
+
 export class PunctuationProcessor extends BaseProcessor {
   name = 'punctuation';
   priority = 10;
@@ -49,6 +54,9 @@ export class PunctuationProcessor extends BaseProcessor {
       
       positionOffset += fullMatch.length - innerText.length;
     }
+    
+    // Process markdown heading markers: ### Heading
+    cleanText = cleanText.replace(HEADING_MARKER_PATTERN, '');
     
     // Process CAPS for emphasis (all caps words 3+ characters)
     const capsPattern = /\b([A-Z]{3,})\b/g;
