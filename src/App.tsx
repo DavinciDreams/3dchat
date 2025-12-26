@@ -5,6 +5,7 @@ import { initSpeechRecognition } from './services/speechService';
 import { useChatStore } from './store/chatStore';
 import { supabase } from './lib/supabaseClient';
 import type { AppError } from './types';
+import { AVAILABLE_VRM_MODELS } from './types';
 
 // Use lazy loading for performance optimization
 const ChatInterface = React.lazy(() => import('./components/ChatInterface'));
@@ -14,7 +15,7 @@ const LoginForm = React.lazy(() => import('./components/LoginForm'));
 function App() {
   const [error, setError] = useState<AppError | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(true); // Temporarily set to true for debugging
-  const { setProcessing, isMuted, setIsMuted } = useChatStore();
+  const { setProcessing, isMuted, setIsMuted, selectedModelId, setSelectedModelId } = useChatStore();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -92,10 +93,23 @@ function App() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="flex items-center"
+            className="flex items-center gap-4"
           >
             <Brain className="h-6 w-6 text-teal-500 mr-2" />
             <h1 className="text-xl font-bold">AI Assistant</h1>
+            
+            {/* Model Selection Dropdown */}
+            <select
+              value={selectedModelId}
+              onChange={(e) => setSelectedModelId(e.target.value)}
+              className="bg-gray-800 text-white text-sm px-3 py-1 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-500/50 hover:bg-gray-700 transition-colors"
+            >
+              {AVAILABLE_VRM_MODELS.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.name}
+                </option>
+              ))}
+            </select>
           </motion.div>
           
           <motion.div

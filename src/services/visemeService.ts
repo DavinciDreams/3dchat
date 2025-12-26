@@ -137,11 +137,10 @@ export function getCurrentViseme(visemes: VisemeData[], currentTime: number): Vi
 
   let accumulatedTime = 0;
   for (const viseme of visemes) {
-    const visemeDuration = viseme.duration ?? 0.1; // Default duration
-    if (currentTime >= accumulatedTime && currentTime < accumulatedTime + visemeDuration) {
+    accumulatedTime += viseme.duration ?? 0.1;
+    if (currentTime <= accumulatedTime) {
       return viseme.name;
     }
-    accumulatedTime += visemeDuration;
   }
 
   return 'sil';
