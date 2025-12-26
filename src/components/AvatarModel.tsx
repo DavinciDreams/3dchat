@@ -1,17 +1,18 @@
-import React, { useRef, useEffect, Suspense } from 'react';
+import React, { useRef, useEffect, Suspense, useMemo, useState } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { useChatStore } from '../store/chatStore';
-import { CharacterProps, SceneProps } from '../types';
+import { CharacterProps, SceneProps, AVAILABLE_VRM_MODELS } from '../types';
+import { visemeApplier } from '../services/visemeApplicationService';
+import { getCurrentViseme } from '../services/visemeService';
+import vrmaAnimationService, { VRMAAnimation } from '../services/vrmaAnimationService';
 
 export interface ExtendedCharacterProps extends CharacterProps {
   selectedModel?: string;
 }
-
-const MODEL_PATH_VRM = '/model/Billy.vrm';
 
 const Character: React.FC<ExtendedCharacterProps> = ({
   position = [0, 0, 0],
@@ -20,33 +21,72 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   selectedModel,
 }) => {
   const store = useChatStore();
-  const { emotion, isSpeaking, visemes } = store;
+  const { emotion, isSpeaking, visemes, selectedModelId } = store;
   
-  const mixer = useRef<THREE.AnimationMixer | null>(null);
-  const currentActions = useRef<Record<string, THREE.AnimationAction>>({});
-  const lastVisemeIndex = useRef<number>(-1);
-  const visemeStartTime = useRef<number>(0);
-  const lastUpdate = useRef<number>(0);
-  const frameSkip = useRef<number>(1);
-  const vrmRef = useRef<any>(null);
-  const sceneRef = useRef<THREE.Group | null>(null);
-
+  // Get model path based on the selected model ID
+  const MODEL_PATH_VRM = useMemo(() => {
+    const model = AVAILABLE_VRM_MODELS.find(m => m.id === selectedModelId);
+    return model?.path || '/model/Billy.vrm';
+  }, [selectedModelId]);
+  
   // Load VRM model using VRMLoader
   const gltf = useLoader(GLTFLoader, MODEL_PATH_VRM, (loader) => {
     loader.register((parser) => new VRMLoaderPlugin(parser));
   });
   
-  const vrm = gltf.userData.vrm as any;
+  const mixer = useRef<THREE.AnimationMixer | null>(null);
+  const currentActions = useRef<Record<string, THREE.AnimationAction>>({});
+  const vrmaActions = useRef<Record<string, THREE.AnimationAction>>({});
+  const visemeStartTime = useRef<number>(0);
+  const speakingStartTime = useRef<number>(0);
+  const lastUpdate = useRef<number>(0);
+  const frameSkip = useRef<number>(1);
+  const vrmRef = useRef<unknown>(null);
+  const sceneRef = useRef<THREE.Group | null>(null);
+  const [vrmaAnimationsLoaded, setVrmaAnimationsLoaded] = useState(false);
+
+  
+  const vrm = gltf.userData.vrm as unknown;
   const scene = gltf.scene;
+
+  /**
+   * Load VRMA animations and create actions for them
+   */
+  const loadVRMAAnimations = async () => {
+    if (!mixer.current || !vrm) return;
+
+    try {
+      // Load all VRMA animations
+      const animations = await vrmaAnimationService.loadAllAnimations();
+      
+      // Create animation actions for each VRMA animation
+      animations.forEach((vrmaAnim: VRMAAnimation) => {
+        const action = mixer.current!.clipAction(vrmaAnim.clip);
+        vrmaActions.current[vrmaAnim.name] = action;
+      });
+
+      console.log('VRMA animations loaded:', animations.size);
+      console.log('Available VRMA actions:', Object.keys(vrmaActions.current));
+    } catch (error) {
+      console.error('Error loading VRMA animations:', error);
+      throw error;
+    }
+  };
 
   useEffect(() => {
     if (scene && vrm) {
+      const vrmObj = vrm as Record<string, unknown>;
       vrmRef.current = vrm;
       sceneRef.current = scene;
       
       // Apply VRM optimizations
       VRMUtils.removeUnnecessaryVertices(gltf.scene);
-      VRMUtils.removeUnnecessaryJoints(vrm.scene);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      VRMUtils.removeUnnecessaryJoints((vrmObj as any).scene);
+      
+      // Register VRM with viseme applier
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      visemeApplier.setVRM(vrmObj as any);
       
       // Position and scale the model
       scene.position.set(position[0], position[1], position[2]);
@@ -55,7 +95,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       scene.rotation.set(rotation[0], rotation[1] + Math.PI, rotation[2]);
       
       // Apply a natural standing pose instead of T-pose
-      applyNaturalPose(vrm);
+      applyNaturalPose(vrmObj);
       
       // Setup animation mixer
       mixer.current = new THREE.AnimationMixer(scene);
@@ -64,6 +104,15 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       animations.forEach(clip => {
         const action = mixer.current!.clipAction(clip);
         currentActions.current[clip.name] = action;
+      });
+
+      // Load VRMA animations
+      loadVRMAAnimations().then(() => {
+        console.log('VRMA animations loaded successfully');
+        setVrmaAnimationsLoaded(true);
+      }).catch((error) => {
+        console.warn('Failed to load VRMA animations:', error);
+        setVrmaAnimationsLoaded(false);
       });
 
       // Start idle animation if available
@@ -79,12 +128,15 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       if (mixer.current) {
         mixer.current.stopAllAction();
       }
+      visemeApplier.setVRM(null);
     };
   }, [position, scale, rotation, selectedModel]);
 
   // Apply a natural standing pose to the VRM model
-  const applyNaturalPose = (vrm: any) => {
-    const humanoid = vrm.humanoid;
+  const applyNaturalPose = (vrm: unknown) => {
+    const vrmObj = vrm as Record<string, unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const humanoid = (vrmObj.humanoid as unknown) as any;
     if (!humanoid) return;
 
     // Helper function to set bone rotation in degrees
@@ -133,7 +185,8 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     setBoneRotation('rightFoot', 0, 0, 0);
     
     // Update the VRM to apply changes
-    vrm.update();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (vrmObj as any).update();
   };
 
   // Handle viseme animation (simplified for GLB model - log viseme changes)
@@ -149,59 +202,96 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 
     // Handle viseme animation when speaking
     if (isSpeaking && visemes.length > 0) {
-      const currentTime = visemeStartTime.current + delta;
-      const visemeIndex = Math.floor(currentTime / 0.15) % visemes.length;
-      const visemeData = visemes[visemeIndex];
-      const visemeName = typeof visemeData === 'string' ? visemeData : visemeData?.name;
-      
-      // Only update when viseme changes
-      const currentVisemeData = visemes[lastVisemeIndex.current];
-      const currentVisemeName = typeof currentVisemeData === 'string' ? currentVisemeData : currentVisemeData?.name;
-      
-      if (visemeName !== currentVisemeName) {
-        // Log viseme change for debugging
-        console.log('Viseme change:', currentVisemeName, '->', visemeName);
-        
-        lastVisemeIndex.current = visemeIndex;
-        visemeStartTime.current = currentTime;
-      } else {
-        visemeStartTime.current = currentTime;
+      // Track speaking time
+      if (visemeStartTime.current === 0) {
+        visemeStartTime.current = performance.now();
+        speakingStartTime.current = performance.now();
       }
+      
+      // Calculate current time in seconds since speaking started
+      const currentTime = (performance.now() - speakingStartTime.current) / 1000;
+      
+      // Get current viseme based on accumulated time
+      const currentVisemeName = getCurrentViseme(visemes, currentTime);
+      
+      // Apply viseme with smooth transition
+      visemeApplier.applyViseme(currentVisemeName, delta);
     } else if (!isSpeaking) {
-      lastVisemeIndex.current = -1;
+      // Reset to neutral when not speaking
+      if (visemeStartTime.current !== 0) {
+        visemeApplier.reset();
+        visemeStartTime.current = 0;
+      }
     }
   });
 
   // Handle emotion animations
   useEffect(() => {
-    if (!mixer.current || !currentActions.current) return;
+    if (!mixer.current) return;
 
     const fadeToAction = (actionName: string, duration: number = 0.3) => {
-      const action = currentActions.current[actionName];
-      if (!action) return;
+      // Try VRMA actions first, then embedded animations
+      let action = vrmaActions.current[actionName];
+      if (!action) {
+        action = currentActions.current[actionName];
+      }
+      if (!action) {
+        console.warn(`Animation action not found: ${actionName}`);
+        return;
+      }
 
+      // Fade out all other actions
       Object.values(currentActions.current).forEach(a => {
+        if (a !== action) a.fadeOut(duration);
+      });
+      Object.values(vrmaActions.current).forEach(a => {
         if (a !== action) a.fadeOut(duration);
       });
 
       action.reset().fadeIn(duration).play();
     };
 
+    // Declare animation variables outside of switch/case to avoid lexical declaration issues
+    let talkingAnim: THREE.AnimationAction | undefined;
+    let thinkingAnim: THREE.AnimationAction | undefined;
+    let happyAnim: THREE.AnimationAction | undefined;
+    let idleAnim: THREE.AnimationAction | undefined;
+
     if (isSpeaking) {
-      fadeToAction('talking');
+      // Try VRMA 'greeting' animation for talking, fall back to 'talking'
+      talkingAnim = vrmaActions.current['greeting'] || currentActions.current['talking'];
+      if (talkingAnim) {
+        fadeToAction(talkingAnim.getClip().name);
+      }
     } else {
       switch (emotion) {
         case 'thinking':
-          fadeToAction('thinking');
+          // Try VRMA 'spin' animation for thinking, fall back to 'thinking'
+          thinkingAnim = vrmaActions.current['spin'] || currentActions.current['thinking'];
+          if (thinkingAnim) {
+            fadeToAction(thinkingAnim.getClip().name);
+          }
           break;
         case 'happy':
-          fadeToAction('happy');
+          // Try VRMA 'peace' animation for happy, fall back to 'happy'
+          happyAnim = vrmaActions.current['peace'] || currentActions.current['happy'];
+          if (happyAnim) {
+            fadeToAction(happyAnim.getClip().name);
+          }
           break;
         default:
-          fadeToAction('idle');
+          // For neutral emotion and not speaking, ensure idle pose is maintained
+          // Try VRMA 'modelPose' for idle, fall back to 'idle'
+          idleAnim = vrmaActions.current['modelPose'] || currentActions.current['idle'];
+          if (idleAnim) {
+            fadeToAction(idleAnim.getClip().name);
+          } else if (vrmRef.current) {
+            // Re-apply natural pose if no idle animation exists
+            applyNaturalPose(vrmRef.current);
+          }
       }
     }
-  }, [emotion, isSpeaking]);
+  }, [emotion, isSpeaking, vrmaAnimationsLoaded]);
 
   // Performance monitoring
   useEffect(() => {
@@ -240,8 +330,9 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 
 const MemoizedCharacter = React.memo(Character);
 
-const Scene: React.FC<SceneProps> = ({
-  shadows = true
+const Scene: React.FC<SceneProps & { selectedModelId: string }> = ({
+  shadows = true,
+  selectedModelId
 }) => {
   return (
     <>
@@ -257,7 +348,7 @@ const Scene: React.FC<SceneProps> = ({
         intensity={0.3}
       />
       <Suspense fallback={null}>
-        <MemoizedCharacter />
+        <MemoizedCharacter key={selectedModelId} />
       </Suspense>
       
       <OrbitControls
@@ -276,6 +367,8 @@ const Scene: React.FC<SceneProps> = ({
 };
 
 const AvatarModel: React.FC = () => {
+  const { selectedModelId } = useChatStore();
+  
   return (
     <div className="w-full h-full absolute top-0 left-0 z-0">
       <Canvas
@@ -298,7 +391,7 @@ const AvatarModel: React.FC = () => {
         }}
         dpr={[1, 2]}
       >
-        <Scene />
+        <Scene selectedModelId={selectedModelId} />
       </Canvas>
     </div>
   );

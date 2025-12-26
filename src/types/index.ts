@@ -3,6 +3,20 @@ export type Emotion = 'neutral' | 'happy' | 'thinking' | 'sad';
 export type Role = 'user' | 'assistant';
 export type ErrorType = 'network' | 'validation' | 'auth' | 'unknown';
 
+// VRM Model types
+export interface VRMModel {
+  id: string;
+  name: string;
+  path: string;
+}
+
+export const AVAILABLE_VRM_MODELS: VRMModel[] = [
+  { id: 'billy', name: 'Billy', path: '/model/Billy.vrm' },
+  { id: 'glenda', name: 'Glenda', path: '/model/Glenda.vrm' },
+  { id: 'mega', name: 'Mega', path: '/model/Mega.vrm' },
+  { id: 'peach', name: 'Peach', path: '/model/peach.vrm' },
+];
+
 // Avatar Model types
 export interface CharacterProps {
   position?: [number, number, number];
@@ -45,6 +59,7 @@ export interface ChatState {
   emotion: Emotion;
   visemes: VisemeData[];
   visemeDuration: number;
+  selectedModelId: string;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
   setProcessedMessage: (message: ProcessedMessage) => void;
   setProcessing: (isProcessing: boolean) => void;
@@ -54,6 +69,7 @@ export interface ChatState {
   setEmotion: (emotion: Emotion) => void;
   setVisemes: (visemes: VisemeData[]) => void;
   setVisemeDuration: (duration: number) => void;
+  setSelectedModelId: (modelId: string) => void;
   clearMessages: () => void;
 }
 
