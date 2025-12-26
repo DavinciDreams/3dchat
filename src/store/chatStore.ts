@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import { ChatState, Message, Emotion, VisemeData } from '../types';
+import { ChatState, Message, Emotion, VisemeData, ProcessedMessage } from '../types';
 
 export const MAX_MESSAGES = 10;
 
 export const useChatStore = create<ChatState>((set) => ({
   messages: [],
+  processedMessages: [],
   isProcessing: false,
   isSpeaking: false,
   isListening: false,
@@ -30,6 +31,13 @@ export const useChatStore = create<ChatState>((set) => ({
       ].slice(-MAX_MESSAGES)
     };
   }),
+  
+  setProcessedMessage: (message: ProcessedMessage) => set((state) => ({
+    processedMessages: [
+      ...state.processedMessages,
+      message
+    ].slice(-MAX_MESSAGES)
+  })),
   
   setProcessing: (isProcessing: boolean) => set({ isProcessing }),
   setSpeaking: (isSpeaking: boolean) => set({ isSpeaking }),

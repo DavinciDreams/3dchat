@@ -1,7 +1,9 @@
-import React, { useRef, useEffect, Suspense, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, useGLTF } from '@react-three/drei';
+import React, { useRef, useEffect, Suspense } from 'react';
+import { Canvas, useFrame, useLoader } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
+import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { useChatStore } from '../store/chatStore';
 import { CharacterProps, SceneProps } from '../types';
 
@@ -9,17 +11,6 @@ export interface ExtendedCharacterProps extends CharacterProps {
   selectedModel?: string;
 }
 
-
-// Available VRM models with blend shapes
-const VRM_MODELS: Record<string, string> = {
-  'Billy.vrm': '/model/Billy.vrm',
-  'Glenda.vrm': '/model/Glenda.vrm',
-  'Peach.vrm': '/model/peach.vrm'
-};
-
-const DEFAULT_MODEL = 'Billy.vrm'; // Billy.vrm likely has better blend shapes
-
-const MODEL_PATH = '/model/An_ancient_android_gold_dress.glb';
 const MODEL_PATH_VRM = '/model/Billy.vrm';
 
 const Character: React.FC<ExtendedCharacterProps> = ({
@@ -37,17 +28,34 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   const visemeStartTime = useRef<number>(0);
   const lastUpdate = useRef<number>(0);
   const frameSkip = useRef<number>(1);
+  const vrmRef = useRef<any>(null);
+  const sceneRef = useRef<THREE.Group | null>(null);
 
-  // Load VRM model
-  const gltf = useGLTF(MODEL_PATH_VRM);
+  // Load VRM model using VRMLoader
+  const gltf = useLoader(GLTFLoader, MODEL_PATH_VRM, (loader) => {
+    loader.register((parser) => new VRMLoaderPlugin(parser));
+  });
+  
+  const vrm = gltf.userData.vrm as any;
   const scene = gltf.scene;
 
   useEffect(() => {
-    if (scene) {
+    if (scene && vrm) {
+      vrmRef.current = vrm;
+      sceneRef.current = scene;
+      
+      // Apply VRM optimizations
+      VRMUtils.removeUnnecessaryVertices(gltf.scene);
+      VRMUtils.removeUnnecessaryJoints(vrm.scene);
+      
+      // Position and scale the model
       scene.position.set(position[0], position[1], position[2]);
       scene.scale.setScalar(scale);
       // Rotate 180 degrees around Y-axis to face the camera
       scene.rotation.set(rotation[0], rotation[1] + Math.PI, rotation[2]);
+      
+      // Apply a natural standing pose instead of T-pose
+      applyNaturalPose(vrm);
       
       // Setup animation mixer
       mixer.current = new THREE.AnimationMixer(scene);
@@ -63,7 +71,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         currentActions.current['idle'].play();
       }
       
-      console.log('VRM model loaded:', gltf);
+      console.log('VRM model loaded:', vrm);
       console.log('Available animations:', animations.map(a => a.name));
     }
     
@@ -74,39 +82,95 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     };
   }, [position, scale, rotation, selectedModel]);
 
-  // Handle viseme animation (simplified for GLB model - log viseme changes)
-useFrame((_, delta) => {
-  if (frameSkip.current > 1) {
-    lastUpdate.current++;
-    if (lastUpdate.current % frameSkip.current !== 0) return;
-  }
+  // Apply a natural standing pose to the VRM model
+  const applyNaturalPose = (vrm: any) => {
+    const humanoid = vrm.humanoid;
+    if (!humanoid) return;
 
-  if (mixer.current && delta < 0.1) {
-    mixer.current.update(delta);
-  }
+    // Helper function to set bone rotation in degrees
+    const setBoneRotation = (boneName: string, x: number, y: number, z: number) => {
+      const bone = humanoid.getNormalizedBoneNode(boneName);
+      if (bone) {
+        bone.rotation.set(
+          THREE.MathUtils.degToRad(x),
+          THREE.MathUtils.degToRad(y),
+          THREE.MathUtils.degToRad(z)
+        );
+      }
+    };
 
-  // Handle viseme animation when speaking
-  if (isSpeaking && visemes.length > 0) {
-    const currentTime = visemeStartTime.current + delta;
-    const viseme = visemes[Math.floor(currentTime / 0.15) % visemes.length];
+    // Apply a natural standing pose
+    // Arms down slightly from T-pose
+    setBoneRotation('leftUpperArm', 10, 0, -5);
+    setBoneRotation('rightUpperArm', 10, 0, 5);
     
-    // Only update when viseme changes
-    const currentViseme = visemes[lastVisemeIndex.current];
-    if (viseme !== currentViseme?.name) {
-      // Log viseme change for debugging
-      console.log('Viseme change:', currentViseme?.name, '->', viseme);
+    setBoneRotation('leftLowerArm', 0, 0, 5);
+    setBoneRotation('rightLowerArm', 0, 0, -5);
+    
+    // Slight bend at elbows
+    setBoneRotation('leftHand', 0, 0, 10);
+    setBoneRotation('rightHand', 0, 0, -10);
+    
+    // Slight shoulder adjustment
+    setBoneRotation('leftShoulder', 0, 0, -2);
+    setBoneRotation('rightShoulder', 0, 0, 2);
+    
+    // Natural head position (slight tilt down)
+    setBoneRotation('head', 5, 0, 0);
+    
+    // Slight spine curve for natural posture
+    setBoneRotation('spine', 0, 0, 0);
+    setBoneRotation('chest', 0, 0, 0);
+    
+    // Legs in neutral standing position
+    setBoneRotation('leftUpperLeg', 0, 0, 0);
+    setBoneRotation('rightUpperLeg', 0, 0, 0);
+    setBoneRotation('leftLowerLeg', 0, 0, 0);
+    setBoneRotation('rightLowerLeg', 0, 0, 0);
+    
+    // Feet flat
+    setBoneRotation('leftFoot', 0, 0, 0);
+    setBoneRotation('rightFoot', 0, 0, 0);
+    
+    // Update the VRM to apply changes
+    vrm.update();
+  };
+
+  // Handle viseme animation (simplified for GLB model - log viseme changes)
+  useFrame((_, delta) => {
+    if (frameSkip.current > 1) {
+      lastUpdate.current++;
+      if (lastUpdate.current % frameSkip.current !== 0) return;
+    }
+
+    if (mixer.current && delta < 0.1) {
+      mixer.current.update(delta);
+    }
+
+    // Handle viseme animation when speaking
+    if (isSpeaking && visemes.length > 0) {
+      const currentTime = visemeStartTime.current + delta;
+      const visemeIndex = Math.floor(currentTime / 0.15) % visemes.length;
+      const visemeData = visemes[visemeIndex];
+      const visemeName = typeof visemeData === 'string' ? visemeData : visemeData?.name;
       
-      lastVisemeIndex.current = visemes.findIndex(v => v.name === viseme);
-      if (lastVisemeIndex.current !== -1) {
+      // Only update when viseme changes
+      const currentVisemeData = visemes[lastVisemeIndex.current];
+      const currentVisemeName = typeof currentVisemeData === 'string' ? currentVisemeData : currentVisemeData?.name;
+      
+      if (visemeName !== currentVisemeName) {
+        // Log viseme change for debugging
+        console.log('Viseme change:', currentVisemeName, '->', visemeName);
+        
+        lastVisemeIndex.current = visemeIndex;
+        visemeStartTime.current = currentTime;
+      } else {
         visemeStartTime.current = currentTime;
       }
-    } else {
-      visemeStartTime.current = currentTime;
+    } else if (!isSpeaking) {
+      lastVisemeIndex.current = -1;
     }
-  } else if (!isSpeaking) {
-    lastVisemeIndex.current = -1;
-  }
-});
+  });
 
   // Handle emotion animations
   useEffect(() => {

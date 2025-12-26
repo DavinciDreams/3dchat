@@ -5,8 +5,9 @@ import { useChatStore } from '../store/chatStore';
 import { getAIResponse } from '../services/aiService';
 import { startListening, stopListening } from '../services/speechService';
 import { textToSpeech, playAudio } from '../services/speechSynthesisService';
+import { preprocessingPipeline } from '../services/textPreprocessing';
 import { supabase } from '../lib/supabaseClient';
-import { ChatMessageProps, ServiceError } from '../types';
+import { ChatMessageProps, ServiceError, PreprocessedText, Emotion } from '../types';
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const copyToClipboard = async () => {
@@ -24,6 +25,16 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  const store = useChatStore.getState();
+  
+  // Get processed message if available
+  const processedMessage = store.processedMessages.find(
+    pm => pm.id === message.id
+  );
+  
+  const contentToRender = processedMessage?.content || message.content;
+  const metadata = processedMessage?.metadata;
 
   return (
     <div className={`mb-4 ${message.role === 'user' ? 'text-right' : ''}`}>
@@ -46,18 +57,60 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
             </button>
           </div>
         )}
-        <div 
+        <div
           className={`inline-block px-4 py-2 rounded-lg max-w-[80%] ${
-            message.role === 'user' 
+            message.role === 'user'
               ? 'bg-teal-500 text-white rounded-tr-none'
               : 'bg-gray-800 text-white rounded-tl-none'
           }`}
         >
-          {message.content}
+          {renderMessageContent(contentToRender, metadata)}
         </div>
       </div>
     </div>
   );
+};
+
+// Helper function to render message content with links
+const renderMessageContent = (content: string, metadata?: { links?: Array<{ url: string; displayText: string; startIndex: number; endIndex: number }> }) => {
+  if (!metadata || !metadata.links || metadata.links.length === 0) {
+    return content;
+  }
+  
+  let lastIndex = 0;
+  const parts: React.ReactNode[] = [];
+  
+  // Sort links by position
+  const sortedLinks = [...metadata.links].sort((a, b) => a.startIndex - b.startIndex);
+  
+  for (const link of sortedLinks) {
+    // Add text before the link
+    if (link.startIndex > lastIndex) {
+      parts.push(content.substring(lastIndex, link.startIndex));
+    }
+    
+    // Add the link
+    parts.push(
+      <a
+        key={`${link.url}-${link.startIndex}`}
+        href={link.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-500 underline hover:text-blue-700"
+      >
+        {link.displayText}
+      </a>
+    );
+    
+    lastIndex = link.endIndex;
+  }
+  
+  // Add remaining text
+  if (lastIndex < content.length) {
+    parts.push(content.substring(lastIndex));
+  }
+  
+  return parts;
 };
 
 const ChatInterface = (): JSX.Element => {
@@ -114,19 +167,56 @@ const ChatInterface = (): JSX.Element => {
       if (response) {
         const text = typeof response === 'string' ? response : response.content;
         
+        // Preprocess the text before sending to TTS
+        const processed: PreprocessedText = preprocessingPipeline.process(text);
+        
+        // Log preprocessing results for debugging
+        console.group('📝 Text Preprocessing');
+        console.log('🤖 Model Output (original):', text);
+        console.log('🎤 Speech Output (cleanText):', processed.cleanText);
+        console.log('🖥️  Display Output (displayText):', processed.displayText);
+        console.log('📊 Metadata:', processed.metadata);
+        if (processed.metadata.emphasis.length > 0) {
+          console.log('✨ Emphasis detected:', processed.metadata.emphasis);
+        }
+        if (processed.metadata.emojis.length > 0) {
+          console.log('😀 Emojis detected:', processed.metadata.emojis);
+        }
+        if (processed.metadata.links.length > 0) {
+          console.log('🔗 Links detected:', processed.metadata.links);
+        }
+        console.groupEnd();
+        
+        // Store the processed message with metadata
+        const processedMessageId = crypto.randomUUID();
+        useChatStore.getState().setProcessedMessage({
+          id: processedMessageId,
+          role: 'assistant',
+          content: processed.displayText,
+          timestamp: Date.now(),
+          metadata: processed.metadata
+        });
+        
+        // Also add to regular messages for backward compatibility
+        useChatStore.getState().addMessage({
+          role: 'assistant',
+          content: processed.displayText
+        });
+        
         if (currentChatId) {
           await supabase
             .from('chat_messages')
             .insert([{
               chat_id: currentChatId,
-              content: text,
+              content: processed.displayText,
               role: 'assistant'
             }]);
         }
 
         useChatStore.getState().setSpeaking(true);
         try {
-          const audioBuffer = await textToSpeech(text);
+          // Use cleanText for speech synthesis (no emojis, links, asterisks)
+          const audioBuffer = await textToSpeech(processed.cleanText);
           console.log('TTS result received from textToSpeech:', audioBuffer);
           console.log('TTS result keys:', audioBuffer ? Object.keys(audioBuffer) : 'null/undefined');
           if (!audioBuffer) {
@@ -138,6 +228,19 @@ const ChatInterface = (): JSX.Element => {
             try {
               await playAudio(audioBuffer.audioBuffer);
               console.log('Audio playback finished');
+              
+              // Trigger gestures from emoji metadata
+              if (processed.metadata.emojis.length > 0) {
+                const store = useChatStore.getState();
+                processed.metadata.emojis.forEach((emojiData) => {
+                  if (emojiData.gesture) {
+                    // Cast to Emotion type if it's a valid emotion
+                    if (['neutral', 'happy', 'thinking', 'sad'].includes(emojiData.gesture)) {
+                      store.setEmotion(emojiData.gesture as Emotion);
+                    }
+                  }
+                });
+              }
             } catch (playError) {
               console.error('Error during audio playback:', playError);
             }
@@ -292,7 +395,7 @@ const ChatInterface = (): JSX.Element => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex h-full items-center justify-center text-white/70 text-center px-4"
+                className="flex h-full items-center justify-center text-black/70 text-center px-4"
               >
                 <p>
                   {isAuthenticated 
@@ -351,14 +454,14 @@ const ChatInterface = (): JSX.Element => {
                   ? "Listening..." 
                   : "Type your message..."
             }
-            className="flex-1 bg-gray-800/90 border border-gray-600 rounded-md px-4 py-2 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-teal-500/50 disabled:opacity-50"
+            className="flex-1 bg-gray-800/90 border border-gray-600 rounded-md px-4 py-2 text-black placeholder:text-black/50 focus:outline-none focus:ring-2 focus:ring-teal-500/50 disabled:opacity-50"
           />
           
           <motion.button
             type="submit"
             whileTap={{ scale: 0.9 }}
             disabled={!input.trim() || isProcessing || !isAuthenticated}
-            className={`p-2 rounded-full ml-2 bg-teal-500 text-white transition-opacity hover:bg-teal-400 ${
+            className={`p-2 rounded-full ml-2 bg-teal-500 text-black  transition-opacity hover:bg-teal-400 ${
               !input.trim() || isProcessing || !isAuthenticated ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
@@ -379,7 +482,7 @@ const ChatInterface = (): JSX.Element => {
             exit={{ opacity: 0 }}
             className="absolute top-0 left-0 right-0 flex justify-center"
           >
-            <div className="bg-black/40 text-white text-sm px-3 py-1 rounded-b-md">
+            <div className="bg-black/40 text-black text-sm px-3 py-1 rounded-b-md">
               {isProcessing ? 'Thinking...' : 'Speaking...'}
             </div>
           </motion.div>
