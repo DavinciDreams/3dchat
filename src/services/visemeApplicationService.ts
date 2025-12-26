@@ -1,6 +1,6 @@
 import { VRM } from '@pixiv/three-vrm';
 import { VisemeName } from '../types';
-import { getVRMBlendShapes } from './visemeService';
+import { getVRMBlendShapes } from './visemePreprocessor';
 
 export class VisemeApplier {
   private vrm: VRM | null = null;

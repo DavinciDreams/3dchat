@@ -4,7 +4,7 @@ import {
 import { ServiceError } from '../errors/AppError';
 import { useChatStore } from '../store/chatStore';
 import { VisemeData } from '../types';
-import { textToVisemes } from './visemeService';
+import { textToVisemes } from './visemePreprocessor';
 
 const VOICE_NAME = 'en-GB-LibbyNeural';
 const FALLBACK_VOICE_NAME = 'Google US English';

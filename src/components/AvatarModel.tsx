@@ -7,7 +7,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { useChatStore } from '../store/chatStore';
 import { CharacterProps, SceneProps, AVAILABLE_VRM_MODELS } from '../types';
 import { visemeApplier } from '../services/visemeApplicationService';
-import { getCurrentViseme } from '../services/visemeService';
+import { getCurrentViseme } from '../services/visemePreprocessor';
 import vrmaAnimationService, { VRMAAnimation } from '../services/vrmaAnimationService';
 
 export interface ExtendedCharacterProps extends CharacterProps {
