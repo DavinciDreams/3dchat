@@ -1,7 +1,8 @@
 import { useChatStore } from '../store/chatStore';
 import { getAIResponse } from './aiService';
 import { textToSpeech, playAudio } from './speechSynthesisService';
-import { SpeechResponse } from '../types';
+import { preprocessingPipeline } from './textPreprocessing';
+import { SpeechResponse, PreprocessedText, Emotion } from '../types';
 import { ServiceError } from '../errors/AppError';
 
 // Add browser native speech synthesis
@@ -97,15 +98,59 @@ function setupRecognitionHandlers(): void {
       
       const response = await getAIResponse(speechResult);
       if (response) {
-        store.addMessage({
+        const text = typeof response === 'string' ? response : response.content;
+        
+        // Preprocess the text
+        const processed: PreprocessedText = preprocessingPipeline.process(text);
+        
+        // Log preprocessing results for debugging
+        console.group('📝 Text Preprocessing (Speech Recognition)');
+        console.log('🤖 Model Output (original):', text);
+        console.log('🎤 Speech Output (cleanText):', processed.cleanText);
+        console.log('🖥️  Display Output (displayText):', processed.displayText);
+        console.log('📊 Metadata:', processed.metadata);
+        if (processed.metadata.emphasis.length > 0) {
+          console.log('✨ Emphasis detected:', processed.metadata.emphasis);
+        }
+        if (processed.metadata.emojis.length > 0) {
+          console.log('😀 Emojis detected:', processed.metadata.emojis);
+        }
+        if (processed.metadata.links.length > 0) {
+          console.log('🔗 Links detected:', processed.metadata.links);
+        }
+        console.groupEnd();
+        
+        // Store the processed message
+        store.setProcessedMessage({
+          id: crypto.randomUUID(),
           role: 'assistant',
-          content: typeof response === 'string' ? response : response.content
+          content: processed.displayText,
+          timestamp: Date.now(),
+          metadata: processed.metadata
         });
         
-        const text = typeof response === 'string' ? response : response.content;
-        const audioResult = await textToSpeech(text);
+        // Add to regular messages
+        store.addMessage({
+          role: 'assistant',
+          content: processed.displayText
+        });
+        
+        // Use cleanText for speech synthesis
+        const audioResult = await textToSpeech(processed.cleanText);
         if (audioResult) {
           await playAudio(audioResult.audioBuffer);
+          
+          // Trigger gestures from emoji metadata
+          if (processed.metadata.emojis.length > 0) {
+            processed.metadata.emojis.forEach((emojiData) => {
+              if (emojiData.gesture) {
+                // Cast to Emotion type if it's a valid emotion
+                if (['neutral', 'happy', 'thinking', 'sad'].includes(emojiData.gesture)) {
+                  store.setEmotion(emojiData.gesture as Emotion);
+                }
+              }
+            });
+          }
         }
       }
     } catch (error) {

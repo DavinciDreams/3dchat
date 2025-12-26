@@ -25,11 +25,21 @@ export async function textToSpeech(text: string): Promise<TTSResult | null> {
       pitch: '+0Hz',
     });
     const result = await tts.synthesize();
+    console.log('EdgeTTS result object:', JSON.stringify({
+      keys: Object.keys(result),
+      hasAudio: !!result.audio,
+      audioType: result.audio?.type,
+      audioSize: result.audio?.size
+    }, null, 2));
     if (!result.audio) {
       throw new ServiceError('speech', 'unknown', 'No audio returned from TTS');
     }
     // result.audio is a Blob in browser, convert to ArrayBuffer
     const arrayBuffer = await result.audio.arrayBuffer();
+    console.log('ArrayBuffer from result.audio:', {
+      byteLength: arrayBuffer?.byteLength,
+      type: typeof arrayBuffer
+    });
     
     // Generate visemes from the text
     const visemes = textToVisemes(text);

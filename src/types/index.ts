@@ -37,6 +37,7 @@ export interface ChatMessageProps {
 // Chat state management
 export interface ChatState {
   messages: Message[];
+  processedMessages: ProcessedMessage[];
   isProcessing: boolean;
   isSpeaking: boolean;
   isListening: boolean;
@@ -45,6 +46,7 @@ export interface ChatState {
   visemes: VisemeData[];
   visemeDuration: number;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
+  setProcessedMessage: (message: ProcessedMessage) => void;
   setProcessing: (isProcessing: boolean) => void;
   setSpeaking: (isSpeaking: boolean) => void;
   setListening: (isListening: boolean) => void;
@@ -136,4 +138,53 @@ export interface TTSResult {
   audioBuffer: ArrayBuffer;
   visemes: VisemeData[];
   duration: number;
+}
+
+// Text Preprocessing Types
+export interface PreprocessedText {
+  original: string;
+  cleanText: string;      // For TTS (no emojis, links, asterisks)
+  displayText: string;    // For UI (preserves formatting)
+  metadata: TextMetadata;
+}
+
+export interface TextMetadata {
+  emphasis: EmphasisData[];
+  emojis: EmojiData[];
+  links: LinkData[];
+}
+
+export interface EmphasisData {
+  text: string;
+  startIndex: number;
+  endIndex: number;
+  type: 'asterisk' | 'caps';
+}
+
+export interface EmojiData {
+  emoji: string;
+  position: number;
+  gesture?: string;
+}
+
+export interface LinkData {
+  url: string;
+  displayText: string;
+  startIndex: number;
+  endIndex: number;
+}
+
+export interface ProcessedMessage extends Message {
+  metadata?: TextMetadata;
+}
+
+// Processor Interface
+export interface ITextProcessor {
+  name: string;
+  priority: number;
+  process(text: string, metadata: TextMetadata): {
+    cleanText: string;
+    displayText: string;
+    metadata: TextMetadata;
+  };
 }
