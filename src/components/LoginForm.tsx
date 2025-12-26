@@ -61,7 +61,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-600 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 shadow"
+            className="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-600 text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 shadow"
             placeholder="Enter your email"
             required
           />
@@ -76,7 +76,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-600 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 shadow"
+            className="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-600 text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 shadow"
             placeholder="Enter your password"
             required
           />

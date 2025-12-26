@@ -395,7 +395,7 @@ const ChatInterface = (): JSX.Element => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex h-full items-center justify-center text-black/70 text-center px-4"
+                className="flex h-full items-center justify-center text-white/70 text-center px-4"
               >
                 <p>
                   {isAuthenticated 
@@ -454,14 +454,14 @@ const ChatInterface = (): JSX.Element => {
                   ? "Listening..." 
                   : "Type your message..."
             }
-            className="flex-1 bg-gray-800/90 border border-gray-600 rounded-md px-4 py-2 text-black placeholder:text-black/50 focus:outline-none focus:ring-2 focus:ring-teal-500/50 disabled:opacity-50"
+            className="flex-1 bg-gray-800/90 border border-gray-600 rounded-md px-4 py-2 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-teal-500/50 disabled:opacity-50"
           />
           
           <motion.button
             type="submit"
             whileTap={{ scale: 0.9 }}
             disabled={!input.trim() || isProcessing || !isAuthenticated}
-            className={`p-2 rounded-full ml-2 bg-teal-500 text-black  transition-opacity hover:bg-teal-400 ${
+            className={`p-2 rounded-full ml-2 bg-teal-500 text-white  transition-opacity hover:bg-teal-400 ${
               !input.trim() || isProcessing || !isAuthenticated ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
@@ -482,7 +482,7 @@ const ChatInterface = (): JSX.Element => {
             exit={{ opacity: 0 }}
             className="absolute top-0 left-0 right-0 flex justify-center"
           >
-            <div className="bg-black/40 text-black text-sm px-3 py-1 rounded-b-md">
+            <div className="bg-black/40 text-white text-sm px-3 py-1 rounded-b-md">
               {isProcessing ? 'Thinking...' : 'Speaking...'}
             </div>
           </motion.div>
