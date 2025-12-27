@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useChatStore } from '../store/chatStore';
 import { getAIResponse } from '../services/aiService';
 import { startListening, stopListening } from '../services/speechService';
-import { textToSpeech, playAudio } from '../services/speechSynthesisService';
+import { textToSpeech, playAudio, stopAudio } from '../services/speechSynthesisService';
 import { preprocessingPipeline } from '../services/textPreprocessing';
 import { supabase } from '../lib/supabaseClient';
 import { ChatMessageProps, ServiceError, PreprocessedText, Emotion } from '../types';
@@ -161,6 +161,9 @@ const ChatInterface = (): JSX.Element => {
 
   const handleMessage = async (content: string) => {
     if (!isAuthenticated) return;
+
+    console.log('📤 [handleMessage] Processing new message:', content);
+    console.log('📤 [handleMessage] Current isSpeaking state:', isSpeaking);
 
     try {
       const response = await getAIResponse(content);
@@ -326,10 +329,17 @@ const ChatInterface = (): JSX.Element => {
   };
 
   const handleStopSpeaking = () => {
+    console.log('🛑 [handleStopSpeaking] Stop speaking button clicked');
+    console.log('🛑 [handleStopSpeaking] Current isSpeaking state:', isSpeaking);
+    
+    // Use new stopAudio function instead of window.speechSynthesis
+    stopAudio();
+    
+    // Also cancel window.speechSynthesis as a fallback (for native speech API)
     if (window.speechSynthesis) {
+      console.log('🛑 [handleStopSpeaking] Canceling window.speechSynthesis');
       window.speechSynthesis.cancel();
     }
-    useChatStore.getState().setSpeaking(false);
   };
 
   const handleMicToggle = async () => {

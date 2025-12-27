@@ -3,13 +3,15 @@ import {
 } from 'edge-tts-universal';
 import { ServiceError } from '../errors/AppError';
 import { useChatStore } from '../store/chatStore';
-import { VisemeData } from '../types';
+import { VisemeData, AVAILABLE_VOICES } from '../types';
 import { textToVisemes } from './visemePreprocessor';
 
-const VOICE_NAME = 'en-GB-LibbyNeural';
+// Default voice (will be overridden by selected voice from store)
+const DEFAULT_VOICE_NAME = 'en-GB-LibbyNeural';
 const FALLBACK_VOICE_NAME = 'Google US English';
 
 let audioContext: AudioContext | null = null;
+let currentAudioSource: AudioBufferSourceNode | null = null; // Track active audio source for cancellation
 
 export interface TTSResult {
   audioBuffer: ArrayBuffer;
@@ -19,7 +21,14 @@ export interface TTSResult {
 
 export async function textToSpeech(text: string): Promise<TTSResult | null> {
   try {
-    const tts = new EdgeTTS(text, VOICE_NAME, {
+    // Get selected voice from store
+    const store = useChatStore.getState();
+    const selectedVoice = AVAILABLE_VOICES.find(v => v.id === store.selectedVoiceId);
+    const voiceName = selectedVoice?.name || DEFAULT_VOICE_NAME;
+    
+    console.log('🎤 [textToSpeech] Using voice:', voiceName);
+    
+    const tts = new EdgeTTS(text, voiceName, {
       rate: '+0%',
       volume: '+0%',
       pitch: '+0Hz',
@@ -111,6 +120,21 @@ export async function speakWithNative(text: string): Promise<ArrayBuffer | null>
 }
 
 export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
+  console.log('🔊 [playAudio] Starting audio playback');
+  console.log('🔊 [playAudio] Current audio source:', currentAudioSource ? 'active' : 'none');
+  
+  // Stop any existing audio before playing new audio
+  if (currentAudioSource) {
+    console.log('🔊 [playAudio] Stopping existing audio source');
+    try {
+      currentAudioSource.stop();
+      currentAudioSource.disconnect();
+    } catch (e) {
+      console.warn('🔊 [playAudio] Error stopping existing audio:', e);
+    }
+    currentAudioSource = null;
+  }
+  
   try {
     if (!audioBuffer || audioBuffer.byteLength === 0) {
       console.warn('playAudio received empty or null audioBuffer');
@@ -126,6 +150,10 @@ export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
     const source = audioContext.createBufferSource();
     source.buffer = decodedData;
     
+    // Store reference to current audio source for cancellation
+    currentAudioSource = source;
+    console.log('🔊 [playAudio] New audio source created and stored');
+    
     // Get the mute state from the store
     const isMuted = useChatStore.getState().isMuted;
     
@@ -138,22 +166,27 @@ export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
     // Play and handle completion
     await new Promise<void>((resolve, reject) => {
       source.onended = () => {
-        console.log('Audio playback ended');
+        console.log('🔊 [playAudio] Audio playback ended naturally');
+        currentAudioSource = null;
         resolve();
       };
       source.addEventListener('error', (error) => {
-        console.error('AudioSource error:', error);
+        console.error('🔊 [playAudio] AudioSource error:', error);
+        currentAudioSource = null;
         reject(new Error('Error playing audio: ' + error));
       });
       try {
         source.start(0);
+        console.log('🔊 [playAudio] Audio started successfully');
       } catch (startError) {
-        console.error('Error starting audio source:', startError);
+        console.error('🔊 [playAudio] Error starting audio source:', startError);
+        currentAudioSource = null;
         reject(startError);
       }
     });
   } catch (error) {
-    console.error('Error playing audio:', error);
+    console.error('🔊 [playAudio] Error playing audio:', error);
+    currentAudioSource = null;
     throw new ServiceError(
       'speech',
       'unknown',
@@ -163,4 +196,27 @@ export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
   } finally {
     useChatStore.getState().setSpeaking(false);
   }
+}
+
+/**
+ * Stop currently playing audio
+ */
+export function stopAudio(): void {
+  console.log('🔊 [stopAudio] Called');
+  console.log('🔊 [stopAudio] Current audio source:', currentAudioSource ? 'active' : 'none');
+  
+  if (currentAudioSource) {
+    try {
+      currentAudioSource.stop();
+      currentAudioSource.disconnect();
+      currentAudioSource = null;
+      console.log('🔊 [stopAudio] Audio stopped successfully');
+    } catch (e) {
+      console.error('🔊 [stopAudio] Error stopping audio:', e);
+    }
+  } else {
+    console.warn('🔊 [stopAudio] No audio source to stop');
+  }
+  
+  useChatStore.getState().setSpeaking(false);
 }

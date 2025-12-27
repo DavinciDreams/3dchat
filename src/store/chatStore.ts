@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ChatState, Message, Emotion, VisemeData, ProcessedMessage, AVAILABLE_VRM_MODELS } from '../types';
+import { ChatState, Message, Emotion, VisemeData, ProcessedMessage, AVAILABLE_VRM_MODELS, AVAILABLE_VOICES } from '../types';
 
 export const MAX_MESSAGES = 10;
 
@@ -14,6 +14,7 @@ export const useChatStore = create<ChatState>((set) => ({
   visemes: [],
   visemeDuration: 0,
   selectedModelId: AVAILABLE_VRM_MODELS[0].id, // Default to first model (Billy)
+  selectedVoiceId: AVAILABLE_VOICES[0].id, // Default to first voice (Libby)
   
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => set((state) => {
     if (!message.content || !message.role) {
@@ -48,5 +49,6 @@ export const useChatStore = create<ChatState>((set) => ({
   setVisemes: (visemes: VisemeData[]) => set({ visemes }),
   setVisemeDuration: (duration: number) => set({ visemeDuration: duration }),
   setSelectedModelId: (modelId: string) => set({ selectedModelId: modelId }),
+  setSelectedVoiceId: (voiceId: string) => set({ selectedVoiceId: voiceId }),
   clearMessages: () => set({ messages: [] }),
 }));

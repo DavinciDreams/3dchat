@@ -17,6 +17,22 @@ export const AVAILABLE_VRM_MODELS: VRMModel[] = [
   { id: 'peach', name: 'Peach', path: '/model/peach.vrm' },
 ];
 
+// Voice types
+export interface Voice {
+  id: string;
+  name: string;
+  displayName: string;
+  gender: 'male' | 'female';
+  language: string;
+}
+
+export const AVAILABLE_VOICES: Voice[] = [
+  { id: 'libby', name: 'en-GB-LibbyNeural', displayName: 'Libby (Female)', gender: 'female', language: 'en-GB' },
+  { id: 'jenny', name: 'en-GB-JennyNeural', displayName: 'Jenny (Female)', gender: 'female', language: 'en-GB' },
+  { id: 'ryan', name: 'en-US-RyanNeural', displayName: 'Ryan (Male)', gender: 'male', language: 'en-US' },
+  { id: 'guy', name: 'en-US-GuyNeural', displayName: 'Guy (Male)', gender: 'male', language: 'en-US' },
+];
+
 // Avatar Model types
 export interface CharacterProps {
   position?: [number, number, number];
@@ -60,6 +76,7 @@ export interface ChatState {
   visemes: VisemeData[];
   visemeDuration: number;
   selectedModelId: string;
+  selectedVoiceId: string;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
   setProcessedMessage: (message: ProcessedMessage) => void;
   setProcessing: (isProcessing: boolean) => void;
@@ -70,6 +87,7 @@ export interface ChatState {
   setVisemes: (visemes: VisemeData[]) => void;
   setVisemeDuration: (duration: number) => void;
   setSelectedModelId: (modelId: string) => void;
+  setSelectedVoiceId: (voiceId: string) => void;
   clearMessages: () => void;
 }
 

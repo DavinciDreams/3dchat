@@ -24,16 +24,17 @@ export class PunctuationProcessor extends BaseProcessor {
    * @returns Processed text with emphasis metadata
    */
   process(text: string, metadata: TextMetadata) {
+    const startTime = performance.now();
+    
     let cleanText = text;
     const displayText = text;
     const newMetadata = this.cloneMetadata(metadata);
     
     // Process asterisk-wrapped emphasis: *text* or **text**
-    const asteriskPattern = /\*+([^*]+)\*+/g;
     let match;
     let positionOffset = 0;
     
-    while ((match = asteriskPattern.exec(text)) !== null) {
+    while ((match = /\*+([^*]+)\*+/g.exec(text)) !== null) {
       const fullMatch = match[0];
       const innerText = match[1];
       const startIndex = match.index;
@@ -48,8 +49,8 @@ export class PunctuationProcessor extends BaseProcessor {
       });
       
       // Remove asterisks from clean text
-      cleanText = cleanText.substring(0, startIndex - positionOffset) + 
-                  innerText + 
+      cleanText = cleanText.substring(0, startIndex - positionOffset) +
+                  innerText +
                   cleanText.substring(endIndex - positionOffset);
       
       positionOffset += fullMatch.length - innerText.length;
@@ -59,27 +60,29 @@ export class PunctuationProcessor extends BaseProcessor {
     cleanText = cleanText.replace(HEADING_MARKER_PATTERN, '');
     
     // Process CAPS for emphasis (all caps words 3+ characters)
-    const capsPattern = /\b([A-Z]{3,})\b/g;
     let capsMatch;
+    const emphasisText = new Set(newMetadata.emphasis.map(e => e.text));
     
-    while ((capsMatch = capsPattern.exec(text)) !== null) {
+    while ((capsMatch = /\b([A-Z]{3,})\b/g.exec(text)) !== null) {
       const word = capsMatch[1];
       const startIndex = capsMatch.index;
       const endIndex = startIndex + word.length;
       
-      // Only add if not already in emphasis
-      const alreadyExists = newMetadata.emphasis.some(
-        e => e.text === word && e.type === 'caps'
-      );
-      
-      if (!alreadyExists) {
+      // Use Set for O(1) lookup instead of Array.some
+      if (!emphasisText.has(word)) {
         newMetadata.emphasis.push({
           text: word,
           startIndex,
           endIndex,
           type: 'caps'
         });
+        emphasisText.add(word);
       }
+    }
+    
+    const elapsed = performance.now() - startTime;
+    if (elapsed > 10) {
+      console.warn(`⚠️ [PunctuationProcessor] Slow processing: ${elapsed.toFixed(2)}ms for ${text.length} chars`);
     }
     
     return { cleanText, displayText, metadata: newMetadata };

@@ -5,7 +5,7 @@ import { initSpeechRecognition } from './services/speechService';
 import { useChatStore } from './store/chatStore';
 import { supabase } from './lib/supabaseClient';
 import type { AppError } from './types';
-import { AVAILABLE_VRM_MODELS } from './types';
+import { AVAILABLE_VRM_MODELS, AVAILABLE_VOICES } from './types';
 
 // Use lazy loading for performance optimization
 const ChatInterface = React.lazy(() => import('./components/ChatInterface'));
@@ -15,7 +15,7 @@ const LoginForm = React.lazy(() => import('./components/LoginForm'));
 function App() {
   const [error, setError] = useState<AppError | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(true); // Temporarily set to true for debugging
-  const { setProcessing, isMuted, setIsMuted, selectedModelId, setSelectedModelId } = useChatStore();
+  const { setProcessing, isMuted, setIsMuted, selectedModelId, setSelectedModelId, selectedVoiceId, setSelectedVoiceId } = useChatStore();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -88,7 +88,7 @@ function App() {
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent pointer-events-none" />
         
         {/* Header */}
-        <header className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10">
+        <header className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-20 pointer-events-auto">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -101,12 +101,31 @@ function App() {
             {/* Model Selection Dropdown */}
             <select
               value={selectedModelId}
-              onChange={(e) => setSelectedModelId(e.target.value)}
-              className="bg-gray-800 text-white text-sm px-3 py-1 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-500/50 hover:bg-gray-700 transition-colors"
+              onChange={(e) => {
+                console.log('🎭 [App.tsx] Model changed from', selectedModelId, 'to', e.target.value);
+                setSelectedModelId(e.target.value);
+              }}
+              className="bg-gray-800 text-white text-sm px-3 py-1 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-500/50 hover:bg-gray-700 transition-colors mr-2"
             >
               {AVAILABLE_VRM_MODELS.map((model) => (
                 <option key={model.id} value={model.id}>
                   {model.name}
+                </option>
+              ))}
+            </select>
+            
+            {/* Voice Selection Dropdown */}
+            <select
+              value={selectedVoiceId}
+              onChange={(e) => {
+                console.log('🎤 [App.tsx] Voice changed from', selectedVoiceId, 'to', e.target.value);
+                setSelectedVoiceId(e.target.value);
+              }}
+              className="bg-gray-800 text-white text-sm px-3 py-1 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-500/50 hover:bg-gray-700 transition-colors"
+            >
+              {AVAILABLE_VOICES.map((voice) => (
+                <option key={voice.id} value={voice.id}>
+                  {voice.displayName}
                 </option>
               ))}
             </select>
