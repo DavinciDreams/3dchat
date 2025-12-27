@@ -44,6 +44,9 @@ export class PreprocessingPipeline {
    * @returns PreprocessedText with cleanText, displayText, and metadata
    */
   process(text: string): PreprocessedText {
+    const startTime = performance.now();
+    console.log('⏱️ [PreprocessingPipeline] Starting preprocessing for text length:', text.length);
+    
     let cleanText = text;
     let displayText = text;
     const metadata: TextMetadata = {
@@ -54,13 +57,21 @@ export class PreprocessingPipeline {
     
     // Run each processor in priority order
     for (const processor of this.processors) {
+      const processorStartTime = performance.now();
       const result = processor.process(cleanText, metadata);
+      const processorTime = performance.now() - processorStartTime;
+      
+      console.log(`⏱️ [PreprocessingPipeline] ${processor.name} took ${processorTime.toFixed(2)}ms`);
+      
       cleanText = result.cleanText;
       displayText = result.displayText;
       metadata.emphasis = result.metadata.emphasis;
       metadata.emojis = result.metadata.emojis;
       metadata.links = result.metadata.links;
     }
+    
+    const totalTime = performance.now() - startTime;
+    console.log(`⏱️ [PreprocessingPipeline] Total preprocessing time: ${totalTime.toFixed(2)}ms`);
     
     return {
       original: text,

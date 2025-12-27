@@ -26,6 +26,8 @@ export class LinkProcessor extends BaseProcessor {
    * @returns Processed text with link metadata
    */
   process(text: string, metadata: TextMetadata) {
+    const startTime = performance.now();
+    
     let cleanText = text;
     const displayText = text;
     const newMetadata = this.cloneMetadata(metadata);
@@ -50,10 +52,15 @@ export class LinkProcessor extends BaseProcessor {
       });
       
       // Remove from clean text (for TTS)
-      cleanText = cleanText.substring(0, startIndex - positionOffset) + 
+      cleanText = cleanText.substring(0, startIndex - positionOffset) +
                   cleanText.substring(endIndex - positionOffset);
       
       positionOffset += url.length;
+    }
+    
+    const elapsed = performance.now() - startTime;
+    if (elapsed > 10) {
+      console.warn(`⚠️ [LinkProcessor] Slow processing: ${elapsed.toFixed(2)}ms for ${text.length} chars`);
     }
     
     return { cleanText, displayText, metadata: newMetadata };

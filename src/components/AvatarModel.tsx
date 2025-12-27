@@ -3,6 +3,7 @@ import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { createVRMAnimationClip } from '@pixiv/three-vrm-animation';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { useChatStore } from '../store/chatStore';
 import { CharacterProps, SceneProps, AVAILABLE_VRM_MODELS } from '../types';
@@ -22,8 +23,9 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 }) => {
   const store = useChatStore();
   const { emotion, isSpeaking, visemes, selectedModelId } = store;
-  
+
   // Get model path based on the selected model ID
+  // The key prop on the parent component handles model changes, so no timestamp needed
   const MODEL_PATH_VRM = useMemo(() => {
     const model = AVAILABLE_VRM_MODELS.find(m => m.id === selectedModelId);
     return model?.path || '/model/Billy.vrm';
@@ -37,6 +39,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   const mixer = useRef<THREE.AnimationMixer | null>(null);
   const currentActions = useRef<Record<string, THREE.AnimationAction>>({});
   const vrmaActions = useRef<Record<string, THREE.AnimationAction>>({});
+  const vrmaClips = useRef<Record<string, THREE.AnimationClip>>({});
   const visemeStartTime = useRef<number>(0);
   const speakingStartTime = useRef<number>(0);
   const lastUpdate = useRef<number>(0);
@@ -51,6 +54,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 
   /**
    * Load VRMA animations and create actions for them
+   * Uses createVRMAnimationClip to properly retarget animations to the VRM model
    */
   const loadVRMAAnimations = async () => {
     if (!mixer.current || !vrm) return;
@@ -61,15 +65,26 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       
       // Create animation actions for each VRMA animation
       animations.forEach((vrmaAnim: VRMAAnimation) => {
-        const action = mixer.current!.clipAction(vrmaAnim.clip);
-        vrmaActions.current[vrmaAnim.name] = action;
+        try {
+          // Use createVRMAnimationClip to retarget the VRMA animation to the VRM model
+          // This creates a properly bound animation clip that can animate the VRM's bones
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const retargetedClip = createVRMAnimationClip(vrmaAnim.vrmAnimation, vrm as any);
+          const action = mixer.current!.clipAction(retargetedClip);
+          vrmaActions.current[vrmaAnim.name] = action;
+          vrmaClips.current[vrmaAnim.name] = retargetedClip;
+        } catch (error) {
+          // Log errors but continue - some animations may not be compatible with all models
+          console.warn(`Failed to retarget VRMA animation '${vrmaAnim.name}':`, error);
+        }
       });
 
       console.log('VRMA animations loaded:', animations.size);
       console.log('Available VRMA actions:', Object.keys(vrmaActions.current));
+      console.log('Available VRMA clips:', Object.keys(vrmaClips.current));
     } catch (error) {
       console.error('Error loading VRMA animations:', error);
-      throw error;
+      // Don't throw - allow model to render even if VRMA animations fail
     }
   };
 
@@ -82,7 +97,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // Apply VRM optimizations
       VRMUtils.removeUnnecessaryVertices(gltf.scene);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      VRMUtils.removeUnnecessaryJoints((vrmObj as any).scene);
+      VRMUtils.combineSkeletons((vrmObj as any).scene);
       
       // Register VRM with viseme applier
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,37 +106,55 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // Position and scale the model
       scene.position.set(position[0], position[1], position[2]);
       scene.scale.setScalar(scale);
-      // Rotate 180 degrees around Y-axis to face the camera
-      scene.rotation.set(rotation[0], rotation[1] + Math.PI, rotation[2]);
+      // Rotate to face the camera - Different models have different default orientations
+      const isPeachModel = selectedModelId === 'peach';
+      let yRotation = rotation[1];
       
-      // Apply a natural standing pose instead of T-pose
-      applyNaturalPose(vrmObj);
+      // Apply model-specific rotation adjustments
+      // Models may have different default orientations - adjust as needed
+      if (isPeachModel) {
+        yRotation += Math.PI; // Peach faces backwards by default
+      }
+      // Billy and Mega may need adjustment based on testing
       
-      // Setup animation mixer
+      scene.rotation.set(rotation[0], yRotation, rotation[2]);
+      
+      // Setup animation mixer with VRM scene
       mixer.current = new THREE.AnimationMixer(scene);
       const animations = gltf.animations;
       
+      // Load embedded animations from VRM file
       animations.forEach(clip => {
         const action = mixer.current!.clipAction(clip);
         currentActions.current[clip.name] = action;
       });
 
-      // Load VRMA animations
+      // Load VRMA animations with proper retargeting
       loadVRMAAnimations().then(() => {
         console.log('VRMA animations loaded successfully');
         setVrmaAnimationsLoaded(true);
+        
+        // Start idle animation from VRMA after loading
+        if (vrmaActions.current['modelPose']) {
+          try {
+            vrmaActions.current['modelPose'].reset().fadeIn(0.3).play();
+            console.log('Playing idle animation (modelPose)');
+          } catch {
+            console.warn('Failed to play modelPose animation');
+          }
+        }
       }).catch((error) => {
         console.warn('Failed to load VRMA animations:', error);
         setVrmaAnimationsLoaded(false);
       });
-
-      // Start idle animation if available
-      if (currentActions.current['idle']) {
-        currentActions.current['idle'].play();
-      }
       
       console.log('VRM model loaded:', vrm);
-      console.log('Available animations:', animations.map(a => a.name));
+      console.log('Available embedded animations:', animations.map(a => a.name));
+      console.log('Available VRMA animations:', Object.keys(vrmaClips.current));
+      console.log('Total available animations:', [
+        ...animations.map(a => a.name),
+        ...Object.keys(vrmaClips.current)
+      ]);
     }
     
     return () => {
@@ -141,13 +174,17 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 
     // Helper function to set bone rotation in degrees
     const setBoneRotation = (boneName: string, x: number, y: number, z: number) => {
-      const bone = humanoid.getNormalizedBoneNode(boneName);
-      if (bone) {
-        bone.rotation.set(
-          THREE.MathUtils.degToRad(x),
-          THREE.MathUtils.degToRad(y),
-          THREE.MathUtils.degToRad(z)
-        );
+      try {
+        const bone = humanoid.getNormalizedBoneNode(boneName);
+        if (bone) {
+          bone.rotation.set(
+            THREE.MathUtils.degToRad(x),
+            THREE.MathUtils.degToRad(y),
+            THREE.MathUtils.degToRad(z)
+          );
+        }
+      } catch {
+        // Silently ignore bone errors - different VRM models may have different bone structures
       }
     };
 
@@ -184,9 +221,13 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     setBoneRotation('leftFoot', 0, 0, 0);
     setBoneRotation('rightFoot', 0, 0, 0);
     
-    // Update the VRM to apply changes
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (vrmObj as any).update();
+    // Update the VRM to apply changes - wrap in try-catch to handle null bone nodes
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (vrmObj as any).update();
+    } catch (error) {
+      console.warn('Failed to update VRM pose (this is normal for some VRM models):', error);
+    }
   };
 
   // Handle viseme animation (simplified for GLB model - log viseme changes)
@@ -196,8 +237,20 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       if (lastUpdate.current % frameSkip.current !== 0) return;
     }
 
+    // Update animation mixer to advance animations
     if (mixer.current && delta < 0.1) {
       mixer.current.update(delta);
+    }
+
+    // Update VRM model to apply bone transformations from animations
+    // This is critical - without this, animations won't affect the model's bones
+    if (vrmRef.current) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (vrmRef.current as any).update(delta);
+      } catch {
+        // Some VRM models may not support update() - handle gracefully
+      }
     }
 
     // Handle viseme animation when speaking
@@ -237,6 +290,10 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       }
       if (!action) {
         console.warn(`Animation action not found: ${actionName}`);
+        // Fall back to natural pose if no animation found
+        if (vrmRef.current) {
+          applyNaturalPose(vrmRef.current);
+        }
         return;
       }
 
@@ -248,43 +305,50 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         if (a !== action) a.fadeOut(duration);
       });
 
-      action.reset().fadeIn(duration).play();
+      // Try to play the animation, but handle binding failures gracefully
+      try {
+        action.reset().fadeIn(duration).play();
+      } catch {
+        console.warn(`Failed to play animation '${actionName}' - bone structure mismatch with current VRM model`);
+        // Fall back to natural pose if VRMA animation fails
+        if (vrmRef.current) {
+          applyNaturalPose(vrmRef.current);
+        }
+      }
     };
-
-    // Declare animation variables outside of switch/case to avoid lexical declaration issues
-    let talkingAnim: THREE.AnimationAction | undefined;
-    let thinkingAnim: THREE.AnimationAction | undefined;
-    let happyAnim: THREE.AnimationAction | undefined;
-    let idleAnim: THREE.AnimationAction | undefined;
 
     if (isSpeaking) {
       // Try VRMA 'greeting' animation for talking, fall back to 'talking'
-      talkingAnim = vrmaActions.current['greeting'] || currentActions.current['talking'];
-      if (talkingAnim) {
-        fadeToAction(talkingAnim.getClip().name);
+      if (vrmaActions.current['greeting']) {
+        fadeToAction('greeting');
+      } else if (currentActions.current['talking']) {
+        fadeToAction('talking');
       }
     } else {
       switch (emotion) {
         case 'thinking':
           // Try VRMA 'spin' animation for thinking, fall back to 'thinking'
-          thinkingAnim = vrmaActions.current['spin'] || currentActions.current['thinking'];
-          if (thinkingAnim) {
-            fadeToAction(thinkingAnim.getClip().name);
+          if (vrmaActions.current['spin']) {
+            fadeToAction('spin');
+          } else if (currentActions.current['thinking']) {
+            fadeToAction('thinking');
           }
           break;
         case 'happy':
           // Try VRMA 'peace' animation for happy, fall back to 'happy'
-          happyAnim = vrmaActions.current['peace'] || currentActions.current['happy'];
-          if (happyAnim) {
-            fadeToAction(happyAnim.getClip().name);
+          if (vrmaActions.current['peace']) {
+            fadeToAction('peace');
+          } else if (currentActions.current['happy']) {
+            fadeToAction('happy');
           }
           break;
         default:
           // For neutral emotion and not speaking, ensure idle pose is maintained
           // Try VRMA 'modelPose' for idle, fall back to 'idle'
-          idleAnim = vrmaActions.current['modelPose'] || currentActions.current['idle'];
-          if (idleAnim) {
-            fadeToAction(idleAnim.getClip().name);
+          if (vrmaActions.current['modelPose']) {
+            fadeToAction('modelPose');
+          } else if (currentActions.current['idle']) {
+            fadeToAction('idle');
           } else if (vrmRef.current) {
             // Re-apply natural pose if no idle animation exists
             applyNaturalPose(vrmRef.current);

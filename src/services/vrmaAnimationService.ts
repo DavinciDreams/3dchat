@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { VRMLoaderPlugin } from '@pixiv/three-vrm';
+import { VRMAnimationLoaderPlugin } from '@pixiv/three-vrm-animation';
 
 /**
  * VRMA Animation Service
@@ -10,6 +10,7 @@ import { VRMLoaderPlugin } from '@pixiv/three-vrm';
 export interface VRMAAnimation {
   name: string;
   clip: THREE.AnimationClip;
+  vrmAnimation: unknown; // The raw VRM animation data for retargeting
 }
 
 export interface VRMAAnimationConfig {
@@ -43,7 +44,7 @@ class VRMAAnimationService {
 
   constructor() {
     this.loader = new GLTFLoader();
-    this.loader.register((parser) => new VRMLoaderPlugin(parser));
+    this.loader.register((parser) => new VRMAnimationLoaderPlugin(parser));
   }
 
   /**
@@ -66,18 +67,19 @@ class VRMAAnimationService {
     const promise = this.loader
       .loadAsync(config.path)
       .then((gltf) => {
-        // VRMA files contain animation clips in the animations array
-        const animations = gltf.animations;
+        // VRMA files contain animation data in userData.vrmAnimations
+        const vrmAnimations = (gltf.userData as { vrmAnimations?: unknown[] }).vrmAnimations;
         
-        if (!animations || animations.length === 0) {
-          throw new Error(`No animations found in VRMA file: ${config.path}`);
+        if (!vrmAnimations || vrmAnimations.length === 0) {
+          throw new Error(`No VRM animations found in VRMA file: ${config.path}`);
         }
 
-        // Use the first animation clip from the VRMA file
-        const clip = animations[0];
+        // Use the first VRM animation from the VRMA file
+        const vrmAnimation = vrmAnimations[0];
         const animation: VRMAAnimation = {
           name: config.name,
-          clip: clip,
+          clip: gltf.animations[0], // Keep the raw clip for reference
+          vrmAnimation: vrmAnimation, // Store the VRM animation data for retargeting
         };
 
         this.loadedAnimations.set(config.name, animation);

@@ -50,14 +50,16 @@ export class EmojiProcessor extends BaseProcessor {
    * @returns Processed text with emoji metadata
    */
   process(text: string, metadata: TextMetadata) {
+    const startTime = performance.now();
+    
     let cleanText = text;
     const newMetadata = this.cloneMetadata(metadata);
     
+    // Use regex directly without creating new RegExp instance each time
     let match;
     let positionOffset = 0;
-    const regex = new RegExp(EMOJI_PATTERN);
     
-    while ((match = regex.exec(text)) !== null) {
+    while ((match = EMOJI_PATTERN.exec(text)) !== null) {
       const emoji = match[0];
       const startIndex = match.index;
       const endIndex = startIndex + emoji.length;
@@ -70,10 +72,15 @@ export class EmojiProcessor extends BaseProcessor {
       });
       
       // Remove emoji from clean text (for TTS)
-      cleanText = cleanText.substring(0, startIndex - positionOffset) + 
+      cleanText = cleanText.substring(0, startIndex - positionOffset) +
                   cleanText.substring(endIndex - positionOffset);
       
       positionOffset += emoji.length;
+    }
+    
+    const elapsed = performance.now() - startTime;
+    if (elapsed > 10) {
+      console.warn(`⚠️ [EmojiProcessor] Slow processing: ${elapsed.toFixed(2)}ms for ${text.length} chars`);
     }
     
     return { cleanText, displayText: text, metadata: newMetadata };
