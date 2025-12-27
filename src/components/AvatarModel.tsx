@@ -143,18 +143,18 @@ const Character: React.FC<ExtendedCharacterProps> = ({
             console.warn('Failed to play modelPose animation');
           }
         }
+        
+        console.log('VRM model loaded:', vrm);
+        console.log('Available embedded animations:', animations.map(a => a.name));
+        console.log('Available VRMA animations:', Object.keys(vrmaClips.current));
+        console.log('Total available animations:', [
+          ...animations.map(a => a.name),
+          ...Object.keys(vrmaClips.current)
+        ]);
       }).catch((error) => {
         console.warn('Failed to load VRMA animations:', error);
         setVrmaAnimationsLoaded(false);
       });
-      
-      console.log('VRM model loaded:', vrm);
-      console.log('Available embedded animations:', animations.map(a => a.name));
-      console.log('Available VRMA animations:', Object.keys(vrmaClips.current));
-      console.log('Total available animations:', [
-        ...animations.map(a => a.name),
-        ...Object.keys(vrmaClips.current)
-      ]);
     }
     
     return () => {
@@ -163,7 +163,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       }
       visemeApplier.setVRM(null);
     };
-  }, [position, scale, rotation, selectedModel]);
+  }, [position, scale, rotation, selectedModelId]);
 
   // Apply a natural standing pose to the VRM model
   const applyNaturalPose = (vrm: unknown) => {
