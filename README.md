@@ -15,6 +15,17 @@ A real-time 3D AI chat application featuring animated VRM avatars with voice cap
 - **Authentication** - User login/signup via Supabase
 - **Responsive Design** - Works on desktop and mobile devices
 
+## Branding
+
+The application features a cohesive branding identity with a brain icon motif and teal color scheme:
+
+- **Custom Favicon** - Brain icon available in SVG and PNG formats (192×192px, 512×512px)
+- **Social Preview** - Optimized Open Graph and Twitter Card images for sharing
+- **Theme Color** - Teal-500 (#14b8a6) as the primary brand color
+- **Apple Touch Icon** - Dedicated icon for iOS home screen bookmarks
+
+For detailed information about branding assets, color scheme, and how to regenerate favicons, see [`docs/BRANDING.md`](docs/BRANDING.md).
+
 ## Technical Stack
 
 - **React 18** with TypeScript
