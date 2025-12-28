@@ -64,6 +64,12 @@ export interface ChatMessageProps {
   message: Message;
 }
 
+// Animation Queue Types (forward declaration for ChatState)
+export interface AnimationTrigger {
+  name: string;           // Animation name: 'spin', 'squat', etc.
+  delay?: number;         // Seconds to wait before playing
+}
+
 // Chat state management
 export interface ChatState {
   messages: Message[];
@@ -77,6 +83,8 @@ export interface ChatState {
   visemeDuration: number;
   selectedModelId: string;
   selectedVoiceId: string;
+  animationQueue: AnimationTrigger[];
+  currentAnimation: string | null;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
   setProcessedMessage: (message: ProcessedMessage) => void;
   setProcessing: (isProcessing: boolean) => void;
@@ -88,6 +96,8 @@ export interface ChatState {
   setVisemeDuration: (duration: number) => void;
   setSelectedModelId: (modelId: string) => void;
   setSelectedVoiceId: (voiceId: string) => void;
+  setAnimationQueue: (queue: AnimationTrigger[]) => void;
+  setCurrentAnimation: (animation: string | null) => void;
   clearMessages: () => void;
 }
 
@@ -222,3 +232,39 @@ export interface ITextProcessor {
     metadata: TextMetadata;
   };
 }
+
+// Animation Judge Types
+export interface AnimationJudgment {
+  animations: AnimationTrigger[];
+  reasoning: string;
+}
+
+// Core animations (from VRM Motion Pack)
+export const CORE_ANIMATIONS = [
+  'greeting',    // Wave hello
+  'peace',       // Peace sign
+  'shoot',       // Finger guns
+  'spin',        // Playful spin
+  'modelPose',   // Idle pose
+  'squat',       // Squat down
+] as const;
+
+// Extended animations (converted from Mixamo FBX files)
+export const EXTENDED_ANIMATIONS = [
+  // Idle & Standing
+  'idle', 'talkingOnPhone',
+  // Greetings & Social
+  'bowing', 'salute', 'singing',
+  // Dance & Celebration
+  'hipHopDance', 'swinging', 'catwalk',
+  // Combat & Action
+  'punch', 'dropKick', 'flyingKnee', 'daggerStab', 'bodyBlock', 'centerBlock', 'catch', 'snatch', 'reloading', 'magicCast',
+  // Movement
+  'walking', 'jogBackwards', 'jumping', 'climbing', 'takeCover', 'zombieStandUp', 'plank', 'openDoor', 'turnLeft', 'turnRight',
+  // Sports & Activities
+  'golfBadShot', 'golfPrePutt',
+] as const;
+
+// All available animations
+export const AVAILABLE_ANIMATIONS = [...CORE_ANIMATIONS, ...EXTENDED_ANIMATIONS] as const;
+export type AnimationName = typeof AVAILABLE_ANIMATIONS[number];

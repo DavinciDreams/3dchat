@@ -15,14 +15,18 @@ export interface ExtendedCharacterProps extends CharacterProps {
   selectedModel?: string;
 }
 
+// Default values as constants to prevent new array creation on each render
+const DEFAULT_POSITION: [number, number, number] = [0, 0, 0];
+const DEFAULT_ROTATION: [number, number, number] = [0, 0, 0];
+
 const Character: React.FC<ExtendedCharacterProps> = ({
-  position = [0, 0, 0],
+  position = DEFAULT_POSITION,
   scale = 1,
-  rotation = [0, 0, 0],
+  rotation = DEFAULT_ROTATION,
   selectedModel,
 }) => {
   const store = useChatStore();
-  const { emotion, isSpeaking, visemes, selectedModelId } = store;
+  const { emotion, isSpeaking, visemes, selectedModelId, currentAnimation, animationQueue } = store;
 
   // Get model path based on the selected model ID
   // The key prop on the parent component handles model changes, so no timestamp needed
@@ -46,6 +50,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   const frameSkip = useRef<number>(1);
   const vrmRef = useRef<unknown>(null);
   const sceneRef = useRef<THREE.Group | null>(null);
+  const isInitialized = useRef<boolean>(false);
   const [vrmaAnimationsLoaded, setVrmaAnimationsLoaded] = useState(false);
 
   
@@ -90,39 +95,47 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 
   useEffect(() => {
     if (scene && vrm) {
+      // Skip re-initialization if already done (prevents animation interruption)
+      if (isInitialized.current && mixer.current) {
+        console.log('%c⏭️ [AvatarModel] Skipping re-initialization - already initialized', 'color: #f39c12;');
+        return;
+      }
+
+      console.log('%c🔧 [AvatarModel] Initializing VRM...', 'background: #3498db; color: white; padding: 2px 6px; border-radius: 3px;');
+
       const vrmObj = vrm as Record<string, unknown>;
       vrmRef.current = vrm;
       sceneRef.current = scene;
-      
+
       // Apply VRM optimizations
       VRMUtils.removeUnnecessaryVertices(gltf.scene);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       VRMUtils.combineSkeletons((vrmObj as any).scene);
-      
+
       // Register VRM with viseme applier
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       visemeApplier.setVRM(vrmObj as any);
-      
+
       // Position and scale the model
       scene.position.set(position[0], position[1], position[2]);
       scene.scale.setScalar(scale);
       // Rotate to face the camera - Different models have different default orientations
       const isPeachModel = selectedModelId === 'peach';
       let yRotation = rotation[1];
-      
+
       // Apply model-specific rotation adjustments
       // Models may have different default orientations - adjust as needed
       if (isPeachModel) {
         yRotation += Math.PI; // Peach faces backwards by default
       }
       // Billy and Mega may need adjustment based on testing
-      
+
       scene.rotation.set(rotation[0], yRotation, rotation[2]);
-      
+
       // Setup animation mixer with VRM scene
       mixer.current = new THREE.AnimationMixer(scene);
       const animations = gltf.animations;
-      
+
       // Load embedded animations from VRM file
       animations.forEach(clip => {
         const action = mixer.current!.clipAction(clip);
@@ -133,21 +146,27 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       loadVRMAAnimations().then(() => {
         console.log('VRMA animations loaded successfully');
         setVrmaAnimationsLoaded(true);
-        
-        // Start idle animation from VRMA after loading
-        if (vrmaActions.current['modelPose']) {
-          try {
-            vrmaActions.current['modelPose'].reset().fadeIn(0.3).play();
-            console.log('Playing idle animation (modelPose)');
-          } catch {
-            console.warn('Failed to play modelPose animation');
+        isInitialized.current = true;
+
+        // Only start idle animation if no explicit animation is playing
+        const store = useChatStore.getState();
+        if (!store.currentAnimation && !store.animationQueue.length) {
+          if (vrmaActions.current['modelPose']) {
+            try {
+              vrmaActions.current['modelPose'].reset().fadeIn(0.3).play();
+              console.log('Playing idle animation (modelPose)');
+            } catch {
+              console.warn('Failed to play modelPose animation');
+            }
           }
+        } else {
+          console.log('%c⏭️ [AvatarModel] Skipping idle - animation already playing: ' + store.currentAnimation, 'color: #f39c12;');
         }
       }).catch((error) => {
         console.warn('Failed to load VRMA animations:', error);
         setVrmaAnimationsLoaded(false);
       });
-      
+
       console.log('VRM model loaded:', vrm);
       console.log('Available embedded animations:', animations.map(a => a.name));
       console.log('Available VRMA animations:', Object.keys(vrmaClips.current));
@@ -156,12 +175,13 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         ...Object.keys(vrmaClips.current)
       ]);
     }
-    
+
     return () => {
       if (mixer.current) {
         mixer.current.stopAllAction();
       }
       visemeApplier.setVRM(null);
+      isInitialized.current = false;
     };
   }, [position, scale, rotation, selectedModel]);
 
@@ -278,47 +298,91 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     }
   });
 
-  // Handle emotion animations
+  // Helper function to fade to an animation action
+  const fadeToAction = (actionName: string, duration: number = 0.3) => {
+    console.log('%c🎭 [fadeToAction] Called with:', 'color: #3498db; font-weight: bold;', actionName);
+
+    if (!mixer.current) {
+      console.log('%c🎭 [fadeToAction] No mixer - aborting', 'color: #e74c3c;');
+      return;
+    }
+
+    // Try VRMA actions first, then embedded animations
+    let action = vrmaActions.current[actionName];
+    if (!action) {
+      action = currentActions.current[actionName];
+    }
+    if (!action) {
+      console.warn('%c🎭 [fadeToAction] Animation NOT FOUND: ' + actionName, 'background: #e74c3c; color: white; padding: 2px 6px;');
+      // Fall back to natural pose if no animation found
+      if (vrmRef.current) {
+        applyNaturalPose(vrmRef.current);
+      }
+      return;
+    }
+
+    console.log('%c🎭 [fadeToAction] Animation FOUND, fading out others...', 'color: #3498db; font-weight: bold;');
+
+    // Fade out all other actions
+    Object.values(currentActions.current).forEach(a => {
+      if (a !== action) a.fadeOut(duration);
+    });
+    Object.values(vrmaActions.current).forEach(a => {
+      if (a !== action) a.fadeOut(duration);
+    });
+
+    // Try to play the animation, but handle binding failures gracefully
+    try {
+      action.reset().fadeIn(duration).play();
+      console.log('%c✨ [fadeToAction] ANIMATION PLAYING: ' + actionName, 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;');
+    } catch (error) {
+      console.warn('%c🎭 [fadeToAction] FAILED to play: ' + actionName, 'background: #e74c3c; color: white; padding: 2px 6px;', error);
+      // Fall back to natural pose if VRMA animation fails
+      if (vrmRef.current) {
+        applyNaturalPose(vrmRef.current);
+      }
+    }
+  };
+
+  // Handle explicit animation triggers from the animation judge
+  useEffect(() => {
+    console.log('%c🎯 [AvatarModel] Animation useEffect triggered', 'color: #9b59b6; font-weight: bold;');
+    console.log('%c🎯 [AvatarModel] currentAnimation:', 'color: #9b59b6;', currentAnimation);
+    console.log('%c🎯 [AvatarModel] mixer.current:', 'color: #9b59b6;', !!mixer.current);
+    console.log('%c🎯 [AvatarModel] vrmaAnimationsLoaded:', 'color: #9b59b6;', vrmaAnimationsLoaded);
+
+    if (!mixer.current || !vrmaAnimationsLoaded) {
+      console.log('%c⛔ [AvatarModel] Early return - mixer or animations not ready', 'background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px;');
+      return;
+    }
+
+    if (currentAnimation) {
+      console.log('%c🌟 PLAYING ANIMATION: ' + currentAnimation, 'background: #9b59b6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 16px;');
+      console.log('%c🌟 Available VRMA actions:', 'color: #9b59b6; font-weight: bold;', Object.keys(vrmaActions.current));
+      console.log('%c🌟 Action exists:', 'color: #9b59b6; font-weight: bold;', !!vrmaActions.current[currentAnimation]);
+      fadeToAction(currentAnimation);
+    }
+  }, [currentAnimation, vrmaAnimationsLoaded]);
+
+  // Handle emotion-based animations (only when no explicit animation is playing)
   useEffect(() => {
     if (!mixer.current) return;
 
-    const fadeToAction = (actionName: string, duration: number = 0.3) => {
-      // Try VRMA actions first, then embedded animations
-      let action = vrmaActions.current[actionName];
-      if (!action) {
-        action = currentActions.current[actionName];
-      }
-      if (!action) {
-        console.warn(`Animation action not found: ${actionName}`);
-        // Fall back to natural pose if no animation found
-        if (vrmRef.current) {
-          applyNaturalPose(vrmRef.current);
-        }
-        return;
-      }
+    // Don't override explicit animation triggers OR active animation queue
+    if (currentAnimation) {
+      console.log('%c🎬 [AvatarModel] Skipping emotion animation - explicit animation playing: ' + currentAnimation, 'color: #9b59b6;');
+      return;
+    }
 
-      // Fade out all other actions
-      Object.values(currentActions.current).forEach(a => {
-        if (a !== action) a.fadeOut(duration);
-      });
-      Object.values(vrmaActions.current).forEach(a => {
-        if (a !== action) a.fadeOut(duration);
-      });
+    if (animationQueue.length > 0) {
+      console.log('%c🎬 [AvatarModel] Skipping emotion animation - animation queue active (' + animationQueue.length + ' items)', 'color: #9b59b6;');
+      return;
+    }
 
-      // Try to play the animation, but handle binding failures gracefully
-      try {
-        action.reset().fadeIn(duration).play();
-      } catch {
-        console.warn(`Failed to play animation '${actionName}' - bone structure mismatch with current VRM model`);
-        // Fall back to natural pose if VRMA animation fails
-        if (vrmRef.current) {
-          applyNaturalPose(vrmRef.current);
-        }
-      }
-    };
+    console.log('%c🎭 [AvatarModel] Emotion animation check - emotion: ' + emotion + ', isSpeaking: ' + isSpeaking, 'color: #3498db;');
 
     if (isSpeaking) {
-      // Try VRMA 'greeting' animation for talking, fall back to 'talking'
+      // While speaking without explicit animation, use greeting
       if (vrmaActions.current['greeting']) {
         fadeToAction('greeting');
       } else if (currentActions.current['talking']) {
@@ -327,11 +391,9 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     } else {
       switch (emotion) {
         case 'thinking':
-          // Try VRMA 'spin' animation for thinking, fall back to 'thinking'
-          if (vrmaActions.current['spin']) {
-            fadeToAction('spin');
-          } else if (currentActions.current['thinking']) {
-            fadeToAction('thinking');
+          // During thinking, just use modelPose (spin is now explicit only)
+          if (vrmaActions.current['modelPose']) {
+            fadeToAction('modelPose');
           }
           break;
         case 'happy':
@@ -355,7 +417,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
           }
       }
     }
-  }, [emotion, isSpeaking, vrmaAnimationsLoaded]);
+  }, [emotion, isSpeaking, vrmaAnimationsLoaded, currentAnimation, animationQueue]);
 
   // Performance monitoring
   useEffect(() => {
