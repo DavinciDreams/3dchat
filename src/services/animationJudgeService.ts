@@ -92,6 +92,115 @@ MOVEMENT:
 SPORTS:
 - golfBadShot: Golf bad shot reaction - use for golf or frustration
 - golfPrePutt: Golf pre-putt stance - use for golf
+- golfDrive: Golf drive swing - use for golf
+- golfPuttVictory: Golf putt victory celebration - use for golf success
+
+MUSIC & PERFORMANCE:
+- guitarPlaying: Playing guitar - use for music performance
+- pianoPlaying: Playing piano - use for music performance
+- playingDrums: Playing drums - use for music performance
+- playingTheViolin: Playing violin - use for music performance
+- singing_1: Singing variation - use for music or singing
+
+MOVEMENT VARIATIONS:
+- standardRun: Standard running - use for running
+- runningUpStairs: Running up stairs - use for climbing stairs
+- startWalking: Start walking - use for beginning movement
+- jumpingDown: Jumping down - use for dropping/jumping down
+- jumpingJacks: Jumping jacks - use for exercise
+- vaultOverBox: Vault over box - use for parkour/obstacle
+- skateboarding: Skateboarding - use for skating
+- swimming: Swimming - use for water activities
+- paddling: Paddling - use for water activities
+- lowCrawl: Low crawl - use for stealth/crawling
+- sneakingForward: Sneaking forward - use for stealth
+- sneakyWalking: Sneaky walking - use for stealth
+
+SITTING & LYING:
+- sitting: Sitting down - use for sitting
+- sitToStand: Sit to stand transition - use for getting up
+- standToSit: Stand to sit transition - use for sitting down
+- sittingClap: Sitting clap - use for celebration while sitting
+- sittingTalking: Sitting and talking - use for conversation
+- sittingDisapproval: Sitting disapproval - use for disagreement
+- layingIdle: Laying idle - use for resting
+- lyingDown: Lying down - use for lying down
+- kneeling: Kneeling down - use for kneeling
+- crouchToStand: Crouch to stand - use for getting up
+- gettingUp: Getting up - use for standing up
+
+SOCIAL & INTERACTION:
+- waving: Waving - use for greeting or farewell
+- shakingHands1: Shaking hands - use for greeting or agreement
+- beckoning: Beckoning - use for calling someone over
+- pointing: Pointing - use for indicating direction
+- patting: Patting - use for gentle touch
+- petting: Petting - use for showing affection
+- pettingAnimal: Petting animal - use for interacting with animals
+- kissing: Kissing - use for affection
+- blowAKiss: Blowing a kiss - use for affection
+- shrugging: Shrugging - use for uncertainty or indifference
+
+EMOTIONAL STATES:
+- happyIdle: Happy idle - use for happiness
+- sadIdle: Sad idle - use for sadness
+- defeatIdle: Defeat idle - use for losing/failure
+- victoryIdle: Victory idle - use for winning/success
+- victory: Victory pose - use for celebration
+- disappointed: Disappointed - use for disappointment
+- bashful: Bashful - use for shyness
+- angryGesture_1: Angry gesture variation - use for anger
+- thinking: Thinking - use for contemplation
+- nervouslyLookAround: Nervously looking around - use for anxiety
+- lookAround: Looking around - use for searching/observing
+- lookOverShoulder: Look over shoulder - use for checking behind
+
+ACTION & ACTIVITY:
+- aimingGun: Aiming gun - use for shooting context
+- buttonPushing: Button pushing - use for pressing buttons
+- cartwheel: Cartwheel - use for gymnastics
+- backflip: Backflip - use for acrobatics
+- kipUp: Kip up - use for martial arts
+- throwing: Throwing - use for throwing objects
+- textingAndWalking: Texting and walking - use for multitasking
+- typing: Typing - use for working at computer
+- talking: Talking - use for conversation
+- pacingAndTalkingOnAPhone: Pacing and talking on phone - use for conversation
+- fishingCast: Fishing cast - use for fishing
+- plotting: Plotting - use for scheming
+- startClimbingLadder: Start climbing ladder - use for climbing
+- cockyHeadTurn: Cocky head turn - use for arrogance
+- strongGesture: Strong gesture - use for emphasis
+
+DANCE VARIATIONS:
+- rumbaDancing: Rumba dancing - use for dancing
+- sambaDancing: Samba dancing - use for dancing
+- sillyDancing: Silly dancing - use for fun dancing
+- hipHopDancing: Hip hop dancing - use for dancing
+- dancingTwerk: Dancing twerk - use for dancing
+- twistDance: Twist dance - use for dancing
+
+COMBAT & AGGRESSIVE:
+- roar: Roar - use for aggressive expression
+- push: Push - use for physical contact
+- pushStart: Push start - use for preparing to push
+
+OTHER:
+- floating: Floating - use for floating/levitation
+- ninjaIdle: Ninja idle - use for stealth pose
+- militarySignaling: Military signaling - use for military context
+- rummaging: Rummaging - use for searching
+- searchingPockets: Searching pockets - use for looking for something
+- entry: Entry - use for entering scene
+- sadWalk: Sad walk - use for walking sadly
+- standingArguing: Standing arguing - use for conflict
+- standingClap: Standing clap - use for celebration
+- standingGreeting: Standing greeting - use for formal greeting
+- standingJump: Standing jump - use for jumping
+- situps: Situps - use for exercise
+- smoking: Smoking - use for smoking
+- yawn: Yawn - use for tiredness/boredom
+- yelling: Yelling - use for shouting
 
 GESTURE ANIMATIONS (subtle expressions):
 HEAD GESTURES:
@@ -338,6 +447,114 @@ const ANIMATION_DURATIONS: Record<string, number> = {
   'flair': 4000,
   'flair_2': 4000,
   'flair_3': 4000,
+
+  // New animations from Meshy AI
+  // Music & Performance
+  'guitarPlaying': 4000,
+  'pianoPlaying': 4000,
+  'playingDrums': 4000,
+  'playingTheViolin': 4000,
+  'singing_1': 5000,
+
+  // Movement variations
+  'standardRun': 3000,
+  'runningUpStairs': 4000,
+  'startWalking': 2000,
+  'jumpingDown': 2500,
+  'jumpingJacks': 3000,
+  'vaultOverBox': 3000,
+  'skateboarding': 4000,
+  'swimming': 4000,
+  'paddling': 4000,
+  'lowCrawl': 3000,
+  'sneakingForward': 3000,
+  'sneakyWalking': 3000,
+
+  // Sitting & Lying
+  'sitting': 3000,
+  'sitToStand': 2500,
+  'standToSit': 2500,
+  'sittingClap': 2000,
+  'sittingTalking': 5000,
+  'sittingDisapproval': 2000,
+  'layingIdle': 3000,
+  'lyingDown': 3000,
+  'kneeling': 3000,
+  'crouchToStand': 2500,
+  'gettingUp': 2000,
+
+  // Social & Interaction
+  'waving': 2500,
+  'shakingHands1': 3000,
+  'beckoning': 2000,
+  'pointing': 2000,
+  'patting': 2000,
+  'petting': 2000,
+  'pettingAnimal': 2000,
+  'kiss': 2500,
+  'blowAKiss': 2500,
+  'shrugging': 2000,
+
+  // Emotional states
+  'happyIdle': 3000,
+  'sadIdle': 3000,
+  'defeatIdle': 3000,
+  'victoryIdle': 3000,
+  'victory': 3000,
+  'disappointed': 2500,
+  'bashful': 2000,
+  'angryGesture_1': 2000,
+  'thinking': 3000,
+  'nervouslyLookAround': 4000,
+  'lookAround': 3000,
+  'lookOverShoulder': 2500,
+
+  // Action & Activity
+  'aimingGun': 2000,
+  'buttonPushing': 1500,
+  'cartwheel': 3000,
+  'backflip': 3000,
+  'kipUp': 2500,
+  'throwing': 2000,
+  'textingAndWalking': 4000,
+  'typing': 3000,
+  'talking': 4000,
+  'pacingAndTalkingOnAPhone': 5000,
+  'fishingCast': 3000,
+  'plotting': 3000,
+  'startClimbingLadder': 3000,
+  'cockyHeadTurn': 2000,
+  'strongGesture': 2000,
+
+  // Dance variations
+  'rumbaDancing': 5000,
+  'sambaDancing': 5000,
+  'sillyDancing': 5000,
+  'hipHopDancing': 5000,
+  'dancingTwerk': 4000,
+  'twistDance': 4000,
+
+  // Combat & Aggressive
+  'roar': 2000,
+  'push': 2000,
+  'pushStart': 2000,
+
+  // Other
+  'floating': 4000,
+  'ninjaIdle': 3000,
+  'militarySignaling': 3000,
+  'rummaging': 3000,
+  'searchingPockets': 3000,
+  'entry': 3000,
+  'sadWalk': 4000,
+  'standingArguing': 3000,
+  'standingClap': 2000,
+  'standingGreeting': 3000,
+  'standingJump': 2500,
+  'situps': 3000,
+  'smoking': 4000,
+  'yawn': 3000,
+  'yelling': 2000,
 };
 
 const DEFAULT_ANIMATION_DURATION = 3000;
