@@ -226,38 +226,56 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         currentActions.current[clip.name] = action;
       });
 
-      // Load VRMA animations with proper retargeting
-      loadVRMAAnimation('modelPose').then(() => {
-        console.log('VRMA animations loaded successfully');
-        setVrmaAnimationsLoaded(true);
-        isInitialized.current = true;
+      // Load all VRMA animations with proper retargeting
+      // Preload all core animations for best experience
+      const coreAnimations = ['modelPose', 'greeting', 'peace', 'shoot', 'spin', 'squat'];
+      const extendedAnimations = [
+        'idle', 'talkingOnPhone', 'bowing', 'salute', 'singing',
+        'hipHopDance', 'swinging', 'catwalk',
+        'punch', 'dropKick', 'flyingKnee', 'daggerStab', 'bodyBlock', 'centerBlock', 'catch', 'snatch', 'reloading', 'magicCast',
+        'walking', 'jogBackwards', 'jumping', 'climbing', 'takeCover', 'zombieStandUp', 'plank', 'openDoor', 'turnLeft', 'turnRight',
+        'golfBadShot', 'golfPrePutt'
+      ];
 
-        // Only start idle animation if no explicit animation is playing
-        const store = useChatStore.getState();
-        if (!store.currentAnimation && !store.animationQueue.length) {
-          if (vrmaActions.current['modelPose']) {
-            try {
-              vrmaActions.current['modelPose'].reset().fadeIn(0.3).play();
-              console.log('Playing idle animation (modelPose)');
-            } catch {
-              console.warn('Failed to play modelPose animation');
+      // Load all animations in parallel
+      const allAnimations = [...coreAnimations, ...extendedAnimations];
+      console.log(`📦 [AvatarModel] Loading ${allAnimations.length} VRMA animations...`);
+
+      Promise.allSettled(allAnimations.map(name => loadVRMAAnimation(name)))
+        .then((results) => {
+          const loaded = results.filter(r => r.status === 'fulfilled').length;
+          const failed = results.filter(r => r.status === 'rejected').length;
+          console.log(`📦 [AvatarModel] Loaded ${loaded}/${allAnimations.length} animations (${failed} failed)`);
+
+          setVrmaAnimationsLoaded(true);
+          isInitialized.current = true;
+
+          // Only start idle animation if no explicit animation is playing
+          const store = useChatStore.getState();
+          if (!store.currentAnimation && !store.animationQueue.length) {
+            if (vrmaActions.current['modelPose']) {
+              try {
+                vrmaActions.current['modelPose'].reset().fadeIn(0.3).play();
+                console.log('Playing idle animation (modelPose)');
+              } catch {
+                console.warn('Failed to play modelPose animation');
+              }
             }
+          } else {
+            console.log('%c⏭️ [AvatarModel] Skipping idle - animation already playing: ' + store.currentAnimation, 'color: #f39c12;');
           }
-        } else {
-          console.log('%c⏭️ [AvatarModel] Skipping idle - animation already playing: ' + store.currentAnimation, 'color: #f39c12;');
-        }
-        
-        console.log('VRM model loaded:', vrm);
-        console.log('Available embedded animations:', animations.map(a => a.name));
-        console.log('Available VRMA animations:', Object.keys(vrmaClips.current));
-        console.log('Total available animations:', [
-          ...animations.map(a => a.name),
-          ...Object.keys(vrmaClips.current)
-        ]);
-      }).catch((error) => {
-        console.warn('Failed to load VRMA animations:', error);
-        setVrmaAnimationsLoaded(false);
-      });
+
+          console.log('VRM model loaded:', vrm);
+          console.log('Available embedded animations:', animations.map(a => a.name));
+          console.log('Available VRMA animations:', Object.keys(vrmaClips.current));
+          console.log('Total available animations:', [
+            ...animations.map(a => a.name),
+            ...Object.keys(vrmaClips.current)
+          ]);
+        }).catch((error) => {
+          console.warn('Failed to load VRMA animations:', error);
+          setVrmaAnimationsLoaded(false);
+        });
 
       console.log('VRM model loaded:', vrm);
       console.log('Available embedded animations:', animations.map(a => a.name));
