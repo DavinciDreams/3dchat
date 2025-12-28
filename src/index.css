@@ -6,15 +6,15 @@ input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 30px #1f2937 inset !important;
-  -webkit-text-fill-color: #111827 !important;
-  caret-color: #111827 !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
 }
 
 input:-webkit-autofill::first-line {
-  color: #111827 !important;
+  color: #ffffff !important;
 }
 
-/* Ensure input text color is visible */
+/* Ensure input text color is visible on dark backgrounds */
 input {
-  color: #111827 !important;
+  color: #ffffff !important;
 }
