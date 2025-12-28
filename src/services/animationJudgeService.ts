@@ -26,10 +26,13 @@ GREETINGS:
 
 IDLE & SOCIAL:
 - idle: Default standing pose
+- happyIdle: Happy idle - use for happiness
+- sillyDancing: Silly dancing - use for fun dancing
 - weightShift: Shifting weight between feet - use for subtle idle variation
 - talkingOnPhone: Talking on phone animation
 - lookAround: Looking around - use for searching/observing
 - talking: Talking - use for conversation
+- hipHopDancing: Hip hop dancing - use for dancing
 
 TRANSITIONAL POSES:
 - sitToStand: Sit to stand transition - use for getting up
@@ -41,7 +44,6 @@ TRANSITIONAL POSES:
 - jumpingDown: Jumping down - use for dropping/jumping down
 
 DANCE & CELEBRATION:
-- hipHopDance: Hip hop dance moves - use for dancing or celebration
 - swinging: Swinging motion - use for playful swinging
 - catwalk: Catwalk strut - use for showing off or fashion
 
@@ -115,6 +117,7 @@ SPORTS:
 - golfPuttVictory: Golf putt victory celebration - use for golf success
 - skateboarding: Skateboarding - use for skating
 - defeatIdle: Defeat idle - use for losing/failure
+- victoryIdle: Victory idle - use for winning/success
 - victory: Victory pose - use for celebration
 
 Exercise & Fitness:
@@ -155,19 +158,15 @@ Affectionate Gestures:
 - patting: Patting - use for pat on the back or shoulder
 - kissing: Kissing - use for affection
 - blowAKiss: Blowing a kiss - use for affection
-- shrugging: Shrugging - use for uncertainty or indifference
 
 Animals & Pets:
 - pettingAnimal: Petting animal - use for interacting with animals
 - petting: Petting - use for showing affection
 
 EMOTIONAL STATES:
-- happyIdle: Happy idle - use for happiness
 - sadIdle: Sad idle - use for sadness
 - sadWalk: Sad walk - use for walking sadly
-- cockyHeadTurn: Cocky head turn - use for arrogance
 - strongGesture: Muscle flex, strong gesture
-- victoryIdle: Victory idle - use for winning/success
 - disappointed: Disappointed - use for disappointment
 - relievedSigh: Relieved sigh - use for relief, letting go of tension
 - bashful: Bashful - use for shyness
@@ -176,8 +175,6 @@ EMOTIONAL STATES:
 SILLY DANCES:
 - rumbaDancing: Rumba dancing - use for dancing
 - sambaDancing: Samba dancing - use for dancing
-- sillyDancing: Silly dancing - use for fun dancing
-- hipHopDancing: Hip hop dancing - use for dancing
 - dancingTwerk: Dancing twerk - use for dancing
 - twistDance: Twist dance - use for dancing
 
@@ -199,7 +196,6 @@ Object Interaction:
 - rummaging: Rummaging - use for searching
 - searchingPockets: Searching pockets - use for looking for something
 - snatch: Snatch grab - use for grabbing quickly
-- fishingCast: Fishing cast - use for fishing
 - buttonPushing: Button pushing - use for pressing buttons
 - typing: Typing - use for working at computer
 
@@ -207,12 +203,14 @@ Water Activities:
 - swimming: Swimming - use for water activities
 - floating: Floating - use for floating/levitation
 - paddling: Paddling - use for water activities
+- fishingCast: Fishing cast - use for fishing
 
 Bored / Tired Gestures:
 - smoking: Smoking - use for smoking
 - yawn: Yawn - use for tiredness/boredom
 - layingIdle: Laying idle - use for resting
 - lyingDown: Lying down - use for lying down
+- shrugging: Shrugging - use for uncertainty or indifference
 - zombieStandUp: Zombie stand up - use for unsteady standing
 
 GESTURE ANIMATIONS (subtle expressions):
@@ -224,6 +222,7 @@ HEAD GESTURES:
 - shakingHeadNo: Shake head no - use for disagreement, refusal
 - annoyedHeadShake: Annoyed shake - use for frustration, annoyance
 - thoughtfulHeadShake: Thoughtful shake - use for uncertainty, contemplation
+- cockyHeadTurn: Cocky head turn - use for arrogance
 
 HAND GESTURES:
 - standingClap: Standing clap - use for celebration
