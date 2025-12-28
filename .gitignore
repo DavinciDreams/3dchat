@@ -27,7 +27,6 @@ screenshots
 
 # Animation build files
 animations-raw/
-tools/
 *.fbx
 *.FBX
 *.vrma
