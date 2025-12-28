@@ -28,12 +28,13 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   const store = useChatStore();
   const { emotion, isSpeaking, visemes, selectedModelId, currentAnimation, animationQueue } = store;
 
-  // Get model path based on the selected model ID
-  // The key prop on the parent component handles model changes, so no timestamp needed
-  const MODEL_PATH_VRM = useMemo(() => {
+  // Get model config based on the selected model ID
+  const modelConfig = useMemo(() => {
     const model = AVAILABLE_VRM_MODELS.find(m => m.id === selectedModelId);
-    return model?.path || '/model/Billy.vrm';
+    return model || AVAILABLE_VRM_MODELS[0];
   }, [selectedModelId]);
+
+  const MODEL_PATH_VRM = modelConfig.path;
   
   // Load VRM model using VRMLoader
   const gltf = useLoader(GLTFLoader, MODEL_PATH_VRM, (loader) => {
@@ -116,20 +117,14 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       visemeApplier.setVRM(vrmObj as any);
 
-      // Position and scale the model
-      scene.position.set(position[0], position[1], position[2]);
-      scene.scale.setScalar(scale);
-      // Rotate to face the camera - Different models have different default orientations
-      const isPeachModel = selectedModelId === 'peach';
-      let yRotation = rotation[1];
+      // Position and scale the model using config values for normalization
+      const modelScale = scale * (modelConfig.scale ?? 1);
+      const modelPositionY = position[1] + (modelConfig.positionY ?? 0);
+      scene.position.set(position[0], modelPositionY, position[2]);
+      scene.scale.setScalar(modelScale);
 
-      // Apply model-specific rotation adjustments
-      // Models may have different default orientations - adjust as needed
-      if (isPeachModel) {
-        yRotation += Math.PI; // Peach faces backwards by default
-      }
-      // Billy and Mega may need adjustment based on testing
-
+      // Apply rotation with model-specific adjustment to face camera
+      const yRotation = rotation[1] + (modelConfig.rotationY ?? 0);
       scene.rotation.set(rotation[0], yRotation, rotation[2]);
 
       // Setup animation mixer with VRM scene
@@ -183,7 +178,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       visemeApplier.setVRM(null);
       isInitialized.current = false;
     };
-  }, [position, scale, rotation, selectedModel]);
+  }, [position, scale, rotation, selectedModel, modelConfig]);
 
   // Apply a natural standing pose to the VRM model
   const applyNaturalPose = (vrm: unknown) => {
