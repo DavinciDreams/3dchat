@@ -34,46 +34,46 @@ export const VRMA_CORE_ANIMATIONS: VRMAAnimationConfig[] = [
 // These are the actual converted animations available
 export const VRMA_EXTENDED_ANIMATIONS: VRMAAnimationConfig[] = [
   // Idle & Standing
-  { path: '/animations/idle.vrma', name: 'idle', description: 'Default standing pose' },
-  { path: '/animations/talkingOnPhone.vrma', name: 'talkingOnPhone', description: 'Talking on phone' },
+  { path: '/animations/vrma/idle.vrma', name: 'idle', description: 'Default standing pose' },
+  { path: '/animations/vrma/talkingOnPhone.vrma', name: 'talkingOnPhone', description: 'Talking on phone' },
 
   // Greetings & Social
-  { path: '/animations/bowing.vrma', name: 'bowing', description: 'Bow gesture' },
-  { path: '/animations/salute.vrma', name: 'salute', description: 'Military-style salute' },
-  { path: '/animations/singing.vrma', name: 'singing', description: 'Singing animation' },
+  { path: '/animations/vrma/bowing.vrma', name: 'bowing', description: 'Bow gesture' },
+  { path: '/animations/vrma/salute.vrma', name: 'salute', description: 'Military-style salute' },
+  { path: '/animations/vrma/singing.vrma', name: 'singing', description: 'Singing animation' },
 
   // Dance & Celebration
-  { path: '/animations/hipHopDance.vrma', name: 'hipHopDance', description: 'Hip hop dance moves' },
-  { path: '/animations/swinging.vrma', name: 'swinging', description: 'Swinging motion' },
-  { path: '/animations/catwalkWalkForwardHighKnees.vrma', name: 'catwalk', description: 'Catwalk strut' },
+  { path: '/animations/vrma/hipHopDance.vrma', name: 'hipHopDance', description: 'Hip hop dance moves' },
+  { path: '/animations/vrma/swinging.vrma', name: 'swinging', description: 'Swinging motion' },
+  { path: '/animations/vrma/catwalkWalkForwardHighKnees.vrma', name: 'catwalk', description: 'Catwalk strut' },
 
   // Combat & Action
-  { path: '/animations/punch.vrma', name: 'punch', description: 'Punch forward' },
-  { path: '/animations/dropKick.vrma', name: 'dropKick', description: 'Drop kick attack' },
-  { path: '/animations/flyingKneePunchCombo.vrma', name: 'flyingKnee', description: 'Flying knee combo' },
-  { path: '/animations/doubleDaggerStab.vrma', name: 'daggerStab', description: 'Double dagger stab' },
-  { path: '/animations/bodyBlock.vrma', name: 'bodyBlock', description: 'Body block defense' },
-  { path: '/animations/centerBlock.vrma', name: 'centerBlock', description: 'Center block defense' },
-  { path: '/animations/catch.vrma', name: 'catch', description: 'Catch something' },
-  { path: '/animations/snatch.vrma', name: 'snatch', description: 'Snatch grab' },
-  { path: '/animations/reloading.vrma', name: 'reloading', description: 'Reload weapon' },
-  { path: '/animations/standing2HMagicAttack01.vrma', name: 'magicCast', description: 'Cast magic spell' },
+  { path: '/animations/vrma/punch.vrma', name: 'punch', description: 'Punch forward' },
+  { path: '/animations/vrma/dropKick.vrma', name: 'dropKick', description: 'Drop kick attack' },
+  { path: '/animations/vrma/flyingKneePunchCombo.vrma', name: 'flyingKnee', description: 'Flying knee combo' },
+  { path: '/animations/vrma/doubleDaggerStab.vrma', name: 'daggerStab', description: 'Double dagger stab' },
+  { path: '/animations/vrma/bodyBlock.vrma', name: 'bodyBlock', description: 'Body block defense' },
+  { path: '/animations/vrma/centerBlock.vrma', name: 'centerBlock', description: 'Center block defense' },
+  { path: '/animations/vrma/catch.vrma', name: 'catch', description: 'Catch something' },
+  { path: '/animations/vrma/snatch.vrma', name: 'snatch', description: 'Snatch grab' },
+  { path: '/animations/vrma/reloading.vrma', name: 'reloading', description: 'Reload weapon' },
+  { path: '/animations/vrma/standing2HMagicAttack01.vrma', name: 'magicCast', description: 'Cast magic spell' },
 
   // Movement
-  { path: '/animations/walking.vrma', name: 'walking', description: 'Walking in place' },
-  { path: '/animations/slowJogBackwards.vrma', name: 'jogBackwards', description: 'Jog backwards' },
-  { path: '/animations/jumping.vrma', name: 'jumping', description: 'Jump in place' },
-  { path: '/animations/climbingToTop.vrma', name: 'climbing', description: 'Climbing up' },
-  { path: '/animations/standToCover.vrma', name: 'takeCover', description: 'Take cover' },
-  { path: '/animations/zombieStandUp.vrma', name: 'zombieStandUp', description: 'Zombie stand up' },
-  { path: '/animations/startPlank.vrma', name: 'plank', description: 'Plank exercise' },
-  { path: '/animations/openingDoorInwards.vrma', name: 'openDoor', description: 'Open door' },
-  { path: '/animations/unarmedTurnLeft90.vrma', name: 'turnLeft', description: 'Turn left 90 degrees' },
-  { path: '/animations/rightTurnWBriefcase.vrma', name: 'turnRight', description: 'Turn right with briefcase' },
+  { path: '/animations/vrma/walking.vrma', name: 'walking', description: 'Walking in place' },
+  { path: '/animations/vrma/slowJogBackwards.vrma', name: 'jogBackwards', description: 'Jog backwards' },
+  { path: '/animations/vrma/jumping.vrma', name: 'jumping', description: 'Jump in place' },
+  { path: '/animations/vrma/climbingToTop.vrma', name: 'climbing', description: 'Climbing up' },
+  { path: '/animations/vrma/standToCover.vrma', name: 'takeCover', description: 'Take cover' },
+  { path: '/animations/vrma/zombieStandUp.vrma', name: 'zombieStandUp', description: 'Zombie stand up' },
+  { path: '/animations/vrma/startPlank.vrma', name: 'plank', description: 'Plank exercise' },
+  { path: '/animations/vrma/openingDoorInwards.vrma', name: 'openDoor', description: 'Open door' },
+  { path: '/animations/vrma/unarmedTurnLeft90.vrma', name: 'turnLeft', description: 'Turn left 90 degrees' },
+  { path: '/animations/vrma/rightTurnWBriefcase.vrma', name: 'turnRight', description: 'Turn right with briefcase' },
 
   // Sports & Activities
-  { path: '/animations/golfBadShot.vrma', name: 'golfBadShot', description: 'Golf bad shot reaction' },
-  { path: '/animations/golfPrePutt.vrma', name: 'golfPrePutt', description: 'Golf pre-putt stance' },
+  { path: '/animations/vrma/golfBadShot.vrma', name: 'golfBadShot', description: 'Golf bad shot reaction' },
+  { path: '/animations/vrma/golfPrePutt.vrma', name: 'golfPrePutt', description: 'Golf pre-putt stance' },
 ];
 
 // Combined list of all animations
