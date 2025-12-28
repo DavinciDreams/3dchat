@@ -1,11 +1,12 @@
-import React, { useEffect, Suspense, useState } from 'react';
+import React, { useEffect, Suspense, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Volume2, VolumeX, LogOut } from 'lucide-react';
+import { Brain, Volume2, VolumeX, LogOut, User, Mic, Sparkles } from 'lucide-react';
 import { initSpeechRecognition } from './services/speechService';
 import { useChatStore } from './store/chatStore';
 import { supabase } from './lib/supabaseClient';
 import type { AppError } from './types';
-import { AVAILABLE_VRM_MODELS, AVAILABLE_VOICES } from './types';
+import { AVAILABLE_VRM_MODELS, AVAILABLE_VOICES, AVAILABLE_ANIMATIONS } from './types';
+import { TypeaheadSelect, SelectOption } from './components/TypeaheadSelect';
 
 // Use lazy loading for performance optimization
 const ChatInterface = React.lazy(() => import('./components/ChatInterface'));
@@ -15,7 +16,45 @@ const LoginForm = React.lazy(() => import('./components/LoginForm'));
 function App() {
   const [error, setError] = useState<AppError | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(true); // Temporarily set to true for debugging
-  const { setProcessing, isMuted, setIsMuted, selectedModelId, setSelectedModelId, selectedVoiceId, setSelectedVoiceId } = useChatStore();
+  const { setProcessing, isMuted, setIsMuted, selectedModelId, setSelectedModelId, selectedVoiceId, setSelectedVoiceId, setCurrentAnimation } = useChatStore();
+
+  // Transform models to SelectOption format
+  const modelOptions: SelectOption[] = useMemo(() =>
+    AVAILABLE_VRM_MODELS.map(model => ({
+      id: model.id,
+      label: model.name,
+      description: 'VRM Character',
+      group: 'Characters',
+    })), []
+  );
+
+  // Transform voices to SelectOption format with grouping
+  const voiceOptions: SelectOption[] = useMemo(() =>
+    AVAILABLE_VOICES.map(voice => {
+      const langMap: Record<string, string> = {
+        'en-US': 'US English',
+        'en-GB': 'UK English',
+        'en-AU': 'Australian',
+        'en-IE': 'Irish',
+        'en-IN': 'Indian',
+      };
+      return {
+        id: voice.id,
+        label: voice.displayName,
+        description: voice.gender === 'female' ? '♀ Female' : '♂ Male',
+        group: langMap[voice.language] || voice.language,
+      };
+    }), []
+  );
+
+  // Transform animations to SelectOption format
+  const animationOptions: SelectOption[] = useMemo(() =>
+    AVAILABLE_ANIMATIONS.map(anim => ({
+      id: anim,
+      label: anim.charAt(0).toUpperCase() + anim.slice(1).replace(/([A-Z])/g, ' $1'),
+      description: 'Play animation',
+    })), []
+  );
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -93,42 +132,47 @@ function App() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="flex items-center gap-4"
+            className="flex items-center gap-3"
           >
-            <Brain className="h-6 w-6 text-teal-500 mr-2" />
-            <h1 className="text-xl font-bold">AI Assistant</h1>
-            
-            {/* Model Selection Dropdown */}
-            <select
+            <Brain className="h-6 w-6 text-teal-500" />
+            <h1 className="text-xl font-bold hidden sm:block">AI Assistant</h1>
+
+            {/* Character Selection */}
+            <TypeaheadSelect
+              options={modelOptions}
               value={selectedModelId}
-              onChange={(e) => {
-                console.log('🎭 [App.tsx] Model changed from', selectedModelId, 'to', e.target.value);
-                setSelectedModelId(e.target.value);
+              onChange={(id) => {
+                console.log('🎭 [App.tsx] Model changed from', selectedModelId, 'to', id);
+                setSelectedModelId(id);
               }}
-              className="bg-gray-800 text-white text-sm px-3 py-1 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-500/50 hover:bg-gray-700 transition-colors mr-2"
-            >
-              {AVAILABLE_VRM_MODELS.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.name}
-                </option>
-              ))}
-            </select>
-            
-            {/* Voice Selection Dropdown */}
-            <select
+              label="Character"
+              icon={<User className="h-4 w-4" />}
+            />
+
+            {/* Voice Selection */}
+            <TypeaheadSelect
+              options={voiceOptions}
               value={selectedVoiceId}
-              onChange={(e) => {
-                console.log('🎤 [App.tsx] Voice changed from', selectedVoiceId, 'to', e.target.value);
-                setSelectedVoiceId(e.target.value);
+              onChange={(id) => {
+                console.log('🎤 [App.tsx] Voice changed from', selectedVoiceId, 'to', id);
+                setSelectedVoiceId(id);
               }}
-              className="bg-gray-800 text-white text-sm px-3 py-1 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-500/50 hover:bg-gray-700 transition-colors"
-            >
-              {AVAILABLE_VOICES.map((voice) => (
-                <option key={voice.id} value={voice.id}>
-                  {voice.displayName}
-                </option>
-              ))}
-            </select>
+              label="Voice"
+              icon={<Mic className="h-4 w-4" />}
+            />
+
+            {/* Animation Trigger */}
+            <TypeaheadSelect
+              options={animationOptions}
+              value=""
+              onChange={(id) => {
+                console.log('✨ [App.tsx] Playing animation:', id);
+                setCurrentAnimation(id);
+              }}
+              placeholder="Play animation..."
+              label="Animate"
+              icon={<Sparkles className="h-4 w-4" />}
+            />
           </motion.div>
           
           <motion.div
