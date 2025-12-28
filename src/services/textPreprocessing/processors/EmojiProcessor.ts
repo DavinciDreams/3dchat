@@ -76,11 +76,13 @@ export class EmojiProcessor extends BaseProcessor {
       positionOffset += emoji.length;
     }
     
+    const cleanText = cleanTextChars.join('');
+    
     const elapsed = performance.now() - startTime;
-    if (elapsed > 10) {
+    if (import.meta.env.DEV && elapsed > 10) {
       console.warn(`⚠️ [EmojiProcessor] Slow processing: ${elapsed.toFixed(2)}ms for ${text.length} chars`);
     }
     
-    return { cleanText, displayText: text, metadata: newMetadata };
+    return { cleanText, displayText, metadata: newMetadata };
   }
 }

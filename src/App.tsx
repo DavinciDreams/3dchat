@@ -16,6 +16,7 @@ const LoginForm = React.lazy(() => import('./components/LoginForm'));
 function App() {
   const [error, setError] = useState<AppError | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(true); // Temporarily set to true for debugging
+  const [isModelLoading, setIsModelLoading] = useState(false);
   const { setProcessing, isMuted, setIsMuted, selectedModelId, setSelectedModelId, selectedVoiceId, setSelectedVoiceId, setCurrentAnimation } = useChatStore();
 
   // Transform models to SelectOption format
@@ -55,6 +56,15 @@ function App() {
       description: 'Play animation',
     })), []
   );
+
+  // Trigger loading state when model changes
+  useEffect(() => {
+    setIsModelLoading(true);
+    const timer = setTimeout(() => {
+      setIsModelLoading(false);
+    }, 1000); // Show loading for 1 second
+    return () => clearTimeout(timer);
+  }, [selectedModelId]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -109,6 +119,28 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white relative overflow-hidden">
+      {/* Model loading indicator */}
+      <AnimatePresence>
+        {isModelLoading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center bg-black/50 z-50"
+          >
+            <div className="text-center">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              >
+                <Brain size={40} className="text-teal-500" />
+              </motion.div>
+              <p className="mt-4 text-white">Loading model...</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Loading fallback */}
       <Suspense fallback={
         <div className="flex items-center justify-center min-h-screen">
