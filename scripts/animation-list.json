@@ -43,10 +43,550 @@
       "description": "Shifting weight between feet"
     },
     {
+      "name": "aimingGun",
+      "mixamoName": "Aiming Gun",
+      "category": "action",
+      "description": "Aiming a gun forward"
+    },
+    {
+      "name": "angryGesture_1",
+      "mixamoName": "Angry Gesture 1",
+      "category": "gesture",
+      "description": "Angry gesture animation"
+    },
+    {
+      "name": "backflip",
+      "mixamoName": "Backflip",
+      "category": "action",
+      "description": "Perform a backflip"
+    },
+    {
+      "name": "bashful",
+      "mixamoName": "Bashful",
+      "category": "gesture",
+      "description": "Shy bashful expression"
+    },
+    {
+      "name": "beckoning",
+      "mixamoName": "Beckoning",
+      "category": "social",
+      "description": "Beckoning gesture to come closer"
+    },
+    {
+      "name": "blowAKiss",
+      "mixamoName": "Blow A Kiss",
+      "category": "social",
+      "description": "Blow a kiss gesture"
+    },
+    {
+      "name": "boredmelancholyIdle_1",
+      "mixamoName": "Bored Melancholy Idle 1",
+      "category": "idle",
+      "description": "Bored and melancholy idle animation"
+    },
+    {
+      "name": "buttonPushing",
+      "mixamoName": "Button Pushing",
+      "category": "action",
+      "description": "Pushing a button"
+    },
+    {
+      "name": "cartwheel",
+      "mixamoName": "Cartwheel",
+      "category": "action",
+      "description": "Perform a cartwheel"
+    },
+    {
+      "name": "catwalkTwistLToWalk180",
+      "mixamoName": "Catwalk Twist L To Walk 180",
+      "category": "movement",
+      "description": "Catwalk twist left to 180 turn"
+    },
+    {
+      "name": "catwalkWalkStopTwistR",
+      "mixamoName": "Catwalk Walk Stop Twist R",
+      "category": "movement",
+      "description": "Catwalk walk stop twist right"
+    },
+    {
+      "name": "catwalkWalking",
+      "mixamoName": "Catwalk Walking",
+      "category": "movement",
+      "description": "Catwalk style walking"
+    },
+    {
+      "name": "cockyHeadTurn",
+      "mixamoName": "Cocky Head Turn",
+      "category": "gesture",
+      "description": "Cocky head turn gesture"
+    },
+    {
+      "name": "crouchToStand",
+      "mixamoName": "Crouch To Stand",
+      "category": "movement",
+      "description": "Transition from crouch to standing"
+    },
+    {
+      "name": "dancingTwerk",
+      "mixamoName": "Dancing Twerk",
+      "category": "dance",
+      "description": "Twerk dance moves"
+    },
+    {
+      "name": "defeatIdle",
+      "mixamoName": "Defeat Idle",
+      "category": "idle",
+      "description": "Defeated idle pose"
+    },
+    {
+      "name": "disappointed",
+      "mixamoName": "Disappointed",
+      "category": "gesture",
+      "description": "Disappointed expression"
+    },
+    {
+      "name": "entry",
+      "mixamoName": "Entry",
+      "category": "movement",
+      "description": "Entrance animation"
+    },
+    {
+      "name": "fishingCast",
+      "mixamoName": "Fishing Cast",
+      "category": "action",
+      "description": "Casting a fishing line"
+    },
+    {
+      "name": "floating",
+      "mixamoName": "Floating",
+      "category": "movement",
+      "description": "Floating in place"
+    },
+    {
+      "name": "gettingUp",
+      "mixamoName": "Getting Up",
+      "category": "movement",
+      "description": "Getting up from ground"
+    },
+    {
+      "name": "golfDrive",
+      "mixamoName": "Golf Drive",
+      "category": "action",
+      "description": "Golf drive swing"
+    },
+    {
+      "name": "golfPuttVictory",
+      "mixamoName": "Golf Putt Victory",
+      "category": "dance",
+      "description": "Victory golf putt celebration"
+    },
+    {
+      "name": "guitarPlaying",
+      "mixamoName": "Guitar Playing",
+      "category": "action",
+      "description": "Playing guitar"
+    },
+    {
+      "name": "hipHopDance",
+      "mixamoName": "Hip Hop Dancing",
+      "category": "dance",
+      "description": "Hip hop dance moves"
+    },
+    {
+      "name": "jumpingDown",
+      "mixamoName": "Jumping Down",
+      "category": "movement",
+      "description": "Jumping down from height"
+    },
+    {
+      "name": "jumpingJacks",
+      "mixamoName": "Jumping Jacks",
+      "category": "action",
+      "description": "Jumping jacks exercise"
+    },
+    {
+      "name": "kipUp",
+      "mixamoName": "Kip Up",
+      "category": "action",
+      "description": "Kip up from ground"
+    },
+    {
+      "name": "kiss",
+      "mixamoName": "Kiss",
+      "category": "social",
+      "description": "Kissing gesture"
+    },
+    {
+      "name": "kneeling",
+      "mixamoName": "Kneeling",
+      "category": "movement",
+      "description": "Kneeling pose"
+    },
+    {
+      "name": "layingIdle",
+      "mixamoName": "Laying Idle",
+      "category": "idle",
+      "description": "Laying down idle"
+    },
+    {
+      "name": "lookAround",
+      "mixamoName": "Look Around",
+      "category": "idle",
+      "description": "Looking around"
+    },
+    {
+      "name": "lookOverShoulder",
+      "mixamoName": "Look Over Shoulder",
+      "category": "gesture",
+      "description": "Looking over shoulder gesture"
+    },
+    {
+      "name": "lowCrawl",
+      "mixamoName": "Low Crawl",
+      "category": "movement",
+      "description": "Low crawling movement"
+    },
+    {
+      "name": "lyingDown",
+      "mixamoName": "Lying Down",
+      "category": "movement",
+      "description": "Lying down animation"
+    },
+    {
+      "name": "militarySignaling",
+      "mixamoName": "Military Signaling",
+      "category": "gesture",
+      "description": "Military hand signals"
+    },
+    {
+      "name": "nervouslyLookAround",
+      "mixamoName": "Nervously Look Around",
+      "category": "gesture",
+      "description": "Nervously looking around"
+    },
+    {
+      "name": "ninjaIdle",
+      "mixamoName": "Ninja Idle",
+      "category": "idle",
+      "description": "Ninja style idle pose"
+    },
+    {
+      "name": "pacingAndTalkingOnAPhone",
+      "mixamoName": "Pacing And Talking On A Phone",
+      "category": "movement",
+      "description": "Pacing while talking on phone"
+    },
+    {
+      "name": "paddling",
+      "mixamoName": "Paddling",
+      "category": "action",
+      "description": "Paddling motion"
+    },
+    {
+      "name": "patting",
+      "mixamoName": "Patting",
+      "category": "gesture",
+      "description": "Patting gesture"
+    },
+    {
+      "name": "petting",
+      "mixamoName": "Petting",
+      "category": "gesture",
+      "description": "Petting gesture"
+    },
+    {
+      "name": "pettingAnimal",
+      "mixamoName": "Petting Animal",
+      "category": "gesture",
+      "description": "Petting an animal"
+    },
+    {
+      "name": "pianoPlaying",
+      "mixamoName": "Piano Playing",
+      "category": "action",
+      "description": "Playing piano"
+    },
+    {
+      "name": "playingDrums",
+      "mixamoName": "Playing Drums",
+      "category": "action",
+      "description": "Playing drums"
+    },
+    {
+      "name": "playingTheViolin",
+      "mixamoName": "Playing The Violin",
+      "category": "action",
+      "description": "Playing violin"
+    },
+    {
+      "name": "plotting",
+      "mixamoName": "Plotting",
+      "category": "gesture",
+      "description": "Plotting gesture"
+    },
+    {
+      "name": "praying",
+      "mixamoName": "Praying",
+      "category": "social",
+      "description": "Praying gesture"
+    },
+    {
+      "name": "pushStart",
+      "mixamoName": "Push Start",
+      "category": "action",
+      "description": "Push start action"
+    },
+    {
+      "name": "roar",
+      "mixamoName": "Roar",
+      "category": "gesture",
+      "description": "Roaring gesture"
+    },
+    {
+      "name": "rumbaDancing",
+      "mixamoName": "Rumba Dancing",
+      "category": "dance",
+      "description": "Rumba dance moves"
+    },
+    {
+      "name": "rummaging",
+      "mixamoName": "Rummaging",
+      "category": "action",
+      "description": "Rummaging through items"
+    },
+    {
+      "name": "runningUpStairs",
+      "mixamoName": "Running Up Stairs",
+      "category": "movement",
+      "description": "Running up stairs"
+    },
+    {
+      "name": "sadWalk",
+      "mixamoName": "Sad Walk",
+      "category": "movement",
+      "description": "Sad walking animation"
+    },
+    {
+      "name": "sambaDancing",
+      "mixamoName": "Samba Dancing",
+      "category": "dance",
+      "description": "Samba dance moves"
+    },
+    {
+      "name": "searchingPockets",
+      "mixamoName": "Searching Pockets",
+      "category": "gesture",
+      "description": "Searching through pockets"
+    },
+    {
+      "name": "shakingHands1",
+      "mixamoName": "Shaking Hands 1",
+      "category": "social",
+      "description": "Shaking hands gesture"
+    },
+    {
+      "name": "shrug",
+      "mixamoName": "Shrug",
+      "category": "social",
+      "description": "Shoulder shrug gesture"
+    },
+    {
+      "name": "sillyDance",
+      "mixamoName": "Silly Dancing",
+      "category": "dance",
+      "description": "Fun silly dance"
+    },
+    {
+      "name": "singing_1",
+      "mixamoName": "Singing 1",
+      "category": "gesture",
+      "description": "Singing animation"
+    },
+    {
+      "name": "sitToStand",
+      "mixamoName": "Sit To Stand",
+      "category": "movement",
+      "description": "Transition from sitting to standing"
+    },
+    {
+      "name": "sittingClap",
+      "mixamoName": "Sitting Clap",
+      "category": "social",
+      "description": "Clapping while sitting"
+    },
+    {
+      "name": "sittingDisapproval",
+      "mixamoName": "Sitting Disapproval",
+      "category": "gesture",
+      "description": "Disapproval while sitting"
+    },
+    {
+      "name": "sittingTalking",
+      "mixamoName": "Sitting Talking",
+      "category": "social",
+      "description": "Talking while sitting"
+    },
+    {
+      "name": "sitting",
+      "mixamoName": "Sitting",
+      "category": "movement",
+      "description": "Sitting pose"
+    },
+    {
+      "name": "situps",
+      "mixamoName": "Situps",
+      "category": "action",
+      "description": "Situps exercise"
+    },
+    {
+      "name": "skateboarding",
+      "mixamoName": "Skateboarding",
+      "category": "movement",
+      "description": "Skateboarding animation"
+    },
+    {
+      "name": "smoking",
+      "mixamoName": "Smoking",
+      "category": "gesture",
+      "description": "Smoking gesture"
+    },
+    {
+      "name": "sneakingForward",
+      "mixamoName": "Sneaking Forward",
+      "category": "movement",
+      "description": "Sneaking forward"
+    },
+    {
+      "name": "sneakyWalking",
+      "mixamoName": "Sneaky Walking",
+      "category": "movement",
+      "description": "Sneaky walking"
+    },
+    {
+      "name": "standToSit",
+      "mixamoName": "Stand To Sit",
+      "category": "movement",
+      "description": "Transition from standing to sitting"
+    },
+    {
+      "name": "standardRun",
+      "mixamoName": "Standard Run",
+      "category": "movement",
+      "description": "Standard running animation"
+    },
+    {
+      "name": "standingArguing",
+      "mixamoName": "Standing Arguing",
+      "category": "social",
+      "description": "Arguing while standing"
+    },
+    {
+      "name": "standingClap",
+      "mixamoName": "Standing Clap",
+      "category": "social",
+      "description": "Clapping while standing"
+    },
+    {
+      "name": "standingGreeting",
+      "mixamoName": "Standing Greeting",
+      "category": "social",
+      "description": "Greeting while standing"
+    },
+    {
+      "name": "standingJump",
+      "mixamoName": "Standing Jump",
+      "category": "movement",
+      "description": "Standing jump"
+    },
+    {
+      "name": "startClimbingLadder",
+      "mixamoName": "Start Climbing Ladder",
+      "category": "movement",
+      "description": "Start climbing a ladder"
+    },
+    {
+      "name": "startWalking",
+      "mixamoName": "Start Walking",
+      "category": "movement",
+      "description": "Start walking"
+    },
+    {
+      "name": "strongGesture",
+      "mixamoName": "Strong Gesture",
+      "category": "gesture",
+      "description": "Strong emphatic gesture"
+    },
+    {
+      "name": "swimming",
+      "mixamoName": "Swimming",
+      "category": "movement",
+      "description": "Swimming animation"
+    },
+    {
+      "name": "talking",
+      "mixamoName": "Talking",
+      "category": "social",
+      "description": "Talking gesture"
+    },
+    {
+      "name": "thinking",
+      "mixamoName": "Thinking",
+      "category": "gesture",
+      "description": "Contemplative thinking pose"
+    },
+    {
+      "name": "throwing",
+      "mixamoName": "Throwing",
+      "category": "action",
+      "description": "Throwing something"
+    },
+    {
+      "name": "twistDance",
+      "mixamoName": "Twist Dance",
+      "category": "dance",
+      "description": "Twist dance moves"
+    },
+    {
+      "name": "typing",
+      "mixamoName": "Typing",
+      "category": "action",
+      "description": "Typing animation"
+    },
+    {
+      "name": "vaultOverBox",
+      "mixamoName": "Vault Over Box",
+      "category": "action",
+      "description": "Vaulting over a box"
+    },
+    {
+      "name": "victoryIdle",
+      "mixamoName": "Victory Idle",
+      "category": "idle",
+      "description": "Victory idle pose"
+    },
+    {
+      "name": "victoryDance",
+      "mixamoName": "Victory",
+      "category": "dance",
+      "description": "Victory celebration dance"
+    },
+    {
       "name": "waving",
       "mixamoName": "Waving",
       "category": "social",
       "description": "Wave hello/goodbye"
+    },
+    {
+      "name": "yawn",
+      "mixamoName": "Yawn",
+      "category": "gesture",
+      "description": "Yawning gesture"
+    },
+    {
+      "name": "yelling",
+      "mixamoName": "Yelling",
+      "category": "gesture",
+      "description": "Yelling gesture"
     },
     {
       "name": "bowing",
@@ -79,12 +619,6 @@
       "description": "Excited cheering"
     },
     {
-      "name": "shrug",
-      "mixamoName": "Shrug",
-      "category": "social",
-      "description": "Shoulder shrug gesture"
-    },
-    {
       "name": "headNod",
       "mixamoName": "Head Nod Yes",
       "category": "social",
@@ -95,24 +629,6 @@
       "mixamoName": "Head Shake No",
       "category": "social",
       "description": "Shaking head no"
-    },
-    {
-      "name": "hipHopDance",
-      "mixamoName": "Hip Hop Dancing",
-      "category": "dance",
-      "description": "Hip hop dance moves"
-    },
-    {
-      "name": "sillyDance",
-      "mixamoName": "Silly Dancing",
-      "category": "dance",
-      "description": "Fun silly dance"
-    },
-    {
-      "name": "victoryDance",
-      "mixamoName": "Victory",
-      "category": "dance",
-      "description": "Victory celebration dance"
     },
     {
       "name": "fistPump",
@@ -137,18 +653,6 @@
       "mixamoName": "Macarena Dance",
       "category": "dance",
       "description": "Macarena dance"
-    },
-    {
-      "name": "twistDance",
-      "mixamoName": "Twist Dance",
-      "category": "dance",
-      "description": "Twist dance moves"
-    },
-    {
-      "name": "thinking",
-      "mixamoName": "Thinking",
-      "category": "gesture",
-      "description": "Contemplative thinking pose"
     },
     {
       "name": "pointing",
