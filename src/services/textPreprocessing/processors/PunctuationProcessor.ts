@@ -82,10 +82,10 @@ export class PunctuationProcessor extends BaseProcessor {
     }
     
     const elapsed = performance.now() - startTime;
-    if (elapsed > 10) {
+    if (import.meta.env.DEV && elapsed > 10) {
       console.warn(`⚠️ [PunctuationProcessor] Slow processing: ${elapsed.toFixed(2)}ms for ${text.length} chars`);
     }
     
-    return { cleanText, displayText, metadata: newMetadata };
+    return { cleanText: finalCleanText, displayText, metadata: newMetadata };
   }
 }

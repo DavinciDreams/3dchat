@@ -1,23 +1,355 @@
 # Text Preprocessing System - Technical Specification
 
-**Version:** 1.0  
-**Status:** Draft  
-**Date:** 2025-12-26  
+**Version:** 1.0
+**Status:** Draft
+**Date:** 2025-12-26
 **Author:** Architecture Team
 
 ---
 
 ## Table of Contents
 
-1. [Overview](#overview)
-2. [Architecture Overview](#architecture-overview)
-3. [Type Definitions](#type-definitions)
-4. [Processor Specifications](#processor-specifications)
-5. [Integration Plan](#integration-plan)
-6. [Extensibility Design](#extensibility-design)
-7. [Configuration](#configuration)
-8. [Testing Strategy](#testing-strategy)
-9. [Migration Path](#migration-path)
+1. [Current Implementation Overview](#current-implementation-overview)
+2. [Overview](#overview)
+3. [Architecture Overview](#architecture-overview)
+4. [Type Definitions](#type-definitions)
+5. [Processor Specifications](#processor-specifications)
+6. [Integration Plan](#integration-plan)
+7. [Extensibility Design](#extensibility-design)
+8. [Configuration](#configuration)
+9. [Testing Strategy](#testing-strategy)
+10. [Migration Path](#migration-path)
+
+---
+
+## Current Implementation Overview
+
+### Architecture Overview
+
+The Text Preprocessing System (TPS) is implemented using a **Pipeline Pattern** that orchestrates multiple text processors in sequence. Each processor transforms the input text and accumulates metadata, producing three outputs:
+
+- **cleanText**: Text optimized for Text-to-Speech (TTS) - emojis, links, and formatting removed
+- **displayText**: Text with formatting preserved for UI rendering
+- **metadata**: Structured data about emphasis, emojis, and links for avatar animation
+
+### Core Components
+
+#### BaseProcessor ([`BaseProcessor.ts`](../src/services/textPreprocessing/BaseProcessor.ts:1))
+
+Abstract base class that defines the contract for all text processors:
+
+```typescript
+export abstract class BaseProcessor implements ITextProcessor {
+  abstract name: string;           // Processor identifier
+  abstract priority: number;        // Execution order (lower = higher priority)
+  
+  abstract process(
+    text: string,
+    metadata: TextMetadata
+  ): {
+    cleanText: string;
+    displayText: string;
+    metadata: TextMetadata;
+  };
+  
+  protected cloneMetadata(metadata: TextMetadata): TextMetadata;
+}
+```
+
+**Key Features:**
+- Immutable state: Each processor receives the output of the previous processor
+- Priority-based execution: Processors are sorted by priority before execution
+- Metadata accumulation: Each processor adds to the metadata without modifying previous processors' data
+
+#### PreprocessingPipeline ([`PreprocessingPipeline.ts`](../src/services/textPreprocessing/PreprocessingPipeline.ts:1))
+
+Main orchestrator that manages and executes all registered processors:
+
+```typescript
+export class PreprocessingPipeline {
+  private processors: ITextProcessor[] = [];
+  
+  constructor() {
+    this.register(new PunctuationProcessor());  // priority: 10
+    this.register(new EmojiProcessor());         // priority: 20
+    this.register(new LinkProcessor());         // priority: 30
+  }
+  
+  process(text: string): PreprocessedText;
+}
+```
+
+**Key Features:**
+- Automatic processor registration and sorting
+- Performance tracking with console logging
+- Singleton instance available via [`preprocessingPipeline`](../src/services/textPreprocessing/PreprocessingPipeline.ts:89) export
+
+### Current Processor Implementations
+
+#### 1. PunctuationProcessor ([`PunctuationProcessor.ts`](../src/services/textPreprocessing/processors/PunctuationProcessor.ts:16))
+
+**Priority:** 10 (executes first)
+
+**Features:**
+- Detects asterisk-wrapped emphasis: `*text*` or `**text**`
+- Detects CAPS words (3+ characters) for emphasis
+- Removes markdown heading markers: `### Heading`
+- Removes asterisks from clean text, preserves in display text
+
+**Regex Patterns:**
+```typescript
+const HEADING_MARKER_PATTERN = /^#{1,6}\s+/gm;  // Markdown headings
+const ASTERISK_PATTERN = /\*+([^*]+)\*+/g;     // Asterisk emphasis
+const CAPS_PATTERN = /\b([A-Z]{3,})\b/g;       // CAPS emphasis
+```
+
+**Known Issues:**
+- Nested asterisks not supported (e.g., `*This is *nested* emphasis*`)
+- Limited emphasis types: only `'asterisk'` and `'caps'` supported
+
+#### 2. EmojiProcessor ([`EmojiProcessor.ts`](../src/services/textPreprocessing/processors/EmojiProcessor.ts:42))
+
+**Priority:** 20 (executes second)
+
+**Features:**
+- Detects all Unicode emojis using extended pictographic pattern
+- Removes emojis from clean text (for TTS)
+- Preserves emojis in display text (for UI)
+- Maps emojis to avatar gestures
+
+**Emoji-to-Gesture Mapping:**
+```typescript
+const EMOJI_TO_GESTURE: Record<string, string> = {
+  '😀': 'happy', '😂': 'laugh', '😊': 'happy',
+  '😍': 'love', '🤔': 'thinking', '😮': 'surprised',
+  '😢': 'sad', '😠': 'angry', '👍': 'thumbs_up',
+  '👎': 'thumbs_down', '👋': 'wave', '🙏': 'praying',
+  '🎉': 'celebrate', '❤️': 'heart', '🔥': 'fire',
+  '✨': 'sparkle', '🤝': 'handshake',
+};
+```
+
+**Regex Pattern:**
+```typescript
+const EMOJI_PATTERN = /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu;
+```
+
+**Known Issues:**
+- Gesture mappings reference emotions not in [`Emotion`](../src/types/index.ts:2) type (limited to 4 states)
+- No gesture duration support
+- No emotion state vs gesture trigger distinction
+
+#### 3. LinkProcessor ([`LinkProcessor.ts`](../src/services/textPreprocessing/processors/LinkProcessor.ts:18))
+
+**Priority:** 30 (executes third)
+
+**Features:**
+- Detects URLs with `http://`, `https://`, or `www.` prefixes
+- Normalizes `www` URLs to `https://` format
+- Removes URLs from clean text (for TTS)
+- Preserves URLs in display text (for UI)
+
+**Regex Pattern:**
+```typescript
+const URL_PATTERN = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+```
+
+**Known Issues:**
+- Domain-only URLs not detected (e.g., `google.com`, `example.org`)
+- Limited URL pattern support
+
+### Type Definitions
+
+#### Core Types ([`types/index.ts`](../src/types/index.ts:177))
+
+```typescript
+// Preprocessing result
+export interface PreprocessedText {
+  original: string;        // Original input text
+  cleanText: string;       // For TTS (no emojis, links, asterisks)
+  displayText: string;      // For UI (preserves formatting)
+  metadata: TextMetadata;   // Extracted metadata
+}
+
+// Metadata structure
+export interface TextMetadata {
+  emphasis: EmphasisData[];
+  emojis: EmojiData[];
+  links: LinkData[];
+}
+
+// Emphasis data
+export interface EmphasisData {
+  text: string;
+  startIndex: number;
+  endIndex: number;
+  type: 'asterisk' | 'caps';
+}
+
+// Emoji data
+export interface EmojiData {
+  emoji: string;
+  position: number;
+  gesture?: string;
+}
+
+// Link data
+export interface LinkData {
+  url: string;
+  displayText: string;
+  startIndex: number;
+  endIndex: number;
+}
+```
+
+#### Emotion Type Limitation
+
+```typescript
+// Current limited emotion type
+export type Emotion = 'neutral' | 'happy' | 'thinking' | 'sad';
+```
+
+This limitation prevents full utilization of emoji gesture mappings which include: `'laugh'`, `'love'`, `'surprised'`, `'angry'`, `'thumbs_up'`, `'thumbs_down'`, `'wave'`, `'praying'`, `'celebrate'`, `'heart'`, `'fire'`, `'sparkle'`, `'handshake'`.
+
+### Performance Characteristics
+
+#### Current Performance
+
+Based on console logging in [`PreprocessingPipeline.process()`](../src/services/textPreprocessing/PreprocessingPipeline.ts:46):
+
+- **Typical message (< 500 chars)**: < 5ms total processing time
+- **Long response (> 2000 chars)**: < 20ms total processing time
+- **Per-processor overhead**: Each processor logs individual processing time
+
+#### Identified Bottlenecks
+
+1. **String Concatenation**: Processors use `substring()` and string concatenation for text modifications, which is inefficient for long texts
+   ```typescript
+   // Current approach - inefficient
+   cleanText = cleanText.substring(0, startIndex - positionOffset) +
+               innerText +
+               cleanText.substring(endIndex - positionOffset);
+   ```
+
+2. **No Caching**: No caching mechanism for repeated text processing
+
+3. **Regex Compilation**: Some processors create new RegExp instances (though [`EmojiProcessor`](../src/services/textPreprocessing/processors/EmojiProcessor.ts:32) uses cached pattern)
+
+4. **Metadata Cloning**: [`BaseProcessor.cloneMetadata()`](../src/services/textPreprocessing/BaseProcessor.ts:38) creates shallow clones of arrays for each processor
+
+### Integration Points
+
+#### 1. ChatInterface Integration ([`ChatInterface.tsx`](../src/components/ChatInterface.tsx:1))
+
+**Current State:** Not yet integrated
+
+**Planned Integration:**
+```typescript
+import { preprocessingPipeline } from '../services/textPreprocessing';
+
+const response = await getAIResponse(content);
+const text = typeof response === 'string' ? response : response.content;
+
+// Preprocess text before TTS
+const processed = preprocessingPipeline.process(text);
+
+// Store processed message with metadata
+setProcessedMessage({
+  role: 'assistant',
+  content: processed.displayText,
+  metadata: processed.metadata
+});
+
+// Send clean text to TTS
+await textToSpeech(processed.cleanText);
+```
+
+#### 2. SpeechService Integration ([`speechService.ts`](../src/services/speechService.ts))
+
+**Current State:** Not yet integrated
+
+**Planned Integration:**
+- Preprocess AI responses before TTS
+- Extract metadata for avatar animation
+- Pass clean text to TTS engine
+
+#### 3. Avatar/Viseme Integration ([`AvatarModel.tsx`](../src/components/AvatarModel.tsx:1))
+
+**Current State:** Not yet integrated
+
+**Planned Integration:**
+- Listen for metadata changes in chat store
+- Trigger gestures based on emoji metadata
+- Apply emphasis markers to viseme system for enhanced lip-sync
+- Display links in UI as clickable elements
+
+#### 4. AI Service Integration ([`aiService.ts`](../src/services/aiService.ts))
+
+**Current State:** Not yet integrated
+
+**Planned Integration:**
+- Preprocess all AI responses before returning to UI
+- Support for AI-generated markdown formatting
+- Extract emotion keywords for avatar state
+
+### Data Flow
+
+```
+AI Service Output
+    ↓
+PreprocessingPipeline.process(text)
+    ↓
+┌─────────────────────────────────────────┐
+│  PunctuationProcessor (priority: 10)    │
+│  - Remove asterisks from cleanText       │
+│  - Detect CAPS emphasis                 │
+│  - Remove markdown headings              │
+└─────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────┐
+│  EmojiProcessor (priority: 20)         │
+│  - Remove emojis from cleanText         │
+│  - Map emojis to gestures               │
+└─────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────┐
+│  LinkProcessor (priority: 30)         │
+│  - Remove URLs from cleanText          │
+│  - Normalize www URLs                  │
+└─────────────────────────────────────────┘
+    ↓
+PreprocessedText {
+  cleanText: "Text for TTS",
+  displayText: "Text with *formatting* 😊",
+  metadata: {
+    emphasis: [...],
+    emojis: [...],
+    links: [...]
+  }
+}
+    ↓
+┌──────────────────┬──────────────────┐
+│     TTS Engine   │   UI Rendering   │
+│  (cleanText)    │  (displayText)   │
+└──────────────────┴──────────────────┘
+    ↓                    ↓
+Audio Playback     Avatar Animation
+                   (from metadata)
+```
+
+### Summary
+
+The current implementation provides a solid foundation for text preprocessing with:
+- ✅ Working Pipeline Pattern architecture
+- ✅ Three functional processors (Punctuation, Emoji, Link)
+- ✅ Type-safe metadata structure
+- ✅ Performance tracking
+- ⚠️ Limited emotion type (4 states vs 14+ gestures)
+- ⚠️ No caching mechanism
+- ⚠️ String concatenation inefficiency
+- ⚠️ Not yet integrated with chat UI or avatar system
+
+The system is ready for V2 enhancements to address these limitations and expand capabilities.
 
 ---
 

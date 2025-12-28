@@ -57,8 +57,10 @@ export class LinkProcessor extends BaseProcessor {
       positionOffset += url.length;
     }
     
+    const cleanText = cleanTextChars.join('');
+    
     const elapsed = performance.now() - startTime;
-    if (elapsed > 10) {
+    if (import.meta.env.DEV && elapsed > 10) {
       console.warn(`⚠️ [LinkProcessor] Slow processing: ${elapsed.toFixed(2)}ms for ${text.length} chars`);
     }
     
