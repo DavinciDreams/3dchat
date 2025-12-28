@@ -513,8 +513,9 @@ const ChatInterface = (): JSX.Element => {
     : (isCollapsed ? ChevronUp : ChevronDown);
 
   // Position-based classes
+  // When on right, offset from top to avoid header (top-16 = 64px)
   const containerClasses = position === 'right'
-    ? `fixed top-0 right-0 h-full z-20 flex transition-all duration-300 ease-in-out ${
+    ? `fixed top-16 right-0 bottom-0 z-20 flex transition-all duration-300 ease-in-out ${
         isCollapsed ? 'w-12' : 'w-96 max-w-[90vw]'
       }`
     : `fixed bottom-0 left-0 right-0 z-20 flex flex-col transition-all duration-300 ease-in-out ${
