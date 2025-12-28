@@ -51,30 +51,28 @@ export class EmojiProcessor extends BaseProcessor {
    */
   process(text: string, metadata: TextMetadata) {
     const startTime = performance.now();
-    
+
     let cleanText = text;
     const newMetadata = this.cloneMetadata(metadata);
-    
-    // Use regex directly without creating new RegExp instance each time
-    let match;
     let positionOffset = 0;
-    
-    while ((match = EMOJI_PATTERN.exec(text)) !== null) {
+
+    // Use matchAll to avoid lastIndex issues between calls
+    for (const match of text.matchAll(EMOJI_PATTERN)) {
       const emoji = match[0];
-      const startIndex = match.index;
+      const startIndex = match.index!;
       const endIndex = startIndex + emoji.length;
-      
+
       // Add to metadata with gesture mapping if available
       newMetadata.emojis.push({
         emoji,
         position: startIndex - positionOffset,
         gesture: EMOJI_TO_GESTURE[emoji]
       });
-      
+
       // Remove emoji from clean text (for TTS)
       cleanText = cleanText.substring(0, startIndex - positionOffset) +
                   cleanText.substring(endIndex - positionOffset);
-      
+
       positionOffset += emoji.length;
     }
     
