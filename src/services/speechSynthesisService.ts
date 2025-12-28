@@ -5,6 +5,7 @@ import { ServiceError } from '../errors/AppError';
 import { useChatStore } from '../store/chatStore';
 import { VisemeData, AVAILABLE_VOICES } from '../types';
 import { textToVisemes } from './visemePreprocessor';
+import { TTSCache } from './speechSynthesisService/TTSCache';
 
 // Default voice (will be overridden by selected voice from store)
 const DEFAULT_VOICE_NAME = 'en-GB-LibbyNeural';
@@ -12,6 +13,9 @@ const FALLBACK_VOICE_NAME = 'Google US English';
 
 let audioContext: AudioContext | null = null;
 let currentAudioSource: AudioBufferSourceNode | null = null; // Track active audio source for cancellation
+
+// TTS Cache instance
+const ttsCache = new TTSCache(50, 5 * 60 * 1000); // 50 entries, 5 minute TTL
 
 export interface TTSResult {
   audioBuffer: ArrayBuffer;
@@ -26,23 +30,51 @@ export async function textToSpeech(text: string): Promise<TTSResult | null> {
     const selectedVoice = AVAILABLE_VOICES.find(v => v.id === store.selectedVoiceId);
     const voiceName = selectedVoice?.name || DEFAULT_VOICE_NAME;
     
+    // TTS parameters for cache key
+    const rate = '+0%';
+    const pitch = '+0Hz';
+
     console.log('🎤 [textToSpeech] Using voice:', voiceName);
     
+    // Check cache first
+    const cached = ttsCache.get(text, voiceName, 0, 0);
+    if (cached) {
+      console.log('✅ [textToSpeech] Using cached audio');
+      const duration = text.length * 0.15; // Rough estimate
+      return {
+        audioBuffer: cached.audioBuffer,
+        visemes: cached.visemes,
+        duration
+      };
+    }
+    
+    if (import.meta.env.DEV) {
+      console.log('⚡ [textToSpeech] Cache miss, synthesizing...');
+    }
+    
     const tts = new EdgeTTS(text, voiceName, {
-      rate: '+0%',
+      rate,
       volume: '+0%',
-      pitch: '+0Hz',
+      pitch,
     });
-    const result = await tts.synthesize();
+
+    // Parallel: synthesize audio and generate visemes simultaneously
+    const [result, visemes] = await Promise.all([
+      tts.synthesize(),
+      Promise.resolve(textToVisemes(text))
+    ]);
+
     console.log('EdgeTTS result object:', JSON.stringify({
       keys: Object.keys(result),
       hasAudio: !!result.audio,
       audioType: result.audio?.type,
       audioSize: result.audio?.size
     }, null, 2));
+    
     if (!result.audio) {
       throw new ServiceError('speech', 'unknown', 'No audio returned from TTS');
     }
+    
     // result.audio is a Blob in browser, convert to ArrayBuffer
     const arrayBuffer = await result.audio.arrayBuffer();
     console.log('ArrayBuffer from result.audio:', {
@@ -50,8 +82,13 @@ export async function textToSpeech(text: string): Promise<TTSResult | null> {
       type: typeof arrayBuffer
     });
     
-    // Generate visemes from the text
-    const visemes = textToVisemes(text);
+    // Cache the result
+    try {
+      ttsCache.set(text, voiceName, 0, 0, arrayBuffer, visemes);
+    } catch (cacheError) {
+      // Cache failures should not break functionality
+      console.warn('⚠️ [textToSpeech] Failed to cache audio:', cacheError);
+    }
     
     // Estimate duration from audio (will be refined when played)
     const duration = text.length * 0.15; // Rough estimate
@@ -85,6 +122,20 @@ export async function textToSpeech(text: string): Promise<TTSResult | null> {
       statusCode
     );
   }
+}
+
+/**
+ * Clear the TTS cache
+ */
+export function clearTTSCache(): void {
+  ttsCache.clear();
+}
+
+/**
+ * Get TTS cache statistics
+ */
+export function getTTSCacheStats(): { size: number; maxSize: number } {
+  return ttsCache.getStats();
 }
 
 export async function speakWithNative(text: string): Promise<ArrayBuffer | null> {

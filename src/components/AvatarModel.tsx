@@ -3,13 +3,12 @@ import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
-import { createVRMAnimationClip } from '@pixiv/three-vrm-animation';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { useChatStore } from '../store/chatStore';
 import { CharacterProps, SceneProps, AVAILABLE_VRM_MODELS } from '../types';
 import { visemeApplier } from '../services/visemeApplicationService';
 import { getCurrentViseme } from '../services/visemePreprocessor';
-import vrmaAnimationService, { VRMAAnimation } from '../services/vrmaAnimationService';
+import vrmaAnimationService, { VRMA_ANIMATIONS } from '../services/vrmaAnimationService';
 
 export interface ExtendedCharacterProps extends CharacterProps {
   selectedModel?: string;
@@ -22,8 +21,7 @@ const DEFAULT_ROTATION: [number, number, number] = [0, 0, 0];
 const Character: React.FC<ExtendedCharacterProps> = ({
   position = DEFAULT_POSITION,
   scale = 1,
-  rotation = DEFAULT_ROTATION,
-  selectedModel,
+  rotation = [0, 0, 0],
 }) => {
   const store = useChatStore();
   const { emotion, isSpeaking, visemes, selectedModelId, currentAnimation, animationQueue } = store;
@@ -52,44 +50,51 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   const sceneRef = useRef<THREE.Group | null>(null);
   const isInitialized = useRef<boolean>(false);
   const [vrmaAnimationsLoaded, setVrmaAnimationsLoaded] = useState(false);
+  // Track which VRMA animations have been loaded for lazy loading
+  const loadedVrmaAnimations = useRef<Set<string>>(new Set());
 
   
   const vrm = gltf.userData.vrm as unknown;
   const scene = gltf.scene;
 
   /**
-   * Load VRMA animations and create actions for them
-   * Uses createVRMAnimationClip to properly retarget animations to the VRM model
+   * Load a single VRMA animation on-demand with caching
+   * Only loads the animation when first triggered, not all upfront
    */
-  const loadVRMAAnimations = async () => {
+  const loadVRMAAnimation = async (animationName: string) => {
     if (!mixer.current || !vrm) return;
 
     try {
-      // Load all VRMA animations
-      const animations = await vrmaAnimationService.loadAllAnimations();
-      
-      // Create animation actions for each VRMA animation
-      animations.forEach((vrmaAnim: VRMAAnimation) => {
-        try {
-          // Use createVRMAnimationClip to retarget the VRMA animation to the VRM model
-          // This creates a properly bound animation clip that can animate the VRM's bones
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const retargetedClip = createVRMAnimationClip(vrmaAnim.vrmAnimation, vrm as any);
-          const action = mixer.current!.clipAction(retargetedClip);
-          vrmaActions.current[vrmaAnim.name] = action;
-          vrmaClips.current[vrmaAnim.name] = retargetedClip;
-        } catch (error) {
-          // Log errors but continue - some animations may not be compatible with all models
-          console.warn(`Failed to retarget VRMA animation '${vrmaAnim.name}':`, error);
-        }
-      });
+      // First, load the VRMA file if not already loaded
+      const animConfig = VRMA_ANIMATIONS.find(a => a.name === animationName);
+      if (!animConfig) {
+        console.warn(`VRMA animation '${animationName}' not found in config`);
+        return;
+      }
 
-      console.log('VRMA animations loaded:', animations.size);
-      console.log('Available VRMA actions:', Object.keys(vrmaActions.current));
-      console.log('Available VRMA clips:', Object.keys(vrmaClips.current));
+      // Load the VRMA animation file
+      const loadedAnim = await vrmaAnimationService.loadAnimation(animConfig);
+      if (!loadedAnim) {
+        console.warn(`Failed to load VRMA animation '${animationName}'`);
+        return;
+      }
+
+      // Now retarget the animation for the current model
+      const retargetedClip = vrmaAnimationService.getOrCreateRetargetedClip(
+        loadedAnim.vrmAnimation,
+        vrm,
+        selectedModelId,
+        animationName
+      );
+      const action = mixer.current!.clipAction(retargetedClip);
+      vrmaActions.current[animationName] = action;
+      vrmaClips.current[animationName] = retargetedClip;
+      loadedVrmaAnimations.current.add(animationName);
+
+      console.log(`VRMA animation '${animationName}' loaded`);
     } catch (error) {
-      console.error('Error loading VRMA animations:', error);
-      // Don't throw - allow model to render even if VRMA animations fail
+      // Log errors but continue - some animations may not be compatible with all models
+      console.warn(`Failed to load VRMA animation '${animationName}':`, error);
     }
   };
 
@@ -106,6 +111,72 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       const vrmObj = vrm as Record<string, unknown>;
       vrmRef.current = vrm;
       sceneRef.current = scene;
+      
+      // Detect VRM version
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const metaVersion = (vrmObj.meta as any)?.metaVersion;
+      const isVRM1 = metaVersion === '1.0';
+      const isVRM0 = metaVersion === '0.0' || !metaVersion;
+      
+      console.log(`Loading VRM model: ${selectedModelId}, Version: ${metaVersion || 'unknown'}`);
+      
+      // Apply VRM 0.x specific transformations
+      if (isVRM0) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          VRMUtils.rotateVRM0(vrmObj as any);
+          console.log('Applied VRM 0.x rotation');
+        } catch (error) {
+          console.warn('Failed to apply VRM 0.x rotation:', error);
+        }
+      }
+      
+      // Apply VRM optimizations with error handling for VRM 1.0 textures
+      try {
+        VRMUtils.removeUnnecessaryVertices(gltf.scene);
+      } catch (error) {
+        console.warn('Failed to remove unnecessary vertices:', error);
+      }
+      
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        VRMUtils.combineSkeletons((vrmObj as any).scene);
+      } catch (error) {
+        console.warn('Failed to combine skeletons:', error);
+      }
+      
+      // Handle VRM 1.0 texture colorSpace issues
+      if (isVRM1) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const vrmScene = (vrmObj as any).scene;
+          if (vrmScene) {
+            vrmScene.traverse((node: THREE.Object3D) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const mesh = node as THREE.Mesh;
+              if (mesh && mesh.material) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const material = mesh.material as any;
+                if (material.map && !material.map.colorSpace) {
+                  // Set colorSpace if texture exists but doesn't have it
+                  material.map.colorSpace = THREE.SRGBColorSpace;
+                }
+                // Handle other texture types
+                ['emissiveMap', 'normalMap', 'roughnessMap', 'metalnessMap'].forEach((mapName) => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const map = material[mapName];
+                  if (map && !map.colorSpace) {
+                    map.colorSpace = THREE.SRGBColorSpace;
+                  }
+                });
+              }
+            });
+          }
+        } catch (error) {
+          console.warn('Failed to process VRM 1.0 textures:', error);
+        }
+      }
+      
 
       // Apply VRM optimizations
       VRMUtils.removeUnnecessaryVertices(gltf.scene);
@@ -143,7 +214,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       });
 
       // Load VRMA animations with proper retargeting
-      loadVRMAAnimations().then(() => {
+      loadVRMAAnimation('modelPose').then(() => {
         console.log('VRMA animations loaded successfully');
         setVrmaAnimationsLoaded(true);
         isInitialized.current = true;
@@ -162,6 +233,14 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         } else {
           console.log('%c⏭️ [AvatarModel] Skipping idle - animation already playing: ' + store.currentAnimation, 'color: #f39c12;');
         }
+        
+        console.log('VRM model loaded:', vrm);
+        console.log('Available embedded animations:', animations.map(a => a.name));
+        console.log('Available VRMA animations:', Object.keys(vrmaClips.current));
+        console.log('Total available animations:', [
+          ...animations.map(a => a.name),
+          ...Object.keys(vrmaClips.current)
+        ]);
       }).catch((error) => {
         console.warn('Failed to load VRMA animations:', error);
         setVrmaAnimationsLoaded(false);
@@ -183,7 +262,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       visemeApplier.setVRM(null);
       isInitialized.current = false;
     };
-  }, [position, scale, rotation, selectedModel]);
+  }, [position, scale, rotation, selectedModelId]);
 
   // Apply a natural standing pose to the VRM model
   const applyNaturalPose = (vrm: unknown) => {
@@ -397,24 +476,10 @@ const Character: React.FC<ExtendedCharacterProps> = ({
           }
           break;
         case 'happy':
-          // Try VRMA 'peace' animation for happy, fall back to 'happy'
-          if (vrmaActions.current['peace']) {
-            fadeToAction('peace');
-          } else if (currentActions.current['happy']) {
-            fadeToAction('happy');
-          }
+          fadeToAction('peace');
           break;
         default:
-          // For neutral emotion and not speaking, ensure idle pose is maintained
-          // Try VRMA 'modelPose' for idle, fall back to 'idle'
-          if (vrmaActions.current['modelPose']) {
-            fadeToAction('modelPose');
-          } else if (currentActions.current['idle']) {
-            fadeToAction('idle');
-          } else if (vrmRef.current) {
-            // Re-apply natural pose if no idle animation exists
-            applyNaturalPose(vrmRef.current);
-          }
+          fadeToAction('modelPose');
       }
     }
   }, [emotion, isSpeaking, vrmaAnimationsLoaded, currentAnimation, animationQueue]);
@@ -456,9 +521,8 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 
 const MemoizedCharacter = React.memo(Character);
 
-const Scene: React.FC<SceneProps & { selectedModelId: string }> = ({
+const Scene: React.FC<SceneProps> = ({
   shadows = true,
-  selectedModelId
 }) => {
   return (
     <>
@@ -474,7 +538,7 @@ const Scene: React.FC<SceneProps & { selectedModelId: string }> = ({
         intensity={0.3}
       />
       <Suspense fallback={null}>
-        <MemoizedCharacter key={selectedModelId} />
+        <MemoizedCharacter />
       </Suspense>
       
       <OrbitControls
@@ -493,8 +557,6 @@ const Scene: React.FC<SceneProps & { selectedModelId: string }> = ({
 };
 
 const AvatarModel: React.FC = () => {
-  const { selectedModelId } = useChatStore();
-  
   return (
     <div className="w-full h-full absolute top-0 left-0 z-0">
       <Canvas
@@ -517,7 +579,7 @@ const AvatarModel: React.FC = () => {
         }}
         dpr={[1, 2]}
       >
-        <Scene selectedModelId={selectedModelId} />
+        <Scene />
       </Canvas>
     </div>
   );

@@ -23,11 +23,4 @@ dist-ssr
 *.sln
 *.sw?
 .env
-
-# Animation build files
-animations-raw/
-tools/
-*.fbx
-*.FBX
-*.vrma
-*.VRMA
+screenshots

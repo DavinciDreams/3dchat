@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Mic, MicOff, Loader2, Copy, Download, StopCircle, Plus, Play, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, PanelRight, PanelBottom, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useChatStore } from '../store/chatStore';
+import { useChatStore, MAX_MESSAGES } from '../store/chatStore';
 import { getAIResponse } from '../services/aiService';
 import { startListening, stopListening } from '../services/speechService';
 import { textToSpeech, playAudio, stopAudio } from '../services/speechSynthesisService';
@@ -285,28 +285,46 @@ const ChatInterface = (): JSX.Element => {
 
         // Store the processed message with metadata
         const processedMessageId = crypto.randomUUID();
-        useChatStore.getState().setProcessedMessage({
-          id: processedMessageId,
-          role: 'assistant',
-          content: processed.displayText,
-          timestamp: Date.now(),
-          metadata: processed.metadata
-        });
-
-        // Also add to regular messages for backward compatibility
-        useChatStore.getState().addMessage({
-          role: 'assistant',
-          content: processed.displayText
-        });
-
-        if (currentChatId) {
-          await supabase
+        
+        // Batch state updates for better performance
+        useChatStore.setState((state) => ({
+          processedMessages: [
+            ...state.processedMessages,
+            {
+              id: processedMessageId,
+              role: 'assistant',
+              content: processed.displayText,
+              timestamp: Date.now(),
+              metadata: processed.metadata
+            }
+          ].slice(-MAX_MESSAGES),
+          messages: [
+            ...state.messages,
+            {
+              id: crypto.randomUUID(),
+              timestamp: Date.now(),
+              role: 'assistant',
+              content: processed.displayText
+            }
+          ].slice(-MAX_MESSAGES),
+          isSpeaking: true
+        }));
+        
+        // Parallelize database insertion and TTS generation (independent operations)
+        const [dbResult, audioBuffer] = await Promise.allSettled([
+          currentChatId ? supabase
             .from('chat_messages')
             .insert([{
               chat_id: currentChatId,
               content: processed.displayText,
               role: 'assistant'
-            }]);
+            }]) : Promise.resolve(null),
+          textToSpeech(processed.cleanText)
+        ]);
+        
+        // Handle database result
+        if (dbResult.status === 'rejected') {
+          console.error('Error inserting message to database:', dbResult.reason);
         }
 
         useChatStore.getState().setSpeaking(true);
@@ -347,11 +365,11 @@ const ChatInterface = (): JSX.Element => {
           if (!audioBuffer) {
             console.warn('TTS returned null or empty audioBuffer');
           } else {
-            console.log('TTS audioBuffer.audioBuffer:', audioBuffer.audioBuffer);
-            console.log('TTS audioBuffer.audioBuffer type:', typeof audioBuffer.audioBuffer);
-            console.log('TTS audioBuffer.audioBuffer byteLength:', audioBuffer.audioBuffer?.byteLength);
+            console.log('TTS audioBuffer.audioBuffer:', audioBuffer.value.audioBuffer);
+            console.log('TTS audioBuffer.audioBuffer type:', typeof audioBuffer.value.audioBuffer);
+            console.log('TTS audioBuffer.audioBuffer byteLength:', audioBuffer.value.audioBuffer?.byteLength);
             try {
-              await playAudio(audioBuffer.audioBuffer);
+              await playAudio(audioBuffer.value.audioBuffer);
               console.log('Audio playback finished');
 
               // Trigger gestures from emoji metadata
@@ -370,14 +388,14 @@ const ChatInterface = (): JSX.Element => {
               console.error('Error during audio playback:', playError);
             }
           }
-        } catch (ttsError) {
-          console.error('Error during TTS:', ttsError);
+        } else {
+          console.error('Error during TTS:', audioBuffer.reason);
         }
       }
     } catch (error) {
       console.error('Error processing message:', error);
     } finally {
-      useChatStore.getState().setSpeaking(false);
+      useChatStore.setState({ isSpeaking: false });
     }
   };
 
