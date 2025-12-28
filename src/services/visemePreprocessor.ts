@@ -1,4 +1,8 @@
 import { VisemeData, VisemeName } from '../types';
+import { VisemeCache } from './visemePreprocessor/VisemeCache';
+
+// Viseme cache instance
+const visemeCache = new VisemeCache(200); // 200 entries
 
 /**
  * Phoneme to Viseme Mapping
@@ -65,6 +69,16 @@ export function textToVisemes(text: string, duration?: number): VisemeData[] {
     return [{ name: 'sil', weight: 1 }];
   }
 
+  // Check cache first
+  const cached = visemeCache.get(text);
+  if (cached) {
+    return cached;
+  }
+
+  if (import.meta.env.DEV) {
+    console.log('⚡ [textToVisemes] Cache miss, generating visemes...');
+  }
+
   const visemes: VisemeData[] = [];
   const words = text.split(/\s+/);
   
@@ -121,7 +135,29 @@ export function textToVisemes(text: string, duration?: number): VisemeData[] {
   // Add final silence
   visemes.push({ name: 'sil', weight: 1 });
 
+  // Cache the result
+  try {
+    visemeCache.set(text, visemes);
+  } catch (cacheError) {
+    // Cache failures should not break functionality
+    console.warn('⚠️ [textToVisemes] Failed to cache visemes:', cacheError);
+  }
+
   return visemes;
+}
+
+/**
+ * Clear viseme cache
+ */
+export function clearVisemeCache(): void {
+  visemeCache.clear();
+}
+
+/**
+ * Get viseme cache statistics
+ */
+export function getVisemeCacheStats(): { size: number; maxSize: number } {
+  return visemeCache.getStats();
 }
 
 /**
