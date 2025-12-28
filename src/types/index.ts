@@ -64,6 +64,12 @@ export interface ChatMessageProps {
   message: Message;
 }
 
+// Animation Queue Types (forward declaration for ChatState)
+export interface AnimationTrigger {
+  name: string;           // Animation name: 'spin', 'squat', etc.
+  delay?: number;         // Seconds to wait before playing
+}
+
 // Chat state management
 export interface ChatState {
   messages: Message[];
@@ -77,6 +83,8 @@ export interface ChatState {
   visemeDuration: number;
   selectedModelId: string;
   selectedVoiceId: string;
+  animationQueue: AnimationTrigger[];
+  currentAnimation: string | null;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
   setProcessedMessage: (message: ProcessedMessage) => void;
   setProcessing: (isProcessing: boolean) => void;
@@ -88,6 +96,8 @@ export interface ChatState {
   setVisemeDuration: (duration: number) => void;
   setSelectedModelId: (modelId: string) => void;
   setSelectedVoiceId: (voiceId: string) => void;
+  setAnimationQueue: (queue: AnimationTrigger[]) => void;
+  setCurrentAnimation: (animation: string | null) => void;
   clearMessages: () => void;
 }
 
@@ -222,3 +232,12 @@ export interface ITextProcessor {
     metadata: TextMetadata;
   };
 }
+
+// Animation Judge Types
+export interface AnimationJudgment {
+  animations: AnimationTrigger[];
+  reasoning: string;
+}
+
+export const AVAILABLE_ANIMATIONS = ['spin', 'squat', 'shoot', 'greeting', 'peace'] as const;
+export type AnimationName = typeof AVAILABLE_ANIMATIONS[number];

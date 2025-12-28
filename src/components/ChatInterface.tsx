@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, MicOff, Loader2, Copy, Download, StopCircle, Plus } from 'lucide-react';
+import { Send, Mic, MicOff, Loader2, Copy, Download, StopCircle, Plus, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChatStore } from '../store/chatStore';
 import { getAIResponse } from '../services/aiService';
 import { startListening, stopListening } from '../services/speechService';
 import { textToSpeech, playAudio, stopAudio } from '../services/speechSynthesisService';
 import { preprocessingPipeline } from '../services/textPreprocessing';
+import { judgeAnimations, processAnimationQueue } from '../services/animationJudgeService';
 import { supabase } from '../lib/supabaseClient';
-import { ChatMessageProps, ServiceError, PreprocessedText, Emotion } from '../types';
+import { ChatMessageProps, ServiceError, PreprocessedText, Emotion, AnimationJudgment, AVAILABLE_ANIMATIONS } from '../types';
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const copyToClipboard = async () => {
@@ -117,17 +118,53 @@ const ChatInterface = (): JSX.Element => {
   const [input, setInput] = useState<string>('');
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [selectedTestAnimation, setSelectedTestAnimation] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  
-  const { 
-    messages, 
-    isProcessing, 
-    isSpeaking, 
+
+  const {
+    messages,
+    isProcessing,
+    isSpeaking,
     isListening,
     addMessage,
-    clearMessages
+    clearMessages,
+    setCurrentAnimation,
+    setAnimationQueue,
+    currentAnimation
   } = useChatStore();
+
+  // Direct animation trigger for testing
+  const triggerTestAnimation = (animationName: string) => {
+    if (!animationName) return;
+
+    console.log('%c🧪 [TEST] Triggering animation directly: ' + animationName, 'background: #e91e63; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;');
+
+    // Set the animation
+    setCurrentAnimation(animationName);
+    setAnimationQueue([{ name: animationName, delay: 0 }]);
+
+    // Reset after animation duration
+    const durations: Record<string, number> = {
+      'spin': 4000,
+      'squat': 3000,
+      'shoot': 2500,
+      'greeting': 3000,
+      'peace': 2500,
+      'modelPose': 2000,
+    };
+
+    const duration = durations[animationName] || 3000;
+
+    setTimeout(() => {
+      console.log('%c🧪 [TEST] Animation complete, resetting', 'background: #4caf50; color: white; padding: 4px 8px; border-radius: 4px;');
+      setCurrentAnimation(null);
+      setAnimationQueue([]);
+    }, duration + 500);
+
+    // Reset dropdown
+    setSelectedTestAnimation('');
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -169,10 +206,13 @@ const ChatInterface = (): JSX.Element => {
       const response = await getAIResponse(content);
       if (response) {
         const text = typeof response === 'string' ? response : response.content;
-        
-        // Preprocess the text before sending to TTS
-        const processed: PreprocessedText = preprocessingPipeline.process(text);
-        
+
+        // Run preprocessing and animation judgment in parallel
+        const [processed, animationJudgment] = await Promise.all([
+          Promise.resolve(preprocessingPipeline.process(text)),
+          judgeAnimations(content, text)
+        ]);
+
         // Log preprocessing results for debugging
         console.group('📝 Text Preprocessing');
         console.log('🤖 Model Output (original):', text);
@@ -189,7 +229,12 @@ const ChatInterface = (): JSX.Element => {
           console.log('🔗 Links detected:', processed.metadata.links);
         }
         console.groupEnd();
-        
+
+        // Log animation judgment
+        console.log('%c🎬 ANIMATION JUDGMENT RESULT', 'background: #4ecdc4; color: black; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+        console.log('%c🎬 Animations:', 'color: #4ecdc4; font-weight: bold;', animationJudgment.animations);
+        console.log('%c🎬 Reasoning:', 'color: #4ecdc4; font-weight: bold;', animationJudgment.reasoning);
+
         // Store the processed message with metadata
         const processedMessageId = crypto.randomUUID();
         useChatStore.getState().setProcessedMessage({
@@ -199,13 +244,13 @@ const ChatInterface = (): JSX.Element => {
           timestamp: Date.now(),
           metadata: processed.metadata
         });
-        
+
         // Also add to regular messages for backward compatibility
         useChatStore.getState().addMessage({
           role: 'assistant',
           content: processed.displayText
         });
-        
+
         if (currentChatId) {
           await supabase
             .from('chat_messages')
@@ -217,6 +262,35 @@ const ChatInterface = (): JSX.Element => {
         }
 
         useChatStore.getState().setSpeaking(true);
+
+        // Queue animations to play during speech
+        if (animationJudgment.animations.length > 0) {
+          console.log('%c🚀 QUEUEING ANIMATIONS', 'background: #f39c12; color: black; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+          console.log('%c🚀 Animation count:', 'color: #f39c12; font-weight: bold;', animationJudgment.animations.length);
+
+          const store = useChatStore.getState();
+          store.setAnimationQueue(animationJudgment.animations);
+
+          // Process the animation queue
+          processAnimationQueue(
+            animationJudgment.animations,
+            (animationName) => {
+              console.log('%c⚡ TRIGGERING ANIMATION: ' + animationName, 'background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;');
+              console.log('%c⚡ Calling setCurrentAnimation...', 'color: #e74c3c; font-weight: bold;');
+              useChatStore.getState().setCurrentAnimation(animationName);
+              console.log('%c⚡ Store currentAnimation is now:', 'color: #e74c3c; font-weight: bold;', useChatStore.getState().currentAnimation);
+            },
+            () => {
+              // Reset to idle when all animations complete
+              console.log('%c✅ ANIMATION QUEUE COMPLETE', 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+              useChatStore.getState().setCurrentAnimation(null);
+              useChatStore.getState().setAnimationQueue([]);
+            }
+          );
+        } else {
+          console.log('%c⚠️ NO ANIMATIONS TO QUEUE', 'background: #95a5a6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+        }
+
         try {
           // Use cleanText for speech synthesis (no emojis, links, asterisks)
           const audioBuffer = await textToSpeech(processed.cleanText);
@@ -231,7 +305,7 @@ const ChatInterface = (): JSX.Element => {
             try {
               await playAudio(audioBuffer.audioBuffer);
               console.log('Audio playback finished');
-              
+
               // Trigger gestures from emoji metadata
               if (processed.metadata.emojis.length > 0) {
                 const store = useChatStore.getState();
@@ -387,6 +461,40 @@ const ChatInterface = (): JSX.Element => {
             <Plus size={16} />
             <span>New Chat</span>
           </button>
+
+          {/* Animation Test Dropdown */}
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedTestAnimation}
+              onChange={(e) => setSelectedTestAnimation(e.target.value)}
+              className="bg-gray-800 text-white text-sm px-2 py-1 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="">Test Animation...</option>
+              {AVAILABLE_ANIMATIONS.map((anim) => (
+                <option key={anim} value={anim}>
+                  {anim}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => triggerTestAnimation(selectedTestAnimation)}
+              disabled={!selectedTestAnimation}
+              className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
+                selectedTestAnimation
+                  ? 'bg-purple-600 hover:bg-purple-500 text-white'
+                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <Play size={14} />
+              <span>Play</span>
+            </button>
+            {currentAnimation && (
+              <span className="text-xs text-green-400 animate-pulse">
+                Playing: {currentAnimation}
+              </span>
+            )}
+          </div>
+
           {isSpeaking && (
             <button
               onClick={handleStopSpeaking}
