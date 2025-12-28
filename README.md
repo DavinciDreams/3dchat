@@ -84,6 +84,24 @@ Models should have:
 
 VRMA animations are in `public/animations/vrma/`.
 
+## Adding More Animations
+
+This project supports 50+ animations from Mixamo. To add new animations:
+
+1. **Automated Download** (requires Adobe account):
+   ```bash
+   node scripts/download-mixamo.js --email your@email.com --password secret
+   node scripts/convert-to-vrma.js
+   ```
+
+2. **Manual Download**:
+   - Go to [mixamo.com](https://www.mixamo.com)
+   - Download animations as FBX (Without Skin)
+   - Save to `animations-raw/`
+   - Run `node scripts/convert-to-vrma.js`
+
+See `scripts/README.md` for detailed instructions.
+
 ## Project Structure
 
 ```

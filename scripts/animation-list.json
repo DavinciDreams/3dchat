@@ -1,0 +1,316 @@
+{
+  "animations": [
+    {
+      "name": "idle",
+      "mixamoName": "Idle",
+      "category": "idle",
+      "description": "Default standing pose"
+    },
+    {
+      "name": "breathingIdle",
+      "mixamoName": "Breathing Idle",
+      "category": "idle",
+      "description": "Calm breathing animation"
+    },
+    {
+      "name": "happyIdle",
+      "mixamoName": "Happy Idle",
+      "category": "idle",
+      "description": "Happy standing pose"
+    },
+    {
+      "name": "sadIdle",
+      "mixamoName": "Sad Idle",
+      "category": "idle",
+      "description": "Sad standing pose"
+    },
+    {
+      "name": "boredIdle",
+      "mixamoName": "Bored",
+      "category": "idle",
+      "description": "Bored stance with fidgeting"
+    },
+    {
+      "name": "lookingAround",
+      "mixamoName": "Looking Around",
+      "category": "idle",
+      "description": "Looking around curiously"
+    },
+    {
+      "name": "weightShift",
+      "mixamoName": "Weight Shift",
+      "category": "idle",
+      "description": "Shifting weight between feet"
+    },
+    {
+      "name": "waving",
+      "mixamoName": "Waving",
+      "category": "social",
+      "description": "Wave hello/goodbye"
+    },
+    {
+      "name": "bowing",
+      "mixamoName": "Bow",
+      "category": "social",
+      "description": "Respectful bow"
+    },
+    {
+      "name": "salute",
+      "mixamoName": "Salute",
+      "category": "social",
+      "description": "Military-style salute"
+    },
+    {
+      "name": "blowKiss",
+      "mixamoName": "Blow Kiss",
+      "category": "social",
+      "description": "Blow a kiss"
+    },
+    {
+      "name": "clapping",
+      "mixamoName": "Clapping",
+      "category": "social",
+      "description": "Applause"
+    },
+    {
+      "name": "cheering",
+      "mixamoName": "Cheering",
+      "category": "social",
+      "description": "Excited cheering"
+    },
+    {
+      "name": "shrug",
+      "mixamoName": "Shrug",
+      "category": "social",
+      "description": "Shoulder shrug gesture"
+    },
+    {
+      "name": "headNod",
+      "mixamoName": "Head Nod Yes",
+      "category": "social",
+      "description": "Nodding head yes"
+    },
+    {
+      "name": "headShake",
+      "mixamoName": "Head Shake No",
+      "category": "social",
+      "description": "Shaking head no"
+    },
+    {
+      "name": "hipHopDance",
+      "mixamoName": "Hip Hop Dancing",
+      "category": "dance",
+      "description": "Hip hop dance moves"
+    },
+    {
+      "name": "sillyDance",
+      "mixamoName": "Silly Dancing",
+      "category": "dance",
+      "description": "Fun silly dance"
+    },
+    {
+      "name": "victoryDance",
+      "mixamoName": "Victory",
+      "category": "dance",
+      "description": "Victory celebration dance"
+    },
+    {
+      "name": "fistPump",
+      "mixamoName": "Fist Pump",
+      "category": "dance",
+      "description": "Fist pump celebration"
+    },
+    {
+      "name": "jumpingJoy",
+      "mixamoName": "Jumping Joy",
+      "category": "dance",
+      "description": "Jumping with joy"
+    },
+    {
+      "name": "excited",
+      "mixamoName": "Excited",
+      "category": "dance",
+      "description": "Excited reaction"
+    },
+    {
+      "name": "macarena",
+      "mixamoName": "Macarena Dance",
+      "category": "dance",
+      "description": "Macarena dance"
+    },
+    {
+      "name": "twistDance",
+      "mixamoName": "Twist Dance",
+      "category": "dance",
+      "description": "Twist dance moves"
+    },
+    {
+      "name": "thinking",
+      "mixamoName": "Thinking",
+      "category": "gesture",
+      "description": "Contemplative thinking pose"
+    },
+    {
+      "name": "pointing",
+      "mixamoName": "Pointing",
+      "category": "gesture",
+      "description": "Point at something"
+    },
+    {
+      "name": "thumbsUp",
+      "mixamoName": "Thumbs Up",
+      "category": "gesture",
+      "description": "Thumbs up approval"
+    },
+    {
+      "name": "thumbsDown",
+      "mixamoName": "Thumbs Down",
+      "category": "gesture",
+      "description": "Thumbs down disapproval"
+    },
+    {
+      "name": "facePalm",
+      "mixamoName": "Face Palm",
+      "category": "gesture",
+      "description": "Facepalm reaction"
+    },
+    {
+      "name": "crying",
+      "mixamoName": "Crying",
+      "category": "gesture",
+      "description": "Crying animation"
+    },
+    {
+      "name": "laughing",
+      "mixamoName": "Laughing",
+      "category": "gesture",
+      "description": "Laughing animation"
+    },
+    {
+      "name": "surprised",
+      "mixamoName": "Surprised",
+      "category": "gesture",
+      "description": "Surprised reaction"
+    },
+    {
+      "name": "scared",
+      "mixamoName": "Terrified",
+      "category": "gesture",
+      "description": "Scared/terrified reaction"
+    },
+    {
+      "name": "confused",
+      "mixamoName": "Thinking",
+      "category": "gesture",
+      "description": "Confused expression"
+    },
+    {
+      "name": "agreeing",
+      "mixamoName": "Agreeing",
+      "category": "gesture",
+      "description": "Agreeing gesture"
+    },
+    {
+      "name": "disagreeing",
+      "mixamoName": "Disagreeing",
+      "category": "gesture",
+      "description": "Disagreeing gesture"
+    },
+    {
+      "name": "punch",
+      "mixamoName": "Punching",
+      "category": "action",
+      "description": "Punch forward"
+    },
+    {
+      "name": "kick",
+      "mixamoName": "Kicking",
+      "category": "action",
+      "description": "Kick forward"
+    },
+    {
+      "name": "dodge",
+      "mixamoName": "Dodge",
+      "category": "action",
+      "description": "Dodge to the side"
+    },
+    {
+      "name": "block",
+      "mixamoName": "Blocking",
+      "category": "action",
+      "description": "Defensive block"
+    },
+    {
+      "name": "magicCast",
+      "mixamoName": "Standing Magic Attack",
+      "category": "action",
+      "description": "Cast magic spell"
+    },
+    {
+      "name": "throw",
+      "mixamoName": "Throw",
+      "category": "action",
+      "description": "Throw something"
+    },
+    {
+      "name": "catch",
+      "mixamoName": "Catch",
+      "category": "action",
+      "description": "Catch something"
+    },
+    {
+      "name": "push",
+      "mixamoName": "Push",
+      "category": "action",
+      "description": "Push forward"
+    },
+    {
+      "name": "walking",
+      "mixamoName": "Walking",
+      "category": "movement",
+      "description": "Walking in place"
+    },
+    {
+      "name": "running",
+      "mixamoName": "Running",
+      "category": "movement",
+      "description": "Running in place"
+    },
+    {
+      "name": "jumping",
+      "mixamoName": "Jump",
+      "category": "movement",
+      "description": "Jump in place"
+    },
+    {
+      "name": "sittingDown",
+      "mixamoName": "Sitting Down",
+      "category": "movement",
+      "description": "Sit down"
+    },
+    {
+      "name": "standingUp",
+      "mixamoName": "Standing Up",
+      "category": "movement",
+      "description": "Stand up"
+    },
+    {
+      "name": "crouching",
+      "mixamoName": "Crouch",
+      "category": "movement",
+      "description": "Crouch down"
+    },
+    {
+      "name": "falling",
+      "mixamoName": "Falling Idle",
+      "category": "movement",
+      "description": "Falling animation"
+    },
+    {
+      "name": "landing",
+      "mixamoName": "Landing",
+      "category": "movement",
+      "description": "Landing from jump"
+    }
+  ]
+}

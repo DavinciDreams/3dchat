@@ -239,5 +239,32 @@ export interface AnimationJudgment {
   reasoning: string;
 }
 
-export const AVAILABLE_ANIMATIONS = ['spin', 'squat', 'shoot', 'greeting', 'peace'] as const;
+// Core animations (from VRM Motion Pack)
+export const CORE_ANIMATIONS = [
+  'greeting',    // Wave hello
+  'peace',       // Peace sign
+  'shoot',       // Finger guns
+  'spin',        // Playful spin
+  'modelPose',   // Idle pose
+  'squat',       // Squat down
+] as const;
+
+// Extended animations (converted from Mixamo FBX files)
+export const EXTENDED_ANIMATIONS = [
+  // Idle & Standing
+  'idle', 'talkingOnPhone',
+  // Greetings & Social
+  'bowing', 'salute', 'singing',
+  // Dance & Celebration
+  'hipHopDance', 'swinging', 'catwalk',
+  // Combat & Action
+  'punch', 'dropKick', 'flyingKnee', 'daggerStab', 'bodyBlock', 'centerBlock', 'catch', 'snatch', 'reloading', 'magicCast',
+  // Movement
+  'walking', 'jogBackwards', 'jumping', 'climbing', 'takeCover', 'zombieStandUp', 'plank', 'openDoor', 'turnLeft', 'turnRight',
+  // Sports & Activities
+  'golfBadShot', 'golfPrePutt',
+] as const;
+
+// All available animations
+export const AVAILABLE_ANIMATIONS = [...CORE_ANIMATIONS, ...EXTENDED_ANIMATIONS] as const;
 export type AnimationName = typeof AVAILABLE_ANIMATIONS[number];

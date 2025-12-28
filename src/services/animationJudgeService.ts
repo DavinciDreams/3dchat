@@ -7,20 +7,64 @@ const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openai/gpt-4.
 
 const SYSTEM_PROMPT = `You are an animation director for a 3D avatar. Given a conversation exchange, decide which animations the avatar should perform while speaking its response.
 
-Available animations:
-- spin: A playful spinning/twirling motion - use for fun, excitement, showing off
-- squat: Bending down/crouching motion - use for exercising, hiding, getting low
-- shoot: Finger guns/shooting gesture - use for playful pointing, "gotcha", cool moments
+Available animations by category:
+
+CORE ANIMATIONS:
 - greeting: Waving hello gesture - use for hellos, goodbyes, friendly acknowledgment
 - peace: Peace sign/victory pose - use for success, positivity, celebration
+- shoot: Finger guns/shooting gesture - use for playful pointing, "gotcha", cool moments
+- spin: A playful spinning/twirling motion - use for fun, excitement, showing off
+- modelPose: Idle standing pose - use for neutral moments
+- squat: Bending down/crouching motion - use for exercising, hiding, getting low
+
+IDLE & SOCIAL:
+- idle: Default standing pose
+- talkingOnPhone: Talking on phone animation
+- bowing: Respectful bow - use for formal greetings or respect
+- salute: Military-style salute - use for playful formality
+- singing: Singing animation - use for music or singing
+
+DANCE & CELEBRATION:
+- hipHopDance: Hip hop dance moves - use for dancing or celebration
+- swinging: Swinging motion - use for playful swinging
+- catwalk: Catwalk strut - use for showing off or fashion
+
+COMBAT & ACTION:
+- punch: Punch forward - use for action or fighting
+- dropKick: Drop kick attack - use for aggressive action
+- flyingKnee: Flying knee combo - use for martial arts
+- daggerStab: Double dagger stab - use for weapon attacks
+- bodyBlock: Body block defense - use for blocking
+- centerBlock: Center block defense - use for blocking
+- catch: Catch something - use for catching
+- snatch: Snatch grab - use for grabbing quickly
+- reloading: Reload weapon - use for gun/weapon context
+- magicCast: Cast magic spell - use for magic or power
+
+MOVEMENT:
+- walking: Walking in place - use when discussing travel
+- jogBackwards: Jog backwards - use for retreating
+- jumping: Jump in place - use for excitement or jumping
+- climbing: Climbing up - use for climbing context
+- takeCover: Take cover - use for hiding or stealth
+- zombieStandUp: Zombie stand up - use for zombie/horror context
+- plank: Plank exercise - use for exercise
+- openDoor: Open door - use for door interactions
+- turnLeft: Turn left 90 degrees - use for turning
+- turnRight: Turn right with briefcase - use for turning
+
+SPORTS:
+- golfBadShot: Golf bad shot reaction - use for golf or frustration
+- golfPrePutt: Golf pre-putt stance - use for golf
 
 Rules:
 1. Only trigger animations that naturally match what the avatar is saying
 2. Can return multiple animations to be played in sequence with delays
 3. Return empty array if no animation fits the context
 4. Consider the user's request AND the AI's response
-5. Be selective - not every response needs an animation
-6. If the user explicitly asks for an action (spin, wave, etc), definitely include it`;
+5. Be selective - not every response needs an animation (most don't!)
+6. If the user explicitly asks for an action (spin, wave, dance, etc), definitely include it
+7. Prefer core animations for basic interactions, extended for more specific scenarios`;
 
 const TOOL_DEFINITION = {
   type: 'function',
@@ -138,12 +182,53 @@ export async function judgeAnimations(
 
 // Animation durations in milliseconds (approximate based on VRMA clips)
 const ANIMATION_DURATIONS: Record<string, number> = {
-  'spin': 4000,      // Spin takes about 4 seconds
-  'squat': 3000,     // Squat takes about 3 seconds
-  'shoot': 2500,     // Shoot gesture takes about 2.5 seconds
-  'greeting': 3000,  // Wave takes about 3 seconds
-  'peace': 2500,     // Peace sign takes about 2.5 seconds
-  'modelPose': 2000, // Default idle pose
+  // Core animations
+  'greeting': 3000,
+  'peace': 2500,
+  'shoot': 2500,
+  'spin': 4000,
+  'modelPose': 2000,
+  'squat': 3000,
+
+  // Idle & Social
+  'idle': 3000,
+  'talkingOnPhone': 5000,
+  'bowing': 3500,
+  'salute': 2500,
+  'singing': 5000,
+
+  // Dance & Celebration
+  'hipHopDance': 5000,
+  'swinging': 4000,
+  'catwalk': 4000,
+
+  // Combat & Action
+  'punch': 1500,
+  'dropKick': 2500,
+  'flyingKnee': 3000,
+  'daggerStab': 2000,
+  'bodyBlock': 2000,
+  'centerBlock': 2000,
+  'catch': 1500,
+  'snatch': 1500,
+  'reloading': 3000,
+  'magicCast': 3500,
+
+  // Movement
+  'walking': 3000,
+  'jogBackwards': 3000,
+  'jumping': 2000,
+  'climbing': 4000,
+  'takeCover': 2500,
+  'zombieStandUp': 3500,
+  'plank': 3000,
+  'openDoor': 3000,
+  'turnLeft': 2000,
+  'turnRight': 2500,
+
+  // Sports
+  'golfBadShot': 4000,
+  'golfPrePutt': 3500,
 };
 
 const DEFAULT_ANIMATION_DURATION = 3000;
