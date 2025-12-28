@@ -8,8 +8,8 @@
   },
   "scripts": {
     "start": "node fbx2vrma-converter.js",
-    "setup": "./setup.sh",
-    "postinstall": "./setup.sh",
+    "setup": "node setup.js || ./setup.sh || setup.bat",
+    "postinstall": "node setup.js || ./setup.sh || setup.bat",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -45,11 +45,6 @@
     "commander": "^11.1.0",
     "fs-extra": "^11.3.3"
   },
-  "os": [
-    "darwin",
-    "linux",
-    "win32"
-  ],
   "cpu": [
     "x64",
     "arm64"

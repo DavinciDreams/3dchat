@@ -1,0 +1,1896 @@
+{
+  "asset": {
+    "generator": "FBX2glTF v0.9.7",
+    "version": "2.0"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Root Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "RootNode",
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        1
+      ]
+    },
+    {
+      "name": "mixamorig:Hips",
+      "translation": [
+        0,
+        -0.223816052079201,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        2,
+        32,
+        37
+      ]
+    },
+    {
+      "name": "mixamorig:Spine",
+      "translation": [
+        0,
+        0.0891119912266731,
+        -0.00164799997583032
+      ],
+      "rotation": [
+        -0.00924749486148357,
+        0,
+        0,
+        0.999957263469696
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        3
+      ]
+    },
+    {
+      "name": "mixamorig:Spine1",
+      "translation": [
+        0,
+        0.103982001543045,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        4
+      ]
+    },
+    {
+      "name": "mixamorig:Spine2",
+      "translation": [
+        0,
+        0.118836000561714,
+        1.11022299980974e-18
+      ],
+      "rotation": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        5,
+        8,
+        20
+      ]
+    },
+    {
+      "name": "mixamorig:Neck",
+      "translation": [
+        0,
+        0.133690997958183,
+        -1.11022299980974e-18
+      ],
+      "rotation": [
+        0.00924749486148357,
+        0,
+        0,
+        0.999957263469696
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        6
+      ]
+    },
+    {
+      "name": "mixamorig:Head",
+      "translation": [
+        0,
+        0.0889839977025986,
+        -0.00454800017178059
+      ],
+      "rotation": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        7
+      ]
+    },
+    {
+      "name": "mixamorig:HeadTop_End",
+      "translation": [
+        0,
+        0.538260996341705,
+        -0.0275099985301495
+      ],
+      "rotation": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "mixamorig:LeftShoulder",
+      "translation": [
+        0.136859998106956,
+        0.108079992234707,
+        -0.000884999986737967
+      ],
+      "rotation": [
+        0.492336928844452,
+        0.507110178470612,
+        -0.494024813175201,
+        0.506342887878418
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        9
+      ]
+    },
+    {
+      "name": "mixamorig:LeftArm",
+      "translation": [
+        -1.11022299980974e-18,
+        0.27743399143219,
+        -3.55271359939116e-17
+      ],
+      "rotation": [
+        0.0135381342843175,
+        0.00639503868296742,
+        0.00130794919095933,
+        0.999887049198151
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        10
+      ]
+    },
+    {
+      "name": "mixamorig:LeftForeArm",
+      "translation": [
+        -1.11022299980974e-18,
+        0.318479984998703,
+        0
+      ],
+      "rotation": [
+        2.43197750622715e-17,
+        -0.00252730655483902,
+        1.28877402957334e-17,
+        0.999996781349182
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        11
+      ]
+    },
+    {
+      "name": "mixamorig:LeftHand",
+      "translation": [
+        0,
+        0.256993979215622,
+        0
+      ],
+      "rotation": [
+        -0.00722920522093773,
+        0.436154454946518,
+        0.00350402784533799,
+        0.89983594417572
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        12,
+        16
+      ]
+    },
+    {
+      "name": "mixamorig:LeftHandThumb1",
+      "translation": [
+        -0.0587349981069565,
+        0.0308139976114035,
+        0
+      ],
+      "rotation": [
+        -0.0185804031789303,
+        -0.0205197297036648,
+        0.0496607981622219,
+        0.998382449150085
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        13
+      ]
+    },
+    {
+      "name": "mixamorig:LeftHandThumb2",
+      "translation": [
+        -0.0291799996048212,
+        0.0443179979920387,
+        0
+      ],
+      "rotation": [
+        0.0250749494880438,
+        -0.0769446268677711,
+        0.263207614421844,
+        0.961338937282562
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        14
+      ]
+    },
+    {
+      "name": "mixamorig:LeftHandThumb3",
+      "translation": [
+        -0.00224099983461201,
+        0.0468599982559681,
+        0
+      ],
+      "rotation": [
+        0.0427742972970009,
+        0.0772964060306549,
+        0.523376643657684,
+        0.847509622573853
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        15
+      ]
+    },
+    {
+      "name": "mixamorig:LeftHandThumb4",
+      "translation": [
+        0.0314210020005703,
+        0.017663998529315,
+        -8.88178399847791e-18
+      ],
+      "rotation": [
+        -5.55111512312578e-17,
+        2.08166817117217e-17,
+        1.38777878078145e-17,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "mixamorig:LeftHandIndex1",
+      "translation": [
+        0,
+        0.0522749982774258,
+        0.00083999999333173
+      ],
+      "rotation": [
+        0.00797194428741932,
+        -0.00190704117994756,
+        0.0348862819373608,
+        0.9993577003479
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        17
+      ]
+    },
+    {
+      "name": "mixamorig:LeftHandIndex2",
+      "translation": [
+        0.0053189997561276,
+        0.0760629996657372,
+        0
+      ],
+      "rotation": [
+        0.00000468939288111869,
+        -0.00109413301106542,
+        -0.074033297598362,
+        0.997255146503448
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        18
+      ]
+    },
+    {
+      "name": "mixamorig:LeftHandIndex3",
+      "translation": [
+        -0.00553299998864532,
+        0.0704410001635551,
+        0
+      ],
+      "rotation": [
+        -0.000335439195623621,
+        0.00932432431727648,
+        0.0424133539199829,
+        0.999056577682495
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        19
+      ]
+    },
+    {
+      "name": "mixamorig:LeftHandIndex4",
+      "translation": [
+        0.000215000007301569,
+        0.0332360006868839,
+        1.77635679969558e-17
+      ],
+      "rotation": [
+        4.33680868994202e-19,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "mixamorig:RightShoulder",
+      "translation": [
+        -0.136859998106956,
+        0.108065001666546,
+        -0.000061999999161344
+      ],
+      "rotation": [
+        0.494135349988937,
+        -0.505892813205719,
+        0.492282152175903,
+        0.507504642009735
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        21
+      ]
+    },
+    {
+      "name": "mixamorig:RightArm",
+      "translation": [
+        0,
+        0.27743399143219,
+        3.55271359939116e-17
+      ],
+      "rotation": [
+        0.0135110281407833,
+        -0.0126509759575129,
+        0.00156006531324238,
+        0.999827444553375
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        22
+      ]
+    },
+    {
+      "name": "mixamorig:RightForeArm",
+      "translation": [
+        0,
+        0.318480998277664,
+        0
+      ],
+      "rotation": [
+        2.01653646604811e-17,
+        0.00288903713226318,
+        2.20716391089288e-16,
+        0.999995827674866
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        23
+      ]
+    },
+    {
+      "name": "mixamorig:RightHand",
+      "translation": [
+        0,
+        0.256982982158661,
+        3.55271359939116e-17
+      ],
+      "rotation": [
+        -0.00555528560653329,
+        -0.397662729024887,
+        -0.00240774056874216,
+        0.917511701583862
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        24,
+        28
+      ]
+    },
+    {
+      "name": "mixamorig:RightHandThumb1",
+      "translation": [
+        0.0505299977958202,
+        0.0199469998478889,
+        1.77635679969558e-17
+      ],
+      "rotation": [
+        -0.00452268170192838,
+        0.00424901535734534,
+        -0.184301108121872,
+        0.982850253582001
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        25
+      ]
+    },
+    {
+      "name": "mixamorig:RightHandThumb2",
+      "translation": [
+        0.0134070003405213,
+        0.0413409993052483,
+        0
+      ],
+      "rotation": [
+        0.00595563091337681,
+        0.0342475883662701,
+        -0.140867531299591,
+        0.989417970180511
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        26
+      ]
+    },
+    {
+      "name": "mixamorig:RightHandThumb3",
+      "translation": [
+        0.00173299992457032,
+        0.0563329979777336,
+        3.55271359939116e-17
+      ],
+      "rotation": [
+        0.0124543625861406,
+        -0.0713887736201286,
+        -0.201541393995285,
+        0.976795554161072
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        27
+      ]
+    },
+    {
+      "name": "mixamorig:RightHandThumb4",
+      "translation": [
+        -0.0151390004903078,
+        0.0383259989321232,
+        -8.88178399847791e-18
+      ],
+      "rotation": [
+        5.55111512312578e-17,
+        -1.38777878078145e-17,
+        -4.16333634234434e-17,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "mixamorig:RightHandIndex1",
+      "translation": [
+        -3.55271359939116e-17,
+        0.0568130016326904,
+        0.000688000000081956
+      ],
+      "rotation": [
+        0.00571503024548292,
+        0.0100306896492839,
+        -0.0340965874493122,
+        0.999351859092712
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        29
+      ]
+    },
+    {
+      "name": "mixamorig:RightHandIndex2",
+      "translation": [
+        -0.00596000021323562,
+        0.0870880037546158,
+        0
+      ],
+      "rotation": [
+        0.000171004823641852,
+        0.0102865966036916,
+        0.0848458558320999,
+        0.996340990066528
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        30
+      ]
+    },
+    {
+      "name": "mixamorig:RightHandIndex3",
+      "translation": [
+        0.00672699976712465,
+        0.0659989938139915,
+        1.77635679969558e-17
+      ],
+      "rotation": [
+        -0.000756014371290803,
+        -0.0173568110913038,
+        -0.0580039583146572,
+        0.998165190219879
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        31
+      ]
+    },
+    {
+      "name": "mixamorig:RightHandIndex4",
+      "translation": [
+        -0.000767000019550323,
+        0.0528359971940517,
+        -1.77635679969558e-17
+      ],
+      "rotation": [
+        4.33680868994202e-19,
+        -2.77555756156289e-17,
+        -8.67361737988404e-19,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "mixamorig:LeftUpLeg",
+      "translation": [
+        0.190533995628357,
+        -0.0495359972119331,
+        -0.00258700014092028
+      ],
+      "rotation": [
+        0.000998118659481406,
+        0.012721998617053,
+        0.99981027841568,
+        0.0147165758535266
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        33
+      ]
+    },
+    {
+      "name": "mixamorig:LeftLeg",
+      "translation": [
+        3.55271359939116e-17,
+        0.273572981357574,
+        -1.11022299980974e-18
+      ],
+      "rotation": [
+        -0.0144462110474706,
+        -0.000428627361543477,
+        0.0296544246375561,
+        0.999455749988556
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        34
+      ]
+    },
+    {
+      "name": "mixamorig:LeftFoot",
+      "translation": [
+        0,
+        0.26963397860527,
+        0
+      ],
+      "rotation": [
+        0.413361549377441,
+        0.0296870097517967,
+        0.0375799350440502,
+        0.909306704998016
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        35
+      ]
+    },
+    {
+      "name": "mixamorig:LeftToeBase",
+      "translation": [
+        -3.55271359939116e-17,
+        0.277353972196579,
+        -7.10542719878232e-17
+      ],
+      "rotation": [
+        0.350320488214493,
+        -0.0557463876903057,
+        0.0208926387131214,
+        0.934736013412476
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        36
+      ]
+    },
+    {
+      "name": "mixamorig:LeftToe_End",
+      "translation": [
+        3.55271359939116e-17,
+        0.128934994339943,
+        -2.84217087951293e-16
+      ],
+      "rotation": [
+        1.56340748659364e-35,
+        4.50621527939288e-18,
+        -3.46944695195361e-18,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "mixamorig:RightUpLeg",
+      "translation": [
+        -0.190533995628357,
+        -0.0495359972119331,
+        0.00834400020539761
+      ],
+      "rotation": [
+        0.000203985880943947,
+        -0.00259432732127607,
+        0.99988842010498,
+        -0.0147078018635511
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        38
+      ]
+    },
+    {
+      "name": "mixamorig:RightLeg",
+      "translation": [
+        0,
+        0.273488014936447,
+        1.11022299980974e-18
+      ],
+      "rotation": [
+        -0.00348388636484742,
+        0.000103235011920333,
+        -0.0296189617365599,
+        0.999555170536041
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        39
+      ]
+    },
+    {
+      "name": "mixamorig:RightFoot",
+      "translation": [
+        -3.55271359939116e-17,
+        0.269652009010315,
+        0
+      ],
+      "rotation": [
+        0.419645667076111,
+        -0.0277131926268339,
+        -0.0384029224514961,
+        0.90645170211792
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        40
+      ]
+    },
+    {
+      "name": "mixamorig:RightToeBase",
+      "translation": [
+        0,
+        0.279067009687424,
+        -7.10542719878232e-17
+      ],
+      "rotation": [
+        0.347822546958923,
+        0.0556828379631042,
+        -0.0206991918385029,
+        0.935676455497742
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "children": [
+        41
+      ]
+    },
+    {
+      "name": "mixamorig:RightToe_End",
+      "translation": [
+        3.55271359939116e-17,
+        0.129569992423058,
+        1.42108543975646e-16
+      ],
+      "rotation": [
+        -1.0842021724855e-19,
+        3.70661617718482e-18,
+        6.93889390390723e-18,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    }
+  ],
+  "animations": [
+    {
+      "name": "mixamo.com",
+      "channels": [
+        {
+          "sampler": 0,
+          "target": {
+            "node": 1,
+            "path": "translation"
+          }
+        },
+        {
+          "sampler": 1,
+          "target": {
+            "node": 1,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 2,
+          "target": {
+            "node": 2,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 3,
+          "target": {
+            "node": 3,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 4,
+          "target": {
+            "node": 4,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 5,
+          "target": {
+            "node": 5,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 6,
+          "target": {
+            "node": 6,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 7,
+          "target": {
+            "node": 8,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 8,
+          "target": {
+            "node": 9,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 9,
+          "target": {
+            "node": 10,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 10,
+          "target": {
+            "node": 11,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 11,
+          "target": {
+            "node": 12,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 12,
+          "target": {
+            "node": 13,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 13,
+          "target": {
+            "node": 14,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 14,
+          "target": {
+            "node": 16,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 15,
+          "target": {
+            "node": 17,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 16,
+          "target": {
+            "node": 18,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 17,
+          "target": {
+            "node": 20,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 18,
+          "target": {
+            "node": 21,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 19,
+          "target": {
+            "node": 22,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 20,
+          "target": {
+            "node": 23,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 21,
+          "target": {
+            "node": 24,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 22,
+          "target": {
+            "node": 25,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 23,
+          "target": {
+            "node": 26,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 24,
+          "target": {
+            "node": 28,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 25,
+          "target": {
+            "node": 29,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 26,
+          "target": {
+            "node": 30,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 27,
+          "target": {
+            "node": 32,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 28,
+          "target": {
+            "node": 33,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 29,
+          "target": {
+            "node": 34,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 30,
+          "target": {
+            "node": 35,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 31,
+          "target": {
+            "node": 37,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 32,
+          "target": {
+            "node": 38,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 33,
+          "target": {
+            "node": 39,
+            "path": "rotation"
+          }
+        },
+        {
+          "sampler": 34,
+          "target": {
+            "node": 40,
+            "path": "rotation"
+          }
+        }
+      ],
+      "samplers": [
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 1
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 2
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 3
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 4
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 5
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 6
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 7
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 8
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 9
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 10
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 11
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 12
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 13
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 14
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 15
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 16
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 17
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 18
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 19
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 20
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 21
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 22
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 23
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 24
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 25
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 26
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 27
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 28
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 29
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 30
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 31
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 32
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 33
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 34
+        },
+        {
+          "input": 0,
+          "interpolation": "LINEAR",
+          "output": 35
+        }
+      ],
+      "extras": {
+        "duration": 1.5,
+        "vrmAnimationMetadata": {
+          "calculatedDuration": 1.5,
+          "originalName": "mixamo.com"
+        }
+      }
+    }
+  ],
+  "accessors": [
+    {
+      "componentType": 5126,
+      "type": "SCALAR",
+      "count": 37,
+      "bufferView": 0,
+      "byteOffset": 0,
+      "min": [
+        0
+      ],
+      "max": [
+        1.5
+      ]
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC3",
+      "count": 37,
+      "bufferView": 1,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 2,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 3,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 4,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 5,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 6,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 7,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 8,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 9,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 10,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 11,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 12,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 13,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 14,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 15,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 16,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 17,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 18,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 19,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 20,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 21,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 22,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 23,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 24,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 25,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 26,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 27,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 28,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 29,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 30,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 31,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 32,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 33,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 34,
+      "byteOffset": 0
+    },
+    {
+      "componentType": 5126,
+      "type": "VEC4",
+      "count": 37,
+      "bufferView": 35,
+      "byteOffset": 0
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 148,
+      "byteOffset": 0
+    },
+    {
+      "buffer": 0,
+      "byteLength": 444,
+      "byteOffset": 148
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 592
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 1184
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 1776
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 2368
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 2960
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 3552
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 4144
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 4736
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 5328
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 5920
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 6512
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 7104
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 7696
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 8288
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 8880
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 9472
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 10064
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 10656
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 11248
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 11840
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 12432
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 13024
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 13616
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 14208
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 14800
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 15392
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 15984
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 16576
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 17168
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 17760
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 18352
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 18944
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 19536
+    },
+    {
+      "buffer": 0,
+      "byteLength": 592,
+      "byteOffset": 20128
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 20720,
+      "uri": "data:application/octet-stream;base64,AAAAAKuqKj2rqqo9AAAAPquqKj5VVVU+AACAPlVVlT6rqqo+AADAPlVV1T6rquo+AAAAP6uqCj9VVRU/AAAgP6uqKj9VVTU/AABAP6uqSj9VVVU/AABgP6uqaj9VVXU/AACAP1VVhT+rqoo/AACQP1VVlT+rqpo/AACgP1VVpT+rqqo/AACwP1VVtT+rqro/AADAP8UNIDw4S0I/FXBRu369IDx1S0I/9P9Fu82DITwKTEI/UO86u3BxIjwFTUI/Cqgwu8i/IzwhTUI/8gkquxvuJTyvTUI/17oou69/KTzlT0I/W7guuxOILjy+U0I/9HI7uyYKNTy7WEI/7rhOu6E8PTzbXEI/IG9nu4VFRjyFY0I/si6EuzuSUDw7bUI/F5KXu+aZVzy8dUI/lFasuw7fWjxzfEI/FQvDu/ioXTxtg0I/V/vbu0H2XzxQikI/eKb1u4LFYTzCkEI/y0UHvFMVYzxqlkI/55QSvE/kYzzrmkI/IgAcvBAxZDzvnUI/CMcivN2kYzy8nkI/lKUlvATOYTzYnEI/rQkkvOQaXzwhmUI/G3MfvP3/Wzx0lEI/zW0ZvNPxWDyyj0I/tIUTvLKBVjxyi0I/njMPvKlNUzz5hEI/ZHUMvJJETTxLf0I/J6gKvCVFRjwKe0I/TdUHvNzNPjxpd0I/EIoEvK7bNzxic0I/C3sAvAcOMjwncEI/tSz0u06aLDzTbUI/KfnluwBtKDxKa0I/6VHWuzALJTx1aEI/edfGuxgpIjyQZUI//Tu4u/SSHzyyYkI/IEuru0ZvAL1W5z69HBzMvCWEfz+XUQC9U+o+vQoBy7xqhH8/YvD/vPwNP72RrMm8v4R/P7mD/rwfXj+9ehfIvC6Ffz+UwPu8h68/vRZWx7zGhX8/GVz3vOoeQL1c7ca8mYZ/P2rQ8LyHyEC9D7XGvLWHfz/Rrem8tpFBvSdoxLw2iX8/1X7ivHZhQr1cur+8Got/Pxpx3Lwl/UK91124vFGNfz+81te8sINDvTYPrry0j38/znXVvM6VRL18e6G8cpF/P1tiz7xkjEO9YCeVvF2Vfz+HpcO8k/0/vbg+ibwLnH8/OL21vHjTO704Jnm8U6N/P47TprxiQDe9NYxfvKuqfz+dEZi8B3gyvRvvRryfsX8/U5+KvISvLb20ijC827d/PwBHf7wnHSm9z5YdvB+9fz8PiHC8AvgkvedHD7w/wX8/gDNsvENjIb2gxAe8CsR/P3Qic7wtPx694SIIvJbFfz/JzYC8BG0bvVnUDbw8xn8/b+eJvFvOGL0jOBa8VMZ/PwL3kryBRRa9o68evEDGfz8oaJq8ft4TvQn/JLxOxn8/HF+hvP9sE72EUDK87cR/PxSEpbyODRO91GVEvKfDfz9LJaq8lKgUvfb/VrwHwX8//POuvIsmF73d6mm8uL1/P3Q0tLwyzxm9Bah7vCy6fz9kVrq8REQdvTqkhbz6tX8/r7zAvDsRIb2vbo28YbF/P9XEyLz0piW9XD6VvMurfz95DtK8TlgqvYG+nLy5pX8/2RbbvI8tLr2vy6O8I6B/PxnQ4bzAdjC9dKOpvCicfz9jeqI82pROPFudkzxB438/ynqiPLSKTjwlvpM8PeN/P2d7ojw8dk48LvWTPDbjfz+AfKI82V9OPONPlDwq438/l3yiPAzNTjyU95Q8DON/P/WIojxIbVA8n/+VPM7ifz/imqI8C2BUPP95lzxg4n8/QoejPP6rVjx9mZk8yuF/P0ZEpTzh6lY8OHmcPBDhfz+2mac8elNUPBxHoDw74H8/fzWqPNjwUDy4YqU8Kd9/P/CSrDxkIU08tLOrPOvdfz/9JrA8As1KPFFysTxy3H8/i2a1PMdDSjxndrY8rNp/P/JXuzyhD0o857m7PKnYfz/0m8E8Zh9KPOb7wDyD1n8/VdPHPAthSjyH+8U8WdR/P+GezTyswUo87nfKPE7Sfz9rn9I8ny1LPEowzjyG0H8/z3XWPMWQSzzT49A8Kc9/P2em2DyH8Us8pBbSPG/Ofz/XFdk8l3RMPFWB0Txwzn8/+0vYPJsLTTyRs8888c5/PwrU1jz0pk08JELNPLfPfz8sOdU8yTZOPNDByjyF0H8/3MDTPEOgTjwDmcg8O9F/P0BizjwLs008waLEPCTTfz++MMg8kg9MPOq1wDwz1X8/mXDCPNDSSjykSb08A9d/P5bdvDwFw0k8ZRS6PLLYfz9qibc8RP1IPC/dtjxI2n8/srmyPKsPSTzehbM8udt/P7gWrjzVXUk83RewPBrdfz9Zn6o8KMdJPKOwrDw/3n8/puOoPDE4SjyoRKk8Fd9/P1NUqDxZsko8PqalPL7ffz89Yac8ajlLPN4Bojx14H8/FuAlPK0NJzuPHGE8PvZ/PwDgJTwnESc7Fv9gPD/2fz8b3CU8pbYmO2tJYTw89n8/iNglPMVEJjvTQWI8L/Z/PxDbJTyvzio7dD9lPAH2fz+FCCc8MdQ3O5DWaTyp9X8/t4YqPMnsUztXwG88F/V/P554MDxsgGQ7JLh2PF70fz8mWTg8XrZmO04vfzx/838/jspAPGW3VDsSFIU8ePJ/P2viSDxO1Dw743eMPCrxfz/gQk88QnchOwKQlTyi738/tbRZPDhhETunMp481e1/P9MOajzqGA87cUGmPKjrfz+evXw8eoAPOwnXrjwd6X8/ZUKIPPkBEjtCgLc8U+Z/PyIUkjwA/hU7Bcq/PHHjfz8TNps8qMsaO1lBxzyp4H8/cgqjPOW5Hztqc808Nd5/P4vzqDxAEiQ7he3RPFTcfz80JKw8V98nO2Xi0zxi238/k2+sPLgrLDvB5tI8h9t/P9a4qjwwrTA7sOfPPGrcfz+t6Kc8+BE1O1Hayzyv3X8/sOekPBEFOTuws8c8+95/P+83ojyLmTs7qB3EPBjgfz/W4pk8HnkyO5tbvTyu4n8/UVSQPGC3JTsDZLY8X+V/P/Wdhzx7BBs7TTSwPKznfz8BgH48NkoRO7xbqjzC6X8/sJxuPOdFCjsexqQ8pet/P2vDXzwj1Qg7dGefPFbtfz8C8FA8ECUIOzLcmTz47n8/y3FFPLB0CDsGb5Q8V/B/P1uEPzy/2gg7+xqPPGHxfz9OJD082GAKOwyQiTw/8n8/Oy45PKx4DjvZBIQ8JvN/P0a1ITwSWzM71NlgPGT2fz8ltSE8uV8zOz6xYDxm9n8/2a0hPIECMzuyJWE8YPZ/P/amITyjhjI7bopiPE32fz97/CE8IeY2O52ZZTwb9n8/Rn0jPI6vQzv1IWo8wfV/P3n5JjxZh187JQpwPC71fz+N5yw8z8lvO+/+djx39H8/UMY0PGeicTtfcX88mfN/P3Y2PTyrRl87LDGFPJbyfz+cTEU8vAFHO92SjDxM8X8/k6lLPLEpKztxqpU8xu9/P4wcVjz14ho76E6ePPvtfz/lfWY8nsMYO7hhpjzR638/wDV5PLZnGTv5+648Sel/P32DhjxQMxw7Paq3PIHmfz9OWpA8AIEgOyn5vzyh438/+YCZPMyhJTuGdcc82uB/P0hZoTyK3io7QKzNPGfefz8fRac8nHovO2gq0jyH3H8/2XaqPKuAMzuNItQ8ldt/P4/BqjxMAzg7ginTPLnbfz8BCak8SbU8O4ss0Dyb3H8/dTamPHtBQTvyIMw8391/Px0zozyET0U76vvHPCnffz+jgaA8HNdHO0tnxDxG4H8/KymYPMXoPTvDoL082+J/P3CUjjwc0zA7JKG2PIvlfz8814U8TiclO8NrsDzY538/QeR6PDsnGjuAjqo87el/P7j1ajw+JhE78vakPM/rfz95F1w8bgQPO8SSnzx/7X8/4z9NPO5BDzse/Zk8H+9/P2q/QTy6LRA7FIuUPHzwfz/S0js8xsIRO8A3jzyE8X8/EXU5PFt6FDsDrok8YPJ/PzaCNTyZPBk7nCSEPEbzfz+42G49kVyGuq4zfzv0j38/QHBuPf/+hbq8Ens7WZB/P35YbT0q8oS6BNR0O2SRfz8OUGs9uU+Fuj5bbjtLk38/A71oPQ+JobrxjIQ7iJV/P+enZj2JWvK65zirOwCXfz+irWU9ClROuyKF9zuwln8/GvJpPUkVkLv7aCs8ypB/P0bVdT1NRrG7b49gPLuCfz/j1IY9NDjBu/X4iTxcZ38/XCacPatCtbtTBJ882DN/P2ijuj0yypO7fn20PKbefj8nMdQ9p4xOu+DCtjyQjn4/Hi7mPVb90LoYSqI8ulN+P6jv9z0HARA5kZiGPBAVfj+ogAQ+UAL3OgeDTTy3030/ZXYMPuW0ZTtpzAs8tJF9P/OcEz4Drp87086cO/RRfT90txk+gI3AO7b23TonGH0/rYgePgUX0jsLSLe5d+h8PydpIT7wps4760Fvul3LfD8j0CE+9yK0O3I1HTeXx3w/NoIgPvrTiTvgwv86L9V8PxVMHj7oGS47Qm6RO1HrfD+x+Rs+516NOldb5TueAX0/+QsaPm9Turkooxk8QxN9P8S1FD6p+R67duJjPKJCfT/h7g4+9QCRu6UrlTzOcn0/sAkIPj6IsrtY1qk86at9PzSZAD6QpsW7Zb63PFTnfT/SdfE9ykPPu0pSvzyYI34/Qo/gPbKUxLuPibc8HGN+P+Ad0D0+7Li7sxitPPycfj/lBME9u/6qu3fAnzzfzn4/U3ayPXLhmbueLJE8p/t+P0oxpD2GvYe7TL2BPDskfz8lWJc9pW5uu43HZDz4RX8/GRWHvYmAQjyMDsW6lmx/P10+hr24hj08IRvyuo1ufz/ceYa9bOc7PD0hGbsSbn8/CXSIvSrDPTx8HEW7rGl/P2+qjL3hHTQ8LkZnu9tgfz9b/Zu9NT8QPH8adLufPn8/a6bAvZw+czvSMnC7gtx+P2I+7r21orC6/wfMuulCfj83tg++tWu3u5QyCDs0dn0/+5clvq8U+LtE39I7IZ58PwjdMb47G5+7fPMEPNkYfD9Bfje+aMXYOhzj8TtU2Xs/9P0zvp7NIDxQ+p07q/97P4MmKL7Kzpw85pEROjN6fD8LZRm+gpPyPIWvnLux/nw/2dYIvoxNJT2V4zG8b3p9PzJP771vE089+kuNvNbgfT/PIM69yndzPdH3v7yfLH4/aaiwvdPKhz1tBey8m19+P+t0mb1zXZA9EgoGvf6Afj+HVou9O0SRPbiyDL3Tm34/Xk6GvdCkiT0SEwm9jbl+PzUzh70Zd3g9N7T8vMbYfj8szIq9iJ1XPUHR37yx9X4/BPGNvQZZNj2gB8K81A5/Pzlfjb2t4hg9o8OmvEYofz+rO4q957LdPP9QYrw4TH8/oX6Kvb1djjzuZQC8C15/P7Bgjr0RUj88YFlEu6pcfz+w0ZO9Yn/+O/3XqzoIU38/GtuWvTv1nDtpV7U7NEx/P4Ipk72F0YA7hNgNPJ5Tfz8oZ429a3ZYO+CNNDxCX38/+BWGvQG0WTuVqkQ8S25/P5vPe71izno7oJxOPFZ+fz/5l2i988CMO9k5XDy3j38/Y+9WvZgvmDvuJmM8sp5/P0wdID+sYMM+5kTpvpduAT9wHSA/NWDDPoxE6b7AbgE//hwgP7Jhwz4qROm+6W4BP7wbID/3ZcM+yUXpviBuAT8QHCA/wmjDPl5j6b5UXwE/UBUgP395wz5gpOm+BEQBP0b9Hz8DqsM+1B/qvo4XAT9n5R8/g93DPjJT6r5NCgE/yc8fP/EQxD4BJuq+DSYBP8PCHz9xOMQ+tU/pvvyHAT9Apx8/soDEPgNm6L5b9wE/DXQfP4f9xD4sfee+pG4CPwhaHz8yPcU+fe3mvvu1Aj/IYx8/gCjFPpfD5r5lxAI/VnUfP4UBxT6kr+a+e8YCPwWMHz9/zsQ+H6vmvgPAAj8opR8/rJXEPoWv5r7CtAI/Eb4fP0hdxD5Ytua+gagCPxLUHz+QK8Q+H7nmvgqfAj9/5B8/wwbEPmWx5r4pnAI/fe0fPy/zwz5Sm+a+PaICP4nwHz9Q7cM+y3vmvp6uAj+K7x8/rvDDPn5X5r6TvgI/YewfP+D4wz4EM+a+bM8CP/XoHz9/AcQ+9BLmvnreAj/F5h8/1gbEPmYC5r5t5gI/0dkfP7chxD7+Sua+Q8wCP03EHz/tT8Q+KZPmvmy1Aj9VnB8/sabEPgT65r47mAI/iWwfP3oOxT4Abue+KHgCPwpHHz8UX8U+EtrnvoNXAj8BPR8/g3LFPjk36L7vMgI/OjsfP41zxT5Rjei+SA4CPzJIHz8rVMU+K7Xovnr4AT9CcR8/m/jEPoSa6L7H9AE/ZZ4fP+iTxD7veOi+g/IBPxy6Hz8EVcQ+/XzovmnmAT8QexQ/FjMGPoh98j2qlEs/XH0UP7QpBj7DG/M9bZBLP2qCFD+gRwY+p+/zPYuHSz8cihQ/wJwGPkMZ9T3TeEs/uH8UP4QrBz6iC/c9FHFLPw5wFD9ujAc+fLX5PXhrSz8dYxQ/TUsHPtA+/T0jZks/5HAUPyYoBz6ALAA+/k1LPzuvFD9UlQY+NqkAPpUhSz9EUBU/UagEPlTs/D3G1Uo/kWcWP8aS+z2Pr+09IZdKPw7sFz/Wk+Q9kFLUPeRSSj+/3xg/OdzMPc/1vD2gXUo/iBQZP+xttj2vPqo95s1KP5oRGT9Pl549sPiWPSNdSz9a4xg/wIKGPRa4gz2g+ks/RJkYP4WmXj3jP2I9ZZZMP8xFGD8fRzQ9AMM/PVwhTT/j/Rc/xQwQPQFzIT1RjU0/MNgXP4oh6DxP1wg9tMxNPw3uFz/VJsg8x7zxPPfOTT9HRBg/XPPDPO2w5jxjk00/M8UYP7Od0jyAG+o8DS9NP6dYGT8q+eo8ikT1PA23TD/b5hk/z+QBPa/HAD3vQEw/jFcaPx6fCj1LiwU9BeNLP0loGj/LJx49bTEdPUC3Sz8fPho/orM4PVZQOz1ip0s/y6cZP0YYbD3nDm89wq1LPyzBGD94TJU9vEeWPbi3Sz90pRc/te+2PZ4ptj3qtUs/bpoWP8BI1z2L6NI9l45LP5/CFT88FfI9iJbqPbJNSz+niRU/D7QAPgEs+D2760o/96oVP3VlBD5Zyf09TJFKP1/fFT9hUwY+4K//PaBMSj8/9RU/WYIIPmkDAT4eGUo/a1b0ON2aJbuVpFA8evp/P9H29zi6nCW75r5TPFH6fz9TD/w4hJ0luztGVzwi+n8/1WYAOe6cJbvkYFs86vl/PwErAzmdnSW77txfPKz5fz8pLAU5Lp4lu1UYYzx/+X8/M3EEOVidJbuVEGI8jfl/P2YaCTljnCW7tg5qPBr5fz9fJBU5qZslu7OXfjzh938/jQ8vOSOaJbtUa5U84/R/P0nNTDnblyW7S86uPN7wfz/PnXI5k5Alu3Owzjzt6n8/Wap8OcuSJbsDntc8Ful/Py9GYzkLpiW7lr/DPBTtfz/uC0E50rgluy48qDz48X8/TTgaOSnFJbt/Hog8vvZ/P/575TitxyW7PONMPKr6fz8mVZw4WcAlu5GBDDxh/X8/Rps+OHCyJbuCXao76P5/Pxdq0DevoyW78QU0O4v/fz9HaX83Lpoluw6hzTq2/38/p4mDN2WXJbvktM86tf9/P001wTcvmSW7tGkeO5n/fz/NSw84h5wlu6CHcTtY/38/roZAOPCeJbt+HqQ7+P5/P+0nbDgHnyW7gKvJO43+fz9wHKg4GJ4lu5mODzxG/X8/3fPXOBScJbsdJzg8p/t/P+l1BDksnCW70jFiPIv5fz/ucR05Hpslu9tvhjz39n8/0wQ3OfaYJbs0Gpw85PN/PyvXSjmDmCW7hRGtPCrxfz8/a1k5jpYluzuAuTz87n8/vqldOfKVJbuxPL08Te5/P7W1XzmzlSW7zAi/PPjtfz9KWGE5uZUlu4VIwDy87X8/eDZfOUiWJbvImb48DO5/PzWwxzzehiQ+1+48PSJSfD9fasQ8UVAkPiFdPj3sU3w/JLrDPM4eJD6UTT89XFV8P8SFxjxv8yM+Tac/PVBWfD/Y6Mk8t7QjPg4zQT0BV3w/5ebLPDaJIz5WMUM91VZ8P2xSyjwHqiM+iRpFPVZUfD9Pq8U8P34jPsNIRT3kVnw/Y7W6PDM2Ij49AUc922R8P9B4qTxBQh8+IaBPPQl/fD/il0g8FzASPvQWcj3/53w/2+U7u3NY8j2dT5Y9RYF9Pyj2crxpGcw9EBanPenWfT+QMLO8t466PWipqT2E/X0/CU3pvBGPqz3CoKk96Bx+PxG0Db39/Z49wcinPcI1fj+GgyS9LbeUPXzgpD2BSH4/qM84vS+SjD2cm6E9fFV+P4BMSr3GZIY9caSePQFdfj9rqVi9SwSCPSuenD1LX34/0uthvSqggD1y0Js9Clx+P2zvY729EYQ9KrabPW9Tfj9eM2G9KNuKPXAPnD2ORn4/JFdcvVZnkz1Inpw9MTZ+P8H/V73dHpw9AjCdPbIjfj8oVle9qs2jPWHynT0HD34/2idivT9HsT2lnp49wd99PzHHbb0ELME906KaPZCwfT94xmK9zNvVPbW9jz3hkX0/rpxMvdRS7D2TQYE9JXR9Py+DJL1jJgA+4JJsPR1ZfT/N4bu8u9gFPpg0Zz3wUn0/d8nau27VCT5CkWM99kN9P5n6Wju93Aw+ABlgPX8tfT967fE73p4OPuSUYD3hG30/FAEZPLHBDj5IIGQ9ZhZ9Pz1vSzzm/w4+ZpRmPcMPfT9rXAC9G5u/vGa8ozsOzX8/+8gAvT/Jv7ztkqg7wsx/P9gKAb3c6b+8yeKrO5LMfz/aDQG9ovS/vPH0rDuMzH8/dq0AvYOMv7zv9Kg728x/Pw0LAL16aL+8Li6oOzXNfz/wtfu8LEG+vDbYqTt9zn8/su0HvZuQ0LzFpQU8d8R/PwRrIb1Eyve83whlPKuofz8n21S9BjQdvZ61uTw5Zn8/YkCGvR8ZPb310Pg8rg5/PxLCo73F6lq9Q8QXPfqifj88Yra9wiJtvZVBJz1GVn4/EuC8vb33cr2NdSs9BDt+P6lfwb15Xna9cE4tPfUofj/IMcS9Ydh3vfRqLT3NHn4/3aXFvZvqd73eZSw96xp+P7wKxr04HHe9pNcqPYcbfj8Xr8W93/R1vehXKT3EHn4/x+HEvQr8dL0wfig9wyJ+P+9uw720UnS9Wa4oPb8nfj8IgsC9vzxzvR5tKT04MX4/Ajq8vd1rcb3nGSo9Uz9+P3W9tr0AmG69CRQqPQRSfj+RMrC9RntqvV65KD01aX4/Yu+mvR/eYr13ayM9jIx+P7mLhr2YKT69wOT9PAQMfz92xk+9tpQYvW3zrTxHb38/GEo7vXIQC71CL448vot/Py/fOL3Jnwe9RgeEPLeQfz/zNTS9dsoDvWA2dTw5l38/p5ArvY1a/bzRqmE84qB/P7ULIr1/afG8CBdJPESrfz8fuR69Q0DrvOYuODyVr38/tHodvT0B6Lyh4S08i7F/P4nGGb0VXeO8G6AkPDm1fz9rJRS9my7dvEVPGjxOun8/kFPCPfoUJT3ini47lqJ+P8xSwj2IFSU9a8ouO5iifj9cT8I9lhYlPcWLLzuion4/QUnCPUYZJT2k6zA7sqJ+P1dGwj20ISU9QdIwO7Wifj8BlsI9SGwlPej6JzuXoX4/jX7EPSXdJj2ywfE65Zp+P/8Wvj1TiSI9VxKDO7mwfj+eea49pQ8YPbC+GDyK4X4/qwuSPeShBT3eeJs8Vip/Py8Cbz2Vfek8vR7lPPhbfz83tz89HrnMPBtyEz0meX8/Ms4iPbkAuzyZdic9RIR/Pz0wGD2FXLQ8aMYuPRuHfz+dFBE9ewCwPI6tMz2aiH8/y8YMPQ17rTxhqTY9U4l/PweSCj0BVKw8qDU4PZ2Jfz+RwQk9XA+sPEzNOD2siX8/fKAJPVMvrDzV6jg9o4l/P+B5CT2bNaw8sAg5PaGJfz+rLAk94gesPD88OT2tiX8/KMwJPXFerDyCyTg9nIl/P8TCCz1pgK08z2g3PViJfz+Ocw89sa6vPEXXND3BiH8/ekEVPfEnszyI0TA9pYd/P2LhID00Ero8PMcoPcqEfz9IM1w9+mLePKyA/zwZaX8/xmCMPQ4CAj0UJ6s8bDZ/PxjhmT0QZQo9g3KFPH8Yfz/bHKA9AJcOPWiCaDzxCH8/E8WmPQz7Ej0yikM8Uvd+P1TDrD1S+RY9+CsiPH3mfj8aH7I9bIgaPcZPBDyu1n4/DbG0PYA/HD1wEew71c5+P+sVtj3QLh09ZYvcO4HKfj+llLc9DTAePQHlyzvPxX4/wHS5PQZzHz1SA7c71r9+Pzu3mb1CBmM9OmXnPnocYz8xt5m9OwZjPTll5z57HGM/sLeZvRQHYz1iZec+bhxjPzy4mb0PCGM9jGXnPmEcYz9gtJm9YQJjPQdk5z7UHGM/npOZvaLKYj2uWuc+xh9jP2skmb33DWI9bj3nPiEpYz8Tb5m9S25iPVhK5z6uJGM/YWuavVvUYz0zfuc+ZhNjP9n3m70S4mU90cvnPkz5Yj82YZ29FMBnPWAS6D544WI/cpqevXJiaT3GT+g+rMxiPxdkn70dbmo9IXfoPk2/Yj9Twp+9QOdqPTCJ6D4muWI/2QqgvU1Caz3nlug+drRiP29CoL1Chms9QKHoPuuwYj/ebaC9HrprPTyp6D4urmI/6pGgveLkaz3Vr+g+6qtiP1mzoL19DWw9CLboPsqpYj/31qC97jpsPdO86D53p2I/fQOhvSh3bD2bxeg+eKRiPwM4ob04wWw9OtDoPtugYj+JZ6G9twZtPQza6D6GnWI/yoShvdg0bT1g4Og+YptiP5CCob3FOG09ieDoPlqbYj8LJKG9/L9sPYXO6D6GoWI/FOudvQh2aD09Leg+X9hiP3yGmr3W82M9M4PnPrcRYz/JCJq9GHRjPd9s5z49GWM/6suavTmxZD2Eluc+TgtjP1Rmm73huWU9U7nnPrz/Yj9od5u9MNllPdS95z5H/mI/jECbvYFzZT2TsOc+pgJjP3kCm71n/2Q98qHnPoAHYz8c7Zq9IdNkPZie5z7CCGM/z+aavRvDZD20nuc+3AhjPwnRmr3/mmQ9WpnnPp4KYz8LjTA97PM6uztouz2br34/xrYvPUdOObtF/Lo9brF+P8AYLz2FUzi74626PcGyfj86yy49F/o3ux2Iuj1ls34/X6QuPRD3MrtjW7o9BrR+P7KCLz1gKC2776S6PZqyfj9rmjQ9mB8uuxgNvT3wp34/3Q8mPefGC7vMpLU9esd+P7bkAD0fjky6X5GiPaAQfz9S2Ws8oE8hO4tyez1lfX8/siI8u3si0TuJbi498cJ/P/2QpLyr2TE81DW+PD3dfz90wPa8PXdnPLyCPTxV138/2lEEvbN+fzyJxws8b9N/P2GgBr1dIIk8Dd3rO7XRfz/HIQS9qy2QPBqS6TsS0n8/FE79vKpMlTzYOAE8vNN/P8/877x05pg8LCkUPMXVfz/i6eO8U12bPLqJJjx0138/7q7cvGwKnTxqSzE8VNh/P4MR3LyNEJ084GIyPGnYfz+YwN68GMuZPLQsMjxW2H8/TW/ivJdjlDwjQDM8R9h/P0Xj5LzpF448j/Y3PGvYfz8r4eO8eiaIPLutQjz02H8/SynYvDGBhDy9VF48kdp/P/PRfbzR4YU8BRLDPMvcfz8OVHC7uH6BPBh/ET0Czn8/Squ9O3CgRTxaX0A9z7F/Px9majyVOeU7NwRvPQCIfz8aFrY8pvAgO/TdjD1cVH8/RvrgPOxKgrfs75k90i1/P9AyAT3Hm6i6HkujPZUOfz/tiQg9b2zEuqL7pj0uAX8/mcMMPWEL3rosbqk9aPh+P+aPET3L1wC7ElmsPdvtfj/ckRY9kPMMu44nrz1F434/WwPcPSjQIrp2Two9IV9+P14D3D3rzCK6bE8KPSFffj9fA9w9k8wiun1PCj0hX34/YwPcPcjPIrqrTwo9IV9+P2QD3D1wziK6mE8KPSFffj/pAtw9EswiunxOCj0jX34/fv7bPajMIrqFRQo9N19+P7Ib3D1FvyK6poAKPbJefj9FSNw9Baoiuu7aCj3mXX4/tGrcPY2IIrqZIAs9SV1+PxDg2z3e6SK67QcKPcJffj+bj9o937kjujJfBz23ZX4/NJnZPWwyJLrnbAU9C2p+P/Q+2T24XiS6YbYEPZ9rfj/199g9WoMkus0mBD3dbH4/ccLYPUKhJLqKugM9y21+P5ic2D08uSS69m0DPXRufj+ghNg9G8skunE9Az3ebn4/u3jYPYnWJLpaJQM9E29+Px132D3G2iS6ECIDPRpvfj/MhNg909Qkurw9Az3ebn4/LqzYPa7AJLpjjQM9Lm5+P3no2D2WoCS6VgcEPSJtfj9rNNk9gnYkuvigBD3Pa34/yYrZPbFEJLqtTwU9TGp+P1X62T3rAiS6VjEGPVhofj/uN9s9OUsjutmzCD2+Yn4/qzHcPVm3IroIrQo9Tl5+P5FX3D1wmSK6wPkKPaFdfj/fHtw9U7kiuheHCj2jXn4/V93bPdbgIrp4Ago9zl9+Pzi12z2z+SK6SbEJPYVgfj+stds98/ciuj+yCT2DYH4/N+TbPfDeIrp0EAo9r19+Pxb92z1S0SK60UIKPT1ffj8x2ds9U+Miuh76CT3hX34/X6/bPef+IrqNpQk9n2B+P2oIST0bhDU8z1K9PQKUfj9jCEk9AoQ1PN1SvT0ClH4/YwhJPQqENTzdUr09ApR+P3EIST00hDU8xlK9PQKUfj9zCEk9OoQ1PNNSvT0ClH4/fAdJPfeDNTxsUr09BJR+P8H+SD2GgjU8AU69PRiUfj8lOUk92Io1PG1rvT2Sk34/H5JJPaKXNTxWmL09xZJ+PzHXST2LoTU8P7u9PSaSfj+vwUg9aHk1PCMvvT2klH4/dSBGPYUaNTwX27s9p5p+P9kzRD3s1jQ8J+K6PQSffj9of0M9Cb40PPqGuj2boH4/gPFCPWGqNDxEP7o926F+P3KGQj1TmzQ8Mgm6Pcyifj+4OkI9hZA0PPXiuT12o34/twpCPXyJNDy8yrk94aN+P+LyQT3WhTQ8tb65PRekfj+e70E9LoU0PBG9uT0epH4/8wpCPf6INDzhyrk94aN+P69ZQj0UlDQ8p/K5PTCjfj890kI9BqU0PIsvuj0hon4/GWpDPXG6NDxCfLo9y6B+P88WRD3T0jQ8gdO6PUaffj/t9UQ9MvI0PDJEuz1NnX4/SnFHPapKNTwwhbw9p5d+PxplST3JkDU8roG9PSyTfj/xsEk9tJs1PPmnvT1+kn4/Zj9JPbOLNTycbr09g5N+P0C8SD1PeTU8Yyy9PbGUfj8qbEg9GW41PPADvT1olX4/Lm1IPUFuNTxvBL09ZpV+PxDKSD0xezU8VTO9PZGUfj9h+kg96IE1PMJLvT0ilH4/gLBIPYd3NTxvJr09zJR+Pw1bSD30azU8Lvu8PZCVfj+F/CA/bPHCvuH88T6b1Pg+M/ggP14Aw77LCPI+fMj4Pm/zID/iEMO+RxDyPpbA+D797SA/kyPDvpoR8j69vvg+meUgPwo7w769EvI+7sD4PkXhID/TR8O+/wfyPonM+D7B5iA/HD3DvqLk8T4n6fg+LQQhPyP7wr4JsfE+4QL5PtEvIT80lsK+qoXxPvoK+T5pTiE/D0nCviWT8T7i6vg+jVYhP8Qfwr71MfI+glv4PoxHIT96GcK+TmbzPnFZ9z6xQCE/YAbCviZc9D6Qh/Y+KEwhP8zWwb6F3/Q+hQz2PgVcIT9TnsG+nFP1PqKb9T5XbiE/hGHBvsW69T4sNPU+KIEhP+ckwb5hF/Y+b9X0PoKSIT8E7cC+0Wv2Prh+9D5soCE/YL7Avnm69j5aL/Q+66ghP32dwL6/Bfc+p+bzPtmpIT8okMC+JEv3Pl2o8z5FoyE/mpfAvlaD9z7cevM+lpchP32twL4Wsfc+B1rzPj6JIT9My8C+ddf3PnJB8z6qeiE/gOrAvof59z6yLPM+R20hP5wIwb5qE/g+8x3zPulcIT+eP8G+Csf3Po1r8z4YVSE/ql7Bvhhu9z4IwvM+eVYhP21nwb49HPc+awr0Pm1bIT9ZZ8G+vc32PspM9D7/UyE/mYPBvmKP9j75iPQ+jjkhP2fLwb7MZ/Y+v730Po0iIT/XC8K+8DX2PnH59D4HHiE/VSfCvvbK9T7nWvU+pSghP44mwr5iH/U+Huv1PkA3IT+wIMK+7FH0Pq2V9j5OOiE/wjPCvs+U8z6QOfc+xnUCP4ztYb5W6Bm+pWRRP41wAj/LB2K+nzYavohiUT+haAI/jPJhvqWbGr49ZFE/7lkCP/OBYb6mORu+rG1RP68bAj9MbV++Q4wdvkqcUT/PtwE/xyRcvqKbIL6O7FE/AzIBP0TnV772qyO+i19SP2iUAD8oiVO+xRcmvpDoUj/TBwA/+bFOvsbAJr5RglM/iuf/PrkpSL4CFiO+fyBUP6xjAD8fekC+g1MZvurCVD+7RwE/sJE3vuZaCb4YZVU/WagBP3JtML53kvq9dwFWP3RhAT+CZiu+W7ruvaijVj969AA/En4mvs1N5L0kUFc/FW4AP5fWIb54Otu9s/5XPxm2/z45kR2+6XDTvUCnWD+EkP4+J84Zvi3kzL3lQVk/PIX9PvusFr5Fice95cZZP/ut/D4FTRS+RlbDvacuWj/RH/w+FAgTvpIawb1ubVo/1dP7PuMoE75JBsK9sn5aPwy3+z7WRRS+vCLFvc5vWj+dtfs+xfEVvnNnyb1gTlo/XLz7PlG/F77NzM29FihaP9LM+z51dhm+npPRvb4BWj8BmPw+TV0fvgaG2r3cX1k/0Sb9Pj4WJ755/uW96qlYP0Tf/T76LS6+SkXxvTHpVz8kpf4+qQE1vmFo/L3OIVc/KLH/PshyOr7aJwO+NlhWP5BmAD9FHD++vTUIvteOVT/9tQA/JltFvikoDr7CxVQ/E3gAP5hVT74nHha+fftTPye6/z6hKVu+eSkfvuAwUz+Haf4+pu9mvlKpJ74rZFI/YLT9Po+xcL7nqy2+gJ1RPzqsfrmCBD07BiBvvfOPfz/5Wn+5twE9OxO6b71ij38/2k1/uTsBPTtxsW+9a49/P/W3fbksBD07GkNuvcGQfz8IJnO5pgs9Owo8ZL3omX8/TxFjuToVPTvdF1W9+qZ/P5AFULkpHz07/C5DvUe1fz9z3z25Wic9O1YwMr2vwX8/AqAvueosPTuG6iS9lsp/P53gKrnnLj07NOQgvSbNfz+w2zi59io9O1XALL1qxX8/9NBWuagcPTtKMki9ZrF/P5oAa7mYDj07PXdcvbmgfz/wVnK5lAk9O77NY71Kmn8/qMV3uSQGPTtJJ2m9d5V/PzTQe7kFBD074vlsvfORfz9L6X651AI9O327b71hj38/AruAuRkCPTsE4nG9Wo1/P3HrgblNAT07YeNzvXKLfz9eMoO55/88O3I1dr05iX8/K4qEucX9PDtYzXi9toZ/P4+mhbmp+zw7A+h6vaeEfz+5koa5q/k8O0ecfL35gn8/2VqHud73PDtiCH69kIF/P2sLiLlQ9jw7mkp/vU+Afz9wgIi5mPU8O3QTgL1yf38/x4GHuQX5PDurWn69PoF/PwGKh7lr+Tw7DJR+vQWBfz8sZYi5tfc8O/oSgL1zf38/OZqJuRL1PDt2J4G9R31/P/9FirmM9Dw7yMKBvQx8fz/xuIq52PQ8Ozgogr0+e38/BJyLuUTzPDtP9oK9mHl/P5mzjLkr8Tw7kQyEvVt3fz+kyI25FO88O+AGhb1UdX8/otmOuUDtPDsFA4a9RXN/P5ytj7mL6Tw7idSGvYxxfz/Hhzs9bF1rvs+6+Lyrv3g/K0E7PaVTa744Avu84r94P+cDOz2pTmu+VwP9vNq/eD9N1Do9p1BrvtaY/rx4v3g/MoA7PeV5a74DFf+8Zrx4P9H2OT1TSmu++iIAvQ/AeD8mnTQ9NF9qvkDcAr100Hg/3/obPUeEZ76dn/q8tg55Pys35DyYG2O+/XHivBZseT9CnnA8whRfvtjRvrx5wHk/9kBAO9M7V74Jdc68ZTJ6P6rF8rsJ6Um+iqAMvSLQej9CnGK8/3FBvhpcJL3UJ3s/jxKKvJciQL60cSW9GzR7P8vnn7xyBkC+yqIivQw0ez9l5bG8BdtAvjUoHb1VKns/JyC/vK9cQr4QMha9lBl7P76uxryBR0S+M+0OvX4Eez8rrce85VdGvlOHCL3k7Xo/oz3BvAZLSL7DMQS9sdh6P7YLsLz1O0q+41wCveTDej83mpC827FMviXWAb09qXo/qvJMvIOBT740RwK9Nol6P1if1bsEelK+AWkDvcdkej97JxC5AmpVvgr8BL2TPXo/E7vlO1ALWL5GEAi9JhZ6P5KsszxBxFq+a7YSvcDbeT82pgk9wcdevlWnE72jjHk/Qu4aPUEeYr73uBG9lVN5P7dXHj1cEGW+dYkOvT4oeT8x2hw9nMJlvvlOD718Hnk/QTIVPaHYY753JRK9qD15P4veET1ILmO+ODkRveJJeT845hs92YJlvvi8Cr1XJXk/Vm8uPWeuaL53yQS9Oe14P6BoQT1U72u+jCEAvZ6weD+mwUk9qWhvvigm+Lzldng/Lmv5vPUPXzyA+x++UrZ8P40f/bwPfV08tLofvgy4fD8Lyvm8jFhePCDLH74vuHw/GrruvMi0YjxFdyC+zLN8P75wBL05H2M8Jl8ivsaZfD9bUAq9sy5/PJYhK75cOHw/wCbfvBIxqTx9HkG++kB7Px8kU7xgOvA84clevqi7eT9e4Q07SzUePdJCfr7yyHc/Apvqu8TALz3YJoe+NKt2P5Pwm7wIxTs9/oSMvnTXdT8GZOy8BzpHPb6nkb61/nQ/06YMvTCKTT0NYpS+v4R0P++fD72QtE89nEeVvj9edD+x1g296ipSPTdSlr5QNHQ/Au4IvV8jVD03LZe+mxN0Px+LAr3B2lQ9/4OXvgYJdD+Fpfi8tpVTPasBl76RIXQ/BcjvvGScTz2sUJW+vWl0Pzah7bzKMEg9XhqSvo7sdD/y8/S8Y147PSiPjL4oxHU/o/kBvZKYJz3iFYS+ovp2P8DkCr36Cw89qD5zvixceD+YCBO9OUvoPMZVXL6ounk/i5QYvUEQszzLe0W+YvN6P5p/F7052IQ8Z3swvhP1ez8Y5AG9R/JiPGSaIb7+onw/AG/7vH+IUDwaHhu+G+d8P378/bwQC008LR4avm3wfD+hBAO9A59QPMK7G75b3nw/rwIGvWVLUzzs8Ry+qdB8PyqTBr1FZlA83AocvnPZfD+FOAa9IjxKPGXuGb6n7nw/+6gDvToCRDzOihe+Ygd9P+fe/bxpqkY88O4XvuoFfT+iKfS8PI1UPFUVHL4s33w/kXjvvHGHYzxewSC+obB8P0bN9j3t04S9xB0XPvLCej9rQfc9YcOEvetrFz5Zvno/rIH2Pb+FhL08Kxc+P8R6P3U59D0TD4S9xDMWPnLXej9y5fQ9dyqEvTd5Fj4A0no/8JvxPeR+g70NGxU+Oe16P4165T3evYC9nRYQPk9Pez89Lrs9jltzvXaK/T0/fnw/Sud7PVnPXL1LWcw9T9x9P2azHj3Xp069ioqnPSeffj/JTug8qzpIvXD2lj2w5H4/XgnrPESgSL3ylpc9Q+J+P3xD/zzThkq9E6GbPSjSfj9h3wM9nFVLveZfnT0Qy34/QQkIPa4aTL0GGJ89/cN+P6ZjDD0L5Ey9ieOgPXy8fj/CMhE9Rb9NvZvcoj0WtH4/uLoWPV65Tr10HaU9R6p+P4c/HT2p3k+9ZMCnPYKefj8aBSU9jzpRvdffqj0skH4/nQwuPSLHUr2nfK49E39+P0IpOD15dFS9J4ayPVxrfj/2x0M9VFhWvW0ntz3uU34/vllRPf+GWL2Zjbw9fTd+PwtPYT15EVu9N+bCPYMUfj9lH3g9CqNevUH1yz2y330/yBqgPd11ar09iOg91CF9P3jxwD3ldnW9E2kBPmpVfD95SdU9xZF8vYqgCT4ux3s/NzLkPb8cgb31rg8+7lZ7P6569D2VHoS96FMWPh/Vej9J9QA+hryGvTXTGz7zY3o/muAFPmykiL1Y3R8+tQ16P/liCD4IqIm9CewhPpfgeT/MLws+Gg2KvZ5WJD7BrXk/EhUNPrjbiL2vMyY+nYt5Pw6ADD55Vom9F5klPjyWeT+p6+K9e0CEvLTcur3GUH0/yOHivW49hLy10rq9CFF9Pyjp4r1jToS8Kdq6vdVQfT8hKuO9X3GEvBIcu70lT30/gRDlveIBg7zPzLy9eEN9P2DF6b2BXoS8nBjCvREifT+R7/K9YLuMvC21zb202Xw/XqH9vQHkmrxbN9y9rnx8PykFBL5K/Kq8IOHqvXcafD/jfga+6VKyvIW+8b1I6ns/Nz0IvgqHt7w3kPa9qsd7P3ceCr7lFL286cP7vaahez8yNQu+tkfAvFTF/r1Xi3s/WakLvjWTwbxUAQC+CIJ7P5UyDL5+DsO8jLwAvgB3ez/FrQy+h1zEvBZkAb4SbXs/yPcMvnohxbyxxwG+H2d7P2/tDL7qAcW8HbcBvgtoez+bawy+DqHDvBwCAb6scns/Sk8Lvg2ewLwG8f69rol7P1JLCb6s8Lq861b5ve6yez+ELAa+y76xvKee8L1v8Xs/7E8CvgMsprwn1+W9Djx8P08r/L1mepm8GBnavRuKfD8+uvO9JQiNvPh7zr0V1Hw/Q8frvZ0Yg7z/98O9BBV9P0HY5L1LK4S8WtK8vQxEfT/k0+G9h6KEvFG1ub0HWH0/mrPhvRuhhLzhk7m93Fh9Pxbv4r0jcYS8ydq6vbpQfT+FAeS930uEvELyu72qSX0/UsrjvVBUhLyFt7u9HUt9P5XD4r2xdIS84ay6vdxRfT/4j+G9cIeEvNFtub3OWX0/OoXhvTCmh7wsnrm9/Vh9P+HL4r0DCZC8RJO7vYFNfT+yGOW9ElCMvBCyvb1uP30/EQUfPVppKzy/X629j99+PzDXHz0TEyw8pPCtvXndfj+HnB89H+YqPNM1rb2n334/dbQdPXVhJzzJxaq9ked+P2FMIT1Gii08qT2zvc3Nfj9LWwM9EgEaPNP4mr1kH38/hFDhO3JI3jpYkcm8hOp/PwLmybznoDu7hDc0PVesfz/HCGC9xc3bu5jX4z35BH4/5YWEvYKC8LsvBvs9q4V9PxpPgr1asdu7PfnuPR65fT8JyWG9RorXuxQk2T32KH4/ymJIvaI+2Lsuksc90Hd+P3GlRr2K1du7/3rCPeSIfj+YSkq9y2Tku0xjwT08iX4/cfhQvcoh7ruOI8I9aYF+P+FUWL0GRvW7bpTCPc55fj/5Bl69B9H1uz2PwD0Ke34/nrJfvdm567vM7Lk9dY1+P1/uWr3yj9O7XYOsPbG3fj/9SE29TXSquy9qlT3i/X4/W8Q2vamkZrsuvWc9PlV/P49VGb1pWt66/BcWPeylfz+IQ+68s4TnNxjlcTwh3X8/pBClvPmUxToKsvO7z/B/P+uRK7w9m0I7jsfvvAngfz9vegI8puXZO4CiZL1Kln8/mwvJPN/6FDynMZq9ei9/P48z+jxDaCA8cwqnvdEDfz9tKwI9TE4iPPeXp73B/34/TxoGPX+BIzy0+Ke9rfx+P+ABAj3J2CA8Je6kvdcGfz8/Gfc8VRodPBLooL16FH8/DkHqPI+OGTzrHJ29GiF/P6BT9Tyyrxs88OqevfIZfz+tCw09Ui8kPDY2p73m+n4/DyYdPS8qLDzJSK+9dtt+P0p37D1DLgc8kWttvIRAfj8EuO09qf4GPHEkdrxVO34/sBruPQzvBjzu03i8ujl+P9xB7T2XDwc8q+5yvD89fj9j/Ow9nuAGPJQccbxfPn4//ujmPQsnCDzBs0a8+1Z+P4Pw0z1Ougo8CLaFuzidfj+J+rk9H4EPPK8Z4zse7X4/Mz6fPXWFEjx+OZU8DSx/P+9plj1tfRM8FbSzPIg8fz/A5pM9/x8UPINsvDzPQH8/fWWTPVMyFDwVK748p0F/P5FWkz3WOxQ8nl++PL9Bfz80N5I98VsUPCQ/wjyYQ38/g3+QPYl/FDxEKsg8XEZ/P8Oajj2AnxQ8gK/OPFFJfz9u9Iw9VrkUPFdd1DzQS38/OPiLPfnOFDxHwtc8RE1/P+4RjD2N4xQ8zGzXPB1Nfz8QrY09NvUUPGDr0Ty2Sn8/GTiRPeHdFDyGvMU8L0V/Pxe+lj3YYxQ81bCyPOc7fz9B7J09qoITPO/imTybLn8/Mm6mPQ83EjzN5Xg8CR1/P8Pvrz14hRA8igE3PBAHfz/OFrw921UOPK1hxTta534/myvbPRs2Cjw64em7noN+P3we8j0CkAY8IFuKvMQofj+ie/c9tBkFPKglnbxqEX4/+xf1PaDCBTxQxpS86xt+P3UC9D2aDAY8S/qQvKEgfj8pYfM9fCUGPFLIjrxaI34/MTfyPZBRBjyduoq8Wyh+P/7r8D1rgwY8ZzmGvOAtfj8rxu89sa8GPEc6gry6Mn4/hX7uPZPgBjwMi3u8GTh+P93K7T2M+wY8KKh2vAY7fj8KlFY9yMugvDnw1L2aNX4/sR9ZPTYCobwvCda9uC9+P+/ZWT0gEqG8clnWvQgufj8cBVg9w+qgvFWP1b1HMn4/l/VXPdsGobxJhtW9bjJ+P1+JSz2YzJ+8wy7QvZhOfj9QpyM985ScvGf1vr3moX4/mRjXPJY7l7wJxKa9fQR/P0kmRzzhxZK8T7iNvYFTfz/jxf47iGSRvFvuhb1iZ38/tZLaO93XkLyb+4O9C2x/P/S71jsvzZC8XcaDvYdsfz/F2tk7ltKQvPbxg70ibH8/WeLKOyqvkLzAIYO9BW5/P2cHsjutepC8gceBvRpxfz9OPJY7BEOQvP9DgL14dH8/sd18O/MTkLwS8H29Snd/P5ATYzs794+87oh8vcp4fz+d7mw7QvaPvEMUfb03eH8/sCaUO1YdkLzXKYC9t3R/PwQw0juWjJC87YuDvRhtfz/Y8hg8IGWRvNG/iL2IYH8/K8RWPFWikrw9dI+9205/P8zNjzyXPZS8O1aXvfA3fz+7Qbg8hSqWvOYSoL3VG38/pQHrPGSXmLybBqu9m/R+P03MMz2aqp28g/PFvXqBfj+l22E9CaOhvBHP2b0wG34/AsBsPenYoryUet695AB+P/bmZz3PTaK8pGbcvbIMfj8/tGU98A+ivFh1273+EX4/YnBkPZj0obzS6dq9CBV+PxAbYj3jwqG8W+jZvZwafj8Jg189WouhvBrK2L3DIH4/sDVdPQtaobwMzNe9MCZ+P9SkWj3eIqG887DWvTAsfj+IPFk9yAShvKUV1r11L34/iEMEPh6ZAT5jAns/Em2dvdNKBD5gWQE+MAV7P2oInb2HUgQ+owwBPn0Iez/smJy90FoEPrO2AD4zDHs/7hqcvSZmBD7G3wA+owt7P6emm72OaQQ+v2QBPpwIez8qGpu9NlkEPgA+Aj7mA3s/DGKavaNBBD5J2QI++gJ7PzIEmb3EIQQ+9h4DPucGez+J45a9nfYDPif6Aj7vEHs/ZsaTvbu3Az41CQI+MiR7P8m8j71BbQM+CxkAPk1Bez8K+Iq9zwoDPtiP/j3tVHs//3qGvbyOAj7qFwA+Glt7P31Ugr0jBwI+Ek8BPnVeez9z6Xu9zHsBPvLEAj6IX3s/mxtzvfnzAD7xUAQ+/V57P0Kkar1bdgA+WMoFPp9dez/i6GK9IAkAPlIIBz5ZXHs/hU9cvTFk/z354Qc+LVx7P54+V70g9f49Ty8IPrNdez8Sc1S9fsv+PY73Bz5ZYHs/zVNUvXPP/j3xZgc+umN7P5gFVr2+6P49S6oGPmlnez9ipVi9wv7+PXDuBT4Ga3s/NlBbvUj1/j0BVgU+g257P4hHXb1Yq/49d+8EPgtvez+V0WG9zW7+PV0TBT4laXs/MQtovSsT/z3DAgU+R2B7P7pPb715DQA+494EPsJVez+6E3e9B5IAPq22BD49S3s/YLV+vfoCAT5OiAQ+3EF7P6Lmgr1IYwE+o1MEPk85ez9rToa9tckBPqPPAz5QM3s/GY6JvaA2Aj64DQM+WC97P76ejL3NowI+PF8CPv8qez/he4+9GvsCPikFAj7MJXs/VcaRvW8tg75m4iK8sQiVPWy9dj/2BoO+Wc8ivGL/lD2fwnY/htSCvty2I7xt85Q9Y8l2P+uUgr4T3yW8hOWUPdrRdj88iIK+eZ4mvCPwlD1l03Y/RYmCvmoBKLxPDJU979J2P4SAgr5Cwiu8uUKVPWvTdj9aHoK+qMEyvMAGlT2h4HY/HlyBvjfbPLzgXpQ9QPt2P/VHgL5pWUm8Mn+TPbogdz+GGH2+HHtZvJo3kj0TXHc/e1p4vnJMb7zXkJA9j6t3P90jdL77gnu8PB6PPSfxdz+5wnC+w+R7vCfwjT2xKHg/nk5tvpeberwwuow9u2B4P0znab4+1He8loeLPT6XeD+drGa+7LhzvKtjij1Oyng/hL5jvnBxbrzcWYk9Gvh4Pwk9Yb6gI2i8wHWIPeUeeT9FSF++GPRgvCHDhz0APXk/iiZevhMMWLwBW4c9jk55PyEHXr4aGUy8mU2HPQxReT90l16+zDk+vER+hz1HSXk/rIFfvhigL7wEz4c9KTx5P/lvYL4/fSG8OiGIPawueT/jHWG+ip0VvMFaiD3WJHk/rpFivpTfEby/xog9/A55PxpAZL4u9Qy8uUCJPYv1eD/sEWa+DXsJvIO9iT3J2Xg/+/ZnvmuiBrzyPYo9nrx4Py/yab4FYgO8VNyKPaedeD+BaGy+2soDvAa3iz1ydng/0RVvvnVWB7w/nIw9T0t4PxbTcb45dQ28q7CNPS0eeD9ccHS+wn8TvDDfjj0+8nc/Mul2vuORFryf0o89uch3P6X/eL409BW84I6QPZqldz+ESf4+BIFnvBL2Eb1a+l0/CEb+PvAwZ7zz1xG9cvtdP0lC/j4qCme8hcwRvY/8XT/IPv4+sRVnvNrVEb2J/V0/7kf+PhHTZryHnxG9EvtdPw1N/j4tVma8UTERvev5XT+8Qf4+nM9lvDedEL2S/V0/Gwb+Pt2ZY7xtJQ+9ug9eP3qX/T5wqF+8UMEMvRwxXj+n/fw+3xZavBR4Cb1VX14/9hD8PsMZU7xVUAW9cKVeP2Xl+j5C10q8eEUAvWf9Xj+KnPk+RApEvKhi+LxHXF8/xTb4Pp0YP7yIxfK8rMFfP8ux9j7/XDq8t2rtvMwuYD9eIfU+FuY1vOhZ6LwOnmA/a5nzPknAMbwum+O8+wlhP/8t8j4B9i286DbfvD1tYT9N8/A+CZAqvLY127yhwmE/nf3vPuiVJ7xloNe8BAViP6Zs7z4eLSW8cLDUvD8sYj9YTe8+0XsjvE6q0rwUNWI/uXvvPt9SIryzTtG8LCliP5/S7z51gyG8WVrQvGgSYj/mLPA+ud8gvLiJz7yo+mE/nm/wPliFILzd2s68F+lhP9Mo8T47UCS8HGHRvPa2YT8m+PE+xn0ovLAV1LykfmE/edbyPgW6K7wixNi8mEFhPyC78z7dsi68SXPevEsCYT/DifQ+bqYzvAah5rzpx2A/5Fj1PvBEOrxp/e+8q4xgP2tC9j4Y1j+8JzP3vHlKYD/9Pfc+SnpFvKJY/rzvAmA/WDX4PusHS7yruwK9JbxfP84a+T52jU+8nroFvVN6Xz+k1Pk+GHVSvDUDCL3jRF8/I7fHPkccbL2lR8I8Li5rP9C1xz7QG2y9UkbCPHcuaz+wusc+ox1sveFLwjxrLWs/ecfHPmEibL06WsI8rCprPzbNxz6NJGy92WDCPHApaz+iz8c+fSVsvbpjwjzrKGs/N9HHPhMmbL15ZcI8lChrPyvRxz4JJmy9ZmXCPJcoaz87zsc+6iRsvRViwjw4KWs/TsTHPjYhbL3aVsI8WitrP5e2xz4WHGy9QUfCPEwuaz9ppMc+SRVsvYIywjwzMms/KJvHPtMRbL3uJ8I8LzRrP/ycxz6DEmy9/SnCPMszaz/DoMc+7RNsvUQuwjz7Mms/EKbHPuoVbL1INMI82DFrP3msxz5RGGy9jzvCPHgwaz+Ss8c++RpsvaBDwjzyLms/77rHPrwdbL0BTMI8XS1rPyXCxz5vIGy9N1TCPNEraz9pycc+KCNsvYFcwjxBKms/odHHPj0mbL3mZcI8fihrP3Paxz6LKWy9/2/CPJgmaz9/48c+7ixsvVh6wjynJGs/YuzHPkEwbL1/hMI8viJrP2/0xz5CM2y9no3CPAMhaz9o+sc+czVsvS2Uwjy6H2s/HgPIPro4bL09nsI82h1rP00UyD4vP2y91bHCPCgaaz8CKcg+9UZsvWjJwjyzFWs/YznIPhdNbL3828I8LRJrP5g9yD6lTmy90ODCPEURaz/YPMg+XE5svRjgwjxuEWs/IDDIPplJbL1x0cI8KxRrPzwqyD5kR2y9xMrCPHAVaz8cJMg+GUVsvbfDwjzBFms/8RjIPvFAbL0ct8I8KRlrP/ZWuL2Ljq29ANt9P0RLGb0HSri9LbesvfbdfT9fbhi9aT24vcvNq70u4X0/R20XvWIwuL0et6q9+OR9P4M8Fr25Fbi9NlqovTrsfT/zJRW9L/S3veMnpb2s9X0/+v8TvaLQt70An6G94f99P/LGEr2Qrbe9thWcvZIPfj+GQBC9e5O3vZNklL2RJH4/izMMvQKdt70RhYq95j1+P7FdBr3Eube9h9h7vQpcfj94D/y8iuK3vXTVXb2tfH4/ZkzmvFrYt72s+EG9cJd+P7dm1Lz+kLe9lHoovfWsfj8/sse86C63vX9lDb3vwH4/GQ27vOO7tr1hTOS8C9J+P//prrwjQ7a9jVOwvJHffj+duaO8GNG1vRy7gbxd6X4/heqZvB5ztb18uza8v+9+P3DpkbwEN7W97SsAvE3zfj/xIYy8mTC1vchO1btS9H4/qLiJvLBntb0thfi79fJ+P9yVi7wPx7W9+xgovKnvfj/wWJC8dTi2vaHSYLzE6n4/q5KWvPmmtr3ai4y8GeV+P7rRnLymBre9iUSivAvgfj8op6G8whO3vaQQu7wb2n4/WxurvO6Btr08e9e8ctN+P65purz/L7a98YP1vOnKfj8ua8i8uPW1vQcsCr3swH4/yuzVvMDotb07Ohm95bV+PyDK4byaSra9aB4pvcGofj9bm+q8A7y2vR4VOr2kmX4/wSzzvBRHt73HYky9SIh+Pzhx+rxTk7e9qWJfvat1fj+UzAC9Z8C3vf1Pc73gYH4/RrUEvZTit71T1YK9UEx+PyxnCL2FvPa8H6mwPZAVc73ieX4/T//9vI3QsD3bZnO9Xnd+P1RyAr1y3rA9+rdzvSt1fj/O1QW9jMmwPWYHdL1Wc34//GUMvYOxsD1MRXS91G9+P7DUE72IjLA9eFV0vfZrfj9pRxm9XFOwPbP3c721aX4/+G0lvUgDsD22jHS9Z2J+PzJ/Ob1eoq89STd2vQBUfj8WBFe9L0evPfUgeb3mOn4/w3x/vfXPrj1kAn294xJ+Pxogmb2TLa49S8uAveLXfT9v+q69qPWtPe8Hg71im30/Ki3AvVU8rj07KYW9XmR9Pz6w0b2Pqa49u2aHvd4mfT8b2OK9RzSvPWeoib1O5Xw/7fnyvVvRrz1b1ou92KJ8P861AL68c7A99diNvVhjfD/pwQa+ywyxPeKYj70vK3w/4EwLvuyMsT0c/5C9D/97P5mTDb5n4rE96uCRvcjnez9VDg2+bwmyPTEnkr1j63s/MqcKvqMRsj25BJK98gB8Py5RB75CDLI96K2Rvc0efD+G/wO+wgmyPexWkb3CO3w/BJkBvvIYsj1aK5G95U98P/2z+73IT7I9vM6QvXVufD9byvC9AqOyPeBwkL3xmHw/kv/kvaj2sj3bRo+9hMZ8PzHA2L2kT7M9ZcKNvSL0fD9HM829B6ezPQ4ijL1PHX0/1I3Bvcj6sz26JYq9bkV9P/0Ctb0kVbQ99A+IvQZufT800qe97Ze0PcK9hb2Gln0/TFeavXvBtD1TwoO9c7x9P9/ei70X4rQ9yCiCvfDgfT+rIny9Vwi1PTjGgL0/AH4/QFf3PkK+wDtYKL677yJgP22Q9z7dqsI7X767uygTYD+0wvc+x4vEO8/vuLtGBWA/AO33Pul0xjtrarW7mPlfP6ow+D6W+Mk7pumuu+PmXz86bvg+YPzNO/rwprvb1V8/knn4Pkkk0TsEI5+7wNJfP5/0+D7dbdc78h+Uu5WwXz/T7/k+vIzhO9ThhLuAal8/hYL7PtgW8Ds5uGG7WPleP1qJ/T61sgI8+JQduxxmXj/y8f8+3kQPPMCNZrr6tF0/sv8AP76pHzw9aZE51xtdPxzOAT8K/TM8P/puOuehXD9wngI/kv5JPGU0wzqSJVw/rGkDP4rYYDyREgM7CatbP+EoBD9+s3c8TpIfO5g2Wz8v1QQ/YNuGPFabNjuozFo/xGcFP4EEkTwxxEc7uHFaP9bZBT9+6Jk8BLNSO1UqWj8hGwY/NAGhPHkQVDvvAFo//x8GPwU2pjz+G0g7Af1ZPwf8BT8VFqo8C18zO3ESWj+GwwU/QTStPEyDGjuVNFo/0IoFPzUisDyTJwI7yVZaP7pkBT98A7M8ipvfOoNtWj/SDgU/2uixPEUOrDooolo/C4cEP4+WsTy2XQ46r/RaP9/yAz+hTas8yb5vuVxPWz8dWAM/vmCiPKKAhLrXrVs/lsgCP93CmDxPTt+6DgVcP5k8Aj/1ZIw84SMQuwNaXD8LpQE/wfl9PHCILrtCtVw/JwMBP9hzXjxmPkW7FxZdP4JZAD+YykA8hl9Wu2t6XT9ZQv8+GzMpPOUrabv55V0/juf9PsG7GDycNoC7AEpeP2AK0D67Vm89AoTLvD9ZaT9iCtA+w1ZvPSSEy7w+WWk/YgrQPsRWbz0ihMu8PllpP2AK0D68Vm898YPLvD9ZaT92CtA+v1ZvPeqDy7w6WWk/PArQPqlWbz2jg8u8R1lpPyYJ0D5JVm89loLLvIVZaT/YCNA+MVZvPT+Cy7yXWWk/QAnQPlpWbz2Ygsu8gFlpPwAK0D6gVm89cIPLvFRZaT/GCtA+5lZvPVqEy7woWWk/CwzQPllXbz3chcu83lhpPzEL0D4HV28974TLvBBZaT+BB9A+rVVvPb6Ay7zkWWk/zwLQPvZTbz1ne8u881ppP5v9zz4PUm89e3XLvB9caT9k+M8+J1BvPYpvy7xMXWk/qvPPPm1Obz0pasu8XF5pP+3vzz4QTW8952XLvDRfaT+s7c8+PkxvPVdjy7y2X2k/ie3PPjJMbz0zY8u8vl9pP6Dvzz75TG89mWXLvEVfaT87888+TU5vPbppy7x1Xmk/n/fPPutPbz2/bsu8eF1pPxL8zz6NUW890nPLvHhcaT8kANA+ClNvPXJ4y7yNW2k/qgTQPqhUbz18fcu8iFppPz8G0D5BVW89QX/LvC1aaT8DBtA+KVVvPfV+y7w6Wmk/5ATQPrxUbz2mfcu8e1ppP34D0D43VG8983vLvMxaaT+pAdA+ilNvPcZ5y7w1W2k/CADQPvBSbz31d8u8k1tpPy//zz6rUm89PnfLvMRbaT+E/88+wFJvPYF3y7yxW2k/egHQPoVTbz3Tecu8QFtpP4AF0D7qVG89Nn7LvFhaaT8="
+    }
+  ],
+  "samplers": [
+    {}
+  ],
+  "extensionsUsed": [
+    "VRMC_vrm_animation"
+  ],
+  "extensions": {
+    "VRMC_vrm_animation": {
+      "specVersion": "1.0",
+      "humanoid": {
+        "humanBones": {
+          "hips": {
+            "node": 1
+          },
+          "spine": {
+            "node": 2
+          },
+          "chest": {
+            "node": 3
+          },
+          "upperChest": {
+            "node": 4
+          },
+          "neck": {
+            "node": 5
+          },
+          "head": {
+            "node": 6
+          },
+          "leftShoulder": {
+            "node": 8
+          },
+          "leftUpperArm": {
+            "node": 9
+          },
+          "leftLowerArm": {
+            "node": 10
+          },
+          "leftHand": {
+            "node": 11
+          },
+          "rightShoulder": {
+            "node": 20
+          },
+          "rightUpperArm": {
+            "node": 21
+          },
+          "rightLowerArm": {
+            "node": 22
+          },
+          "rightHand": {
+            "node": 23
+          },
+          "leftUpperLeg": {
+            "node": 32
+          },
+          "leftLowerLeg": {
+            "node": 33
+          },
+          "leftFoot": {
+            "node": 34
+          },
+          "leftToes": {
+            "node": 35
+          },
+          "rightUpperLeg": {
+            "node": 37
+          },
+          "rightLowerLeg": {
+            "node": 38
+          },
+          "rightFoot": {
+            "node": 39
+          },
+          "rightToes": {
+            "node": 40
+          }
+        }
+      },
+      "meta": {
+        "duration": 1.5,
+        "frameCount": 45,
+        "framerate": 30
+      }
+    }
+  }
+}
