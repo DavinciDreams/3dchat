@@ -31,3 +31,8 @@ tools/
 *.FBX
 *.vrma
 *.VRMA
+*.zip
+*.ZIP
+
+# Supabase temp files
+supabase/.temp/
