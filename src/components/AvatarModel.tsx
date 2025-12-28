@@ -117,15 +117,33 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       visemeApplier.setVRM(vrmObj as any);
 
-      // Position and scale the model using config values for normalization
-      const modelScale = scale * (modelConfig.scale ?? 1);
-      const modelPositionY = position[1] + (modelConfig.positionY ?? 0);
+      // Calculate model bounds for auto-scaling
+      const box = new THREE.Box3().setFromObject(scene);
+      const modelHeight = box.max.y - box.min.y;
+      const modelCenter = new THREE.Vector3();
+      box.getCenter(modelCenter);
+
+      // Target height for consistent avatar sizing (fits nicely in viewport)
+      const TARGET_HEIGHT = 1.6;
+      const autoScale = TARGET_HEIGHT / modelHeight;
+
+      // Apply scale: auto-scale * config scale * prop scale
+      const finalScale = autoScale * (modelConfig.scale ?? 1) * scale;
+      scene.scale.setScalar(finalScale);
+
+      // Recalculate bounds after scaling
+      const scaledBox = new THREE.Box3().setFromObject(scene);
+      const groundOffset = -scaledBox.min.y; // Move model so feet touch y=0
+
+      // Position model with feet on ground + any config offset
+      const modelPositionY = position[1] + groundOffset + (modelConfig.positionY ?? 0);
       scene.position.set(position[0], modelPositionY, position[2]);
-      scene.scale.setScalar(modelScale);
 
       // Apply rotation with model-specific adjustment to face camera
       const yRotation = rotation[1] + (modelConfig.rotationY ?? 0);
       scene.rotation.set(rotation[0], yRotation, rotation[2]);
+
+      console.log(`📏 [AvatarModel] Model "${modelConfig.id}" - height: ${modelHeight.toFixed(2)}m, autoScale: ${autoScale.toFixed(2)}, finalScale: ${finalScale.toFixed(2)}`);
 
       // Setup animation mixer with VRM scene
       mixer.current = new THREE.AnimationMixer(scene);
