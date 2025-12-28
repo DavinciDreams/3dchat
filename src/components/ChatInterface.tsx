@@ -357,38 +357,29 @@ const ChatInterface = (): JSX.Element => {
           console.log('%c⚠️ NO ANIMATIONS TO QUEUE', 'background: #95a5a6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
         }
 
-        try {
-          // Use cleanText for speech synthesis (no emojis, links, asterisks)
-          const audioBuffer = await textToSpeech(processed.cleanText);
-          console.log('TTS result received from textToSpeech:', audioBuffer);
-          console.log('TTS result keys:', audioBuffer ? Object.keys(audioBuffer) : 'null/undefined');
-          if (!audioBuffer) {
-            console.warn('TTS returned null or empty audioBuffer');
-          } else {
-            console.log('TTS audioBuffer.audioBuffer:', audioBuffer.value.audioBuffer);
-            console.log('TTS audioBuffer.audioBuffer type:', typeof audioBuffer.value.audioBuffer);
-            console.log('TTS audioBuffer.audioBuffer byteLength:', audioBuffer.value.audioBuffer?.byteLength);
-            try {
-              await playAudio(audioBuffer.value.audioBuffer);
-              console.log('Audio playback finished');
+        // Handle TTS result from Promise.allSettled
+        if (audioBuffer.status === 'fulfilled' && audioBuffer.value) {
+          console.log('TTS result received:', audioBuffer.value);
+          try {
+            await playAudio(audioBuffer.value.audioBuffer);
+            console.log('Audio playback finished');
 
-              // Trigger gestures from emoji metadata
-              if (processed.metadata.emojis.length > 0) {
-                const store = useChatStore.getState();
-                processed.metadata.emojis.forEach((emojiData) => {
-                  if (emojiData.gesture) {
-                    // Cast to Emotion type if it's a valid emotion
-                    if (['neutral', 'happy', 'thinking', 'sad'].includes(emojiData.gesture)) {
-                      store.setEmotion(emojiData.gesture as Emotion);
-                    }
+            // Trigger gestures from emoji metadata
+            if (processed.metadata.emojis.length > 0) {
+              const store = useChatStore.getState();
+              processed.metadata.emojis.forEach((emojiData) => {
+                if (emojiData.gesture) {
+                  // Cast to Emotion type if it's a valid emotion
+                  if (['neutral', 'happy', 'thinking', 'sad'].includes(emojiData.gesture)) {
+                    store.setEmotion(emojiData.gesture as Emotion);
                   }
-                });
-              }
-            } catch (playError) {
-              console.error('Error during audio playback:', playError);
+                }
+              });
             }
+          } catch (playError) {
+            console.error('Error during audio playback:', playError);
           }
-        } else {
+        } else if (audioBuffer.status === 'rejected') {
           console.error('Error during TTS:', audioBuffer.reason);
         }
       }
