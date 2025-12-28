@@ -452,7 +452,17 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       console.log('%c🌟 PLAYING ANIMATION: ' + currentAnimation, 'background: #9b59b6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 16px;');
       console.log('%c🌟 Available VRMA actions:', 'color: #9b59b6; font-weight: bold;', Object.keys(vrmaActions.current));
       console.log('%c🌟 Action exists:', 'color: #9b59b6; font-weight: bold;', !!vrmaActions.current[currentAnimation]);
-      fadeToAction(currentAnimation);
+
+      // If animation not loaded yet, load it on-demand then play
+      if (!vrmaActions.current[currentAnimation] && !currentActions.current[currentAnimation]) {
+        console.log('%c📥 [AvatarModel] Animation not loaded, loading on-demand:', 'color: #f39c12; font-weight: bold;', currentAnimation);
+        loadVRMAAnimation(currentAnimation).then(() => {
+          console.log('%c📥 [AvatarModel] On-demand load complete, playing:', 'color: #27ae60; font-weight: bold;', currentAnimation);
+          fadeToAction(currentAnimation);
+        });
+      } else {
+        fadeToAction(currentAnimation);
+      }
     }
   }, [currentAnimation, vrmaAnimationsLoaded]);
 
@@ -473,23 +483,33 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 
     console.log('%c🎭 [AvatarModel] Emotion animation check - emotion: ' + emotion + ', isSpeaking: ' + isSpeaking, 'color: #3498db;');
 
+    // Helper to play animation with on-demand loading
+    const playEmotionAnimation = async (animName: string) => {
+      if (!vrmaActions.current[animName] && !currentActions.current[animName]) {
+        await loadVRMAAnimation(animName);
+      }
+      fadeToAction(animName);
+    };
+
     if (isSpeaking) {
       // While speaking without explicit animation, use greeting
       if (vrmaActions.current['greeting']) {
         fadeToAction('greeting');
-      } else if (currentActions.current['talking']) {
-        fadeToAction('talking');
+      } else {
+        playEmotionAnimation('greeting');
       }
     } else {
       switch (emotion) {
         case 'thinking':
           // During thinking, just use modelPose (spin is now explicit only)
-          if (vrmaActions.current['modelPose']) {
-            fadeToAction('modelPose');
-          }
+          fadeToAction('modelPose');
           break;
         case 'happy':
-          fadeToAction('peace');
+          if (vrmaActions.current['peace']) {
+            fadeToAction('peace');
+          } else {
+            playEmotionAnimation('peace');
+          }
           break;
         default:
           fadeToAction('modelPose');
