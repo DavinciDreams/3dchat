@@ -24,3 +24,15 @@ dist-ssr
 *.sw?
 .env
 screenshots
+
+# Animation build files
+animations-raw/
+*.fbx
+*.FBX
+*.vrma
+*.VRMA
+*.zip
+*.ZIP
+
+# Supabase temp files
+supabase/.temp/
