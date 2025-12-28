@@ -22,7 +22,7 @@ export const AVAILABLE_VRM_MODELS: VRMModel[] = [
   { id: 'glenda', name: 'Glenda', path: '/model/Glenda.vrm', rotationY: 0, positionY: 0, scale: 1 },
   { id: 'mega', name: 'Mega', path: '/model/Mega.vrm', rotationY: 0, positionY: 0, scale: 1 },
   { id: 'peach', name: 'Peach', path: '/model/peach.vrm', rotationY: Math.PI, positionY: 0, scale: 1 },
-  { id: 'robot', name: 'Auton', path: '/model/robot.vrm', rotationY: 0, positionY: 0, scale: 1 },
+  { id: 'robot', name: 'Auton', path: '/model/robot.vrm', rotationY: Math.PI, positionY: 0, scale: 1 },
 ];
 
 // Voice types
