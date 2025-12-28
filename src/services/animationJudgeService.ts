@@ -10,20 +10,35 @@ const SYSTEM_PROMPT = `You are an animation director for a 3D avatar. Given a co
 Available animations by category:
 
 CORE ANIMATIONS:
-- greeting: Waving hello gesture - use for hellos, goodbyes, friendly acknowledgment
 - peace: Peace sign/victory pose - use for success, positivity, celebration
 - shoot: Finger guns/shooting gesture - use for playful pointing, "gotcha", cool moments
 - spin: A playful spinning/twirling motion - use for fun, excitement, showing off
 - modelPose: Idle standing pose - use for neutral moments
-- squat: Bending down/crouching motion - use for exercising, hiding, getting low
+- thinking: Thinking - use for contemplation
+
+GREETINGS:
+- standingGreeting: Standing greeting - use for formal greeting
+- waving: Waving - use for greeting or farewell
+- greeting: Waving hello gesture - use for hellos, goodbyes, friendly acknowledgment
+- shakingHands1: Shaking hands - use for greeting or agreement
+- entry: Entry - use for entering scene
+
 
 IDLE & SOCIAL:
 - idle: Default standing pose
 - weightShift: Shifting weight between feet - use for subtle idle variation
 - talkingOnPhone: Talking on phone animation
-- bowing: Respectful bow - use for formal greetings or respect
-- salute: Military-style salute - use for playful formality
-- singing: Singing animation - use for music or singing
+- lookAround: Looking around - use for searching/observing
+- talking: Talking - use for conversation
+
+TRANSITIONAL POSES:
+- sitToStand: Sit to stand transition - use for getting up
+- standToSit: Stand to sit transition - use for sitting down
+- gettingUp: Getting up - use for standing up
+- crouchToStand: Crouch to stand - use for getting up
+- startWalking: Start walking - use for beginning movement
+- squat: Bending down/crouching motion - use for exercising, hiding, getting low
+- jumpingDown: Jumping down - use for dropping/jumping down
 
 DANCE & CELEBRATION:
 - hipHopDance: Hip hop dance moves - use for dancing or celebration
@@ -65,35 +80,52 @@ BREAKDANCE:
 - flair_2: Alternative flair move
 - flair_3: Another flair variation
 
-COMBAT & ACTION:
+MARTIAL ARTS:
 - punch: Punch forward - use for action or fighting
 - dropKick: Drop kick attack - use for aggressive action
 - flyingKnee: Flying knee combo - use for martial arts
-- daggerStab: Double dagger stab - use for weapon attacks
+- ninjaIdle: Ninja idle - use for stealth pose
+- kipUp: Kip up - use for martial arts
+- bowing: Elbowing - use for fights to throw an elbow strike
 - bodyBlock: Body block defense - use for blocking
 - centerBlock: Center block defense - use for blocking
-- catch: Catch something - use for catching
-- snatch: Snatch grab - use for grabbing quickly
+
+COMBAT:
+- daggerStab: Double dagger stab - use for weapon attacks
 - reloading: Reload weapon - use for gun/weapon context
 - magicCast: Cast magic spell - use for magic or power
+- takeCover: Take cover - use for hiding or stealth
+- aimingGun: Aiming gun - use for shooting context
+- salute: Military-style salute - use for playful formality
 
-MOVEMENT:
+Locomotion & MOVEMENT:
 - walking: Walking in place - use when discussing travel
 - jogBackwards: Jog backwards - use for retreating
 - jumping: Jump in place - use for excitement or jumping
 - climbing: Climbing up - use for climbing context
-- takeCover: Take cover - use for hiding or stealth
-- zombieStandUp: Zombie stand up - use for zombie/horror context
-- plank: Plank exercise - use for exercise
-- openDoor: Open door - use for door interactions
 - turnLeft: Turn left 90 degrees - use for turning
 - turnRight: Turn right with briefcase - use for turning
+- standardRun: Standard running - use for running
+- runningUpStairs: Running up stairs - use for climbing stairs
 
 SPORTS:
 - golfBadShot: Golf bad shot reaction - use for golf or frustration
 - golfPrePutt: Golf pre-putt stance - use for golf
 - golfDrive: Golf drive swing - use for golf
 - golfPuttVictory: Golf putt victory celebration - use for golf success
+- skateboarding: Skateboarding - use for skating
+- defeatIdle: Defeat idle - use for losing/failure
+- victory: Victory pose - use for celebration
+
+Exercise & Fitness:
+- plank: Plank exercise - use for exercise
+- throwing: Throwing - use for throwing objects
+- catch: Catch something - use for catching
+- situps: Situps - use for exercise
+- jumpingJacks: Jumping jacks - use for exercise
+- cartwheel: Cartwheel - use for gymnastics
+- backflip: Backflip - use for acrobatics
+- standingJump: Standing jump - use for jumping
 
 MUSIC & PERFORMANCE:
 - guitarPlaying: Playing guitar - use for music performance
@@ -101,78 +133,47 @@ MUSIC & PERFORMANCE:
 - playingDrums: Playing drums - use for music performance
 - playingTheViolin: Playing violin - use for music performance
 - singing_1: Singing variation - use for music or singing
+- singing: Singing animation - use for music or singing
 
-MOVEMENT VARIATIONS:
-- standardRun: Standard running - use for running
-- runningUpStairs: Running up stairs - use for climbing stairs
-- startWalking: Start walking - use for beginning movement
-- jumpingDown: Jumping down - use for dropping/jumping down
-- jumpingJacks: Jumping jacks - use for exercise
-- vaultOverBox: Vault over box - use for parkour/obstacle
-- skateboarding: Skateboarding - use for skating
-- swimming: Swimming - use for water activities
-- paddling: Paddling - use for water activities
+Sneaky/Stealthy Movements:
 - lowCrawl: Low crawl - use for stealth/crawling
 - sneakingForward: Sneaking forward - use for stealth
 - sneakyWalking: Sneaky walking - use for stealth
+- lookOverShoulder: Look over shoulder - use for checking behind
+- nervouslyLookAround: Nervously looking around - use for anxiety
+- plotting: Plotting - use for scheming
+- militarySignaling: Military signaling used to communicate silently
 
-SITTING & LYING:
+SITTING & KNEELING DOWN:
 - sitting: Sitting down - use for sitting
-- sitToStand: Sit to stand transition - use for getting up
-- standToSit: Stand to sit transition - use for sitting down
 - sittingClap: Sitting clap - use for celebration while sitting
 - sittingTalking: Sitting and talking - use for conversation
 - sittingDisapproval: Sitting disapproval - use for disagreement
-- layingIdle: Laying idle - use for resting
-- lyingDown: Lying down - use for lying down
 - kneeling: Kneeling down - use for kneeling
-- crouchToStand: Crouch to stand - use for getting up
-- gettingUp: Getting up - use for standing up
 
-SOCIAL & INTERACTION:
-- waving: Waving - use for greeting or farewell
-- shakingHands1: Shaking hands - use for greeting or agreement
-- beckoning: Beckoning - use for calling someone over
-- pointing: Pointing - use for indicating direction
-- patting: Patting - use for gentle touch
-- petting: Petting - use for showing affection
-- pettingAnimal: Petting animal - use for interacting with animals
+Affectionate Gestures:
+- patting: Patting - use for pat on the back or shoulder
 - kissing: Kissing - use for affection
 - blowAKiss: Blowing a kiss - use for affection
 - shrugging: Shrugging - use for uncertainty or indifference
 
+Animals & Pets:
+- pettingAnimal: Petting animal - use for interacting with animals
+- petting: Petting - use for showing affection
+
 EMOTIONAL STATES:
 - happyIdle: Happy idle - use for happiness
 - sadIdle: Sad idle - use for sadness
-- defeatIdle: Defeat idle - use for losing/failure
-- victoryIdle: Victory idle - use for winning/success
-- victory: Victory pose - use for celebration
-- disappointed: Disappointed - use for disappointment
-- bashful: Bashful - use for shyness
-- angryGesture_1: Angry gesture variation - use for anger
-- thinking: Thinking - use for contemplation
-- nervouslyLookAround: Nervously looking around - use for anxiety
-- lookAround: Looking around - use for searching/observing
-- lookOverShoulder: Look over shoulder - use for checking behind
-
-ACTION & ACTIVITY:
-- aimingGun: Aiming gun - use for shooting context
-- buttonPushing: Button pushing - use for pressing buttons
-- cartwheel: Cartwheel - use for gymnastics
-- backflip: Backflip - use for acrobatics
-- kipUp: Kip up - use for martial arts
-- throwing: Throwing - use for throwing objects
-- textingAndWalking: Texting and walking - use for multitasking
-- typing: Typing - use for working at computer
-- talking: Talking - use for conversation
-- pacingAndTalkingOnAPhone: Pacing and talking on phone - use for conversation
-- fishingCast: Fishing cast - use for fishing
-- plotting: Plotting - use for scheming
-- startClimbingLadder: Start climbing ladder - use for climbing
+- sadWalk: Sad walk - use for walking sadly
 - cockyHeadTurn: Cocky head turn - use for arrogance
-- strongGesture: Strong gesture - use for emphasis
+- strongGesture: Muscle flex, strong gesture
+- victoryIdle: Victory idle - use for winning/success
+- disappointed: Disappointed - use for disappointment
+- relievedSigh: Relieved sigh - use for relief, letting go of tension
+- bashful: Bashful - use for shyness
+- lookAwayGesture: Look away - use for embarrassment, shame, or looking away
 
-DANCE VARIATIONS:
+SILLY DANCES:
 - rumbaDancing: Rumba dancing - use for dancing
 - sambaDancing: Samba dancing - use for dancing
 - sillyDancing: Silly dancing - use for fun dancing
@@ -180,27 +181,39 @@ DANCE VARIATIONS:
 - dancingTwerk: Dancing twerk - use for dancing
 - twistDance: Twist dance - use for dancing
 
-COMBAT & AGGRESSIVE:
+ANGRY & AGGRESSIVE:
 - roar: Roar - use for aggressive expression
-- push: Push - use for physical contact
-- pushStart: Push start - use for preparing to push
+- yelling: Yelling - use for shouting
+- angryGesture: Angry gesture - use for anger, frustration
+- beingCocky: Cocky pose - use for arrogance, showing off
+- standingArguing: Standing arguing - use for conflict
+- angryGesture_1: Angry gesture variation - use for anger
+- pacingAndTalkingOnAPhone: Pacing and talking on phone - use for conversation
 
-OTHER:
-- floating: Floating - use for floating/levitation
-- ninjaIdle: Ninja idle - use for stealth pose
-- militarySignaling: Military signaling - use for military context
+Object Interaction:
+- openDoor: Open door - use for door interactions
+- push: Push - use for pushing large objects
+- pushStart: Push start - use to begin pushing very large objects
+- startClimbingLadder: Start climbing ladder - use for climbing
+- vaultOverBox: Vault over box - use for parkour/obstacle
 - rummaging: Rummaging - use for searching
 - searchingPockets: Searching pockets - use for looking for something
-- entry: Entry - use for entering scene
-- sadWalk: Sad walk - use for walking sadly
-- standingArguing: Standing arguing - use for conflict
-- standingClap: Standing clap - use for celebration
-- standingGreeting: Standing greeting - use for formal greeting
-- standingJump: Standing jump - use for jumping
-- situps: Situps - use for exercise
+- snatch: Snatch grab - use for grabbing quickly
+- fishingCast: Fishing cast - use for fishing
+- buttonPushing: Button pushing - use for pressing buttons
+- typing: Typing - use for working at computer
+
+Water Activities:
+- swimming: Swimming - use for water activities
+- floating: Floating - use for floating/levitation
+- paddling: Paddling - use for water activities
+
+Bored / Tired Gestures:
 - smoking: Smoking - use for smoking
 - yawn: Yawn - use for tiredness/boredom
-- yelling: Yelling - use for shouting
+- layingIdle: Laying idle - use for resting
+- lyingDown: Lying down - use for lying down
+- zombieStandUp: Zombie stand up - use for unsteady standing
 
 GESTURE ANIMATIONS (subtle expressions):
 HEAD GESTURES:
@@ -213,15 +226,12 @@ HEAD GESTURES:
 - thoughtfulHeadShake: Thoughtful shake - use for uncertainty, contemplation
 
 HAND GESTURES:
+- standingClap: Standing clap - use for celebration
 - happyHandGesture: Happy hand gesture - use for joy, celebration
 - dismissingGesture: Dismissing wave - use for dismissal, ending topic
 - acknowledging: Acknowledging gesture - use for recognition, "I hear you"
-
-EMOTIONAL EXPRESSIONS:
-- angryGesture: Angry gesture - use for anger, frustration
-- beingCocky: Cocky pose - use for confidence, arrogance, showing off
-- relievedSigh: Relieved sigh - use for relief, letting go of tension
-- lookAwayGesture: Look away - use for embarrassment, shame, or looking away
+- beckoning: Beckoning - use for calling someone over
+- pointing: Pointing - use for indicating direction
 
 Rules:
 1. Only trigger animations that naturally match what the avatar is saying
