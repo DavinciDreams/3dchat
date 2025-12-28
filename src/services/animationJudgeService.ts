@@ -23,7 +23,6 @@ GREETINGS:
 - shakingHands1: Shaking hands - use for greeting or agreement
 - entry: Entry - use for entering scene
 
-
 IDLE & SOCIAL:
 - idle: Default standing pose
 - happyIdle: Happy idle - use for happiness
