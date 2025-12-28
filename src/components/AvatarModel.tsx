@@ -411,6 +411,9 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   // Helper function to fade to an animation action
   const fadeToAction = (actionName: string, duration: number = 0.3) => {
     console.log('%c🎭 [fadeToAction] Called with:', 'color: #3498db; font-weight: bold;', actionName);
+    console.log('%c🎭 [fadeToAction] vrmaAnimationsLoaded:', 'color: #3498db;', vrmaAnimationsLoaded);
+    console.log('%c🎭 [fadeToAction] Available VRMA actions:', 'color: #3498db;', Object.keys(vrmaActions.current));
+    console.log('%c🎭 [fadeToAction] Available embedded actions:', 'color: #3498db;', Object.keys(currentActions.current));
 
     if (!mixer.current) {
       console.log('%c🎭 [fadeToAction] No mixer - aborting', 'color: #e74c3c;');
@@ -424,6 +427,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     }
     if (!action) {
       console.warn('%c🎭 [fadeToAction] Animation NOT FOUND: ' + actionName, 'background: #e74c3c; color: white; padding: 2px 6px;');
+      console.warn('%c🎭 [fadeToAction] Requested: "' + actionName + '" but available are:', 'color: #e74c3c;', Object.keys(vrmaActions.current));
       // Fall back to natural pose if no animation found
       if (vrmRef.current) {
         applyNaturalPose(vrmRef.current);
@@ -486,7 +490,15 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 
   // Handle emotion-based animations (only when no explicit animation is playing)
   useEffect(() => {
-    if (!mixer.current) return;
+    if (!mixer.current) {
+      console.log('%c🎭 [AvatarModel] Emotion: No mixer yet', 'color: #95a5a6;');
+      return;
+    }
+
+    if (!vrmaAnimationsLoaded) {
+      console.log('%c🎭 [AvatarModel] Emotion: Animations not loaded yet, skipping', 'color: #95a5a6;');
+      return;
+    }
 
     // Don't override explicit animation triggers OR active animation queue
     if (currentAnimation) {
