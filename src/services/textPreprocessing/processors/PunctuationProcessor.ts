@@ -12,11 +12,13 @@ import { TextMetadata } from '../../../types';
 
 // Pattern to match markdown heading markers (1-6 hash characters at start of line)
 const HEADING_MARKER_PATTERN = /^#{1,6}\s+/gm;
+const ASTERISK_PATTERN = /\*+([^*]+)\*+/g;
+const CAPS_PATTERN = /\b([A-Z]{3,})\b/g;
 
 export class PunctuationProcessor extends BaseProcessor {
   name = 'punctuation';
   priority = 10;
-  
+
   /**
    * Process text to detect and handle punctuation-based emphasis
    * @param text - Input text to process
@@ -25,25 +27,21 @@ export class PunctuationProcessor extends BaseProcessor {
    */
   process(text: string, metadata: TextMetadata) {
     const startTime = performance.now();
-    
+
+    let cleanText = text;
     const displayText = text;
-    // Only clone emphasis field since this processor only modifies it
-    const newMetadata = this.cloneMetadata(metadata, ['emphasis']);
-    
-    // Convert text to array for O(n) modifications
-    // eslint-disable-next-line prefer-const -- Array is modified in place via splice
-    let cleanTextChars = text.split('');
-    let positionOffset = 0;
-    
+    const newMetadata = this.cloneMetadata(metadata);
+
     // Process asterisk-wrapped emphasis: *text* or **text**
-    let match;
-    
-    while ((match = /\*+([^*]+)\*+/g.exec(text)) !== null) {
+    let positionOffset = 0;
+
+    // Use matchAll to avoid infinite loop with global regex
+    for (const match of text.matchAll(ASTERISK_PATTERN)) {
       const fullMatch = match[0];
       const innerText = match[1];
-      const startIndex = match.index;
+      const startIndex = match.index!;
       const endIndex = startIndex + fullMatch.length;
-      
+
       // Add to metadata
       newMetadata.emphasis.push({
         text: innerText,
@@ -51,29 +49,26 @@ export class PunctuationProcessor extends BaseProcessor {
         endIndex: endIndex - positionOffset - (fullMatch.length - innerText.length),
         type: 'asterisk'
       });
-      
-      // Remove asterisks from clean text using array splice (O(n) operation)
-      const removeStart = startIndex - positionOffset;
-      const removeLength = fullMatch.length - innerText.length;
-      cleanTextChars.splice(removeStart, removeLength, ...innerText.split(''));
-      
+
+      // Remove asterisks from clean text
+      cleanText = cleanText.substring(0, startIndex - positionOffset) +
+                  innerText +
+                  cleanText.substring(endIndex - positionOffset);
+
       positionOffset += fullMatch.length - innerText.length;
     }
-    
-    const cleanText = cleanTextChars.join('');
-    
+
     // Process markdown heading markers: ### Heading
-    const finalCleanText = cleanText.replace(HEADING_MARKER_PATTERN, '');
-    
+    cleanText = cleanText.replace(HEADING_MARKER_PATTERN, '');
+
     // Process CAPS for emphasis (all caps words 3+ characters)
-    let capsMatch;
     const emphasisText = new Set(newMetadata.emphasis.map(e => e.text));
-    
-    while ((capsMatch = /\b([A-Z]{3,})\b/g.exec(text)) !== null) {
+
+    for (const capsMatch of text.matchAll(CAPS_PATTERN)) {
       const word = capsMatch[1];
-      const startIndex = capsMatch.index;
+      const startIndex = capsMatch.index!;
       const endIndex = startIndex + word.length;
-      
+
       // Use Set for O(1) lookup instead of Array.some
       if (!emphasisText.has(word)) {
         newMetadata.emphasis.push({

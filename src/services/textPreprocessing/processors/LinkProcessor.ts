@@ -27,26 +27,21 @@ export class LinkProcessor extends BaseProcessor {
    */
   process(text: string, metadata: TextMetadata) {
     const startTime = performance.now();
-    
+
+    let cleanText = text;
     const displayText = text;
-    // Only clone links field since this processor only modifies it
-    const newMetadata = this.cloneMetadata(metadata, ['links']);
-    
-    // Convert text to array for O(n) modifications
-    // eslint-disable-next-line prefer-const -- Array is modified in place via splice
-    let cleanTextChars = text.split('');
+    const newMetadata = this.cloneMetadata(metadata);
     let positionOffset = 0;
-    
-    let match;
-    
-    while ((match = URL_PATTERN.exec(text)) !== null) {
+
+    // Use matchAll to avoid lastIndex issues between calls
+    for (const match of text.matchAll(URL_PATTERN)) {
       const url = match[0];
-      const startIndex = match.index;
+      const startIndex = match.index!;
       const endIndex = startIndex + url.length;
-      
+
       // Normalize www URLs to https:// format
       const normalizedUrl = url.startsWith('www') ? `https://${url}` : url;
-      
+
       // Add to metadata
       newMetadata.links.push({
         url: normalizedUrl,
@@ -54,12 +49,11 @@ export class LinkProcessor extends BaseProcessor {
         startIndex: startIndex - positionOffset,
         endIndex: endIndex - positionOffset
       });
-      
-      // Remove from clean text using array splice (O(n) operation)
-      const removeStart = startIndex - positionOffset;
-      const removeLength = endIndex - startIndex;
-      cleanTextChars.splice(removeStart, removeLength);
-      
+
+      // Remove from clean text (for TTS)
+      cleanText = cleanText.substring(0, startIndex - positionOffset) +
+                  cleanText.substring(endIndex - positionOffset);
+
       positionOffset += url.length;
     }
     

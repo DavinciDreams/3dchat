@@ -4,7 +4,7 @@ import { AIResponse } from '../types';
 import { ServiceError } from '../errors/AppError';
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
-const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'qwen/qwen3-235b-a22b:free';
+const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
 
 export async function getAIResponse(input: string): Promise<AIResponse> {
   try {
