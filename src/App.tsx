@@ -8,6 +8,8 @@ import type { AppError } from './types';
 import { AVAILABLE_VRM_MODELS, AVAILABLE_VOICES, AVAILABLE_ANIMATIONS } from './types';
 import { TypeaheadSelect, SelectOption } from './components/TypeaheadSelect';
 
+type ChatPosition = 'right' | 'bottom';
+
 // Use lazy loading for performance optimization
 const ChatInterface = React.lazy(() => import('./components/ChatInterface'));
 const AvatarModel = React.lazy(() => import('./components/AvatarModel'));
@@ -18,6 +20,30 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(true); // Temporarily set to true for debugging
   const [isModelLoading, setIsModelLoading] = useState(false);
   const { setProcessing, isMuted, setIsMuted, selectedModelId, setSelectedModelId, selectedVoiceId, setSelectedVoiceId, setCurrentAnimation } = useChatStore();
+
+  // Track chat position and collapsed state for layout calculations
+  const [chatPosition, setChatPosition] = useState<ChatPosition>(() => {
+    const saved = localStorage.getItem('chatPosition');
+    return (saved as ChatPosition) || 'right';
+  });
+  const [chatCollapsed, setChatCollapsed] = useState<boolean>(() => {
+    const saved = localStorage.getItem('chatCollapsed');
+    return saved === 'true';
+  });
+
+  // Listen for chat position/collapsed changes from localStorage
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const pos = localStorage.getItem('chatPosition') as ChatPosition;
+      const collapsed = localStorage.getItem('chatCollapsed') === 'true';
+      if (pos) setChatPosition(pos);
+      setChatCollapsed(collapsed);
+    };
+
+    // Poll for changes since storage events don't fire in same window
+    const interval = setInterval(handleStorageChange, 100);
+    return () => clearInterval(interval);
+  }, []);
 
   // Transform models to SelectOption format
   const modelOptions: SelectOption[] = useMemo(() =>
@@ -117,8 +143,25 @@ function App() {
     await supabase.auth.signOut();
   };
 
+  // Calculate avatar pane dimensions based on chat position and collapsed state
+  const getAvatarPaneClasses = () => {
+    const baseClasses = 'relative transition-all duration-300 ease-in-out';
+
+    if (chatPosition === 'right') {
+      // Chat on right: avatar takes full height, reduced width
+      const width = chatCollapsed ? 'calc(100% - 48px)' : 'calc(100% - 384px)';
+      return { className: baseClasses, style: { width, height: '100%' } };
+    } else {
+      // Chat on bottom: avatar takes full width, reduced height
+      const height = chatCollapsed ? 'calc(100% - 48px)' : 'calc(100% - 50vh)';
+      return { className: baseClasses, style: { width: '100%', height } };
+    }
+  };
+
+  const avatarPaneProps = getAvatarPaneClasses();
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white relative overflow-hidden">
+    <div className="h-screen flex flex-col bg-gradient-to-b from-gray-900 to-gray-800 text-white overflow-hidden">
       {/* Model loading indicator */}
       <AnimatePresence>
         {isModelLoading && (
@@ -126,7 +169,7 @@ function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center bg-black/50 z-50"
+            className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
           >
             <div className="text-center">
               <motion.div
@@ -143,7 +186,7 @@ function App() {
 
       {/* Loading fallback */}
       <Suspense fallback={
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center h-screen">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -152,14 +195,8 @@ function App() {
           </motion.div>
         </div>
       }>
-        {/* 3D Avatar Area */}
-        <AvatarModel />
-        
-        {/* Overlay with gradient for better text readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent pointer-events-none" />
-        
-        {/* Header */}
-        <header className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-20 pointer-events-auto">
+        {/* Header - fixed height */}
+        <header className="h-16 shrink-0 px-4 flex justify-between items-center z-30 bg-gray-900/80 backdrop-blur-sm border-b border-gray-700/50">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -206,14 +243,14 @@ function App() {
               icon={<Sparkles className="h-4 w-4" />}
             />
           </motion.div>
-          
+
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
             className="flex gap-2"
           >
-            <button 
+            <button
               onClick={handleVolumeToggle}
               className="p-2 bg-gray-800 rounded-full text-white/80 hover:text-white hover:bg-gray-700 transition-all"
               title={isMuted ? "Unmute" : "Mute"}
@@ -237,7 +274,7 @@ function App() {
             )}
           </motion.div>
         </header>
-        
+
         {/* Error Messages */}
         <AnimatePresence>
           {error && (
@@ -245,7 +282,7 @@ function App() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="absolute top-20 left-0 right-0 flex justify-center z-20"
+              className="absolute top-20 left-0 right-0 flex justify-center z-40"
             >
               <div className="bg-red-500/90 text-white px-4 py-2 rounded-md shadow-lg">
                 {error.message}
@@ -254,14 +291,29 @@ function App() {
           )}
         </AnimatePresence>
 
-        {/* Main Content */}
-        <div className="relative z-10 min-h-screen flex items-center justify-center">
+        {/* Main Content Area - takes remaining height */}
+        <main className="flex-1 relative overflow-hidden">
           {!isAuthenticated ? (
-            <LoginForm onSuccess={() => setIsAuthenticated(true)} />
+            <div className="h-full flex items-center justify-center">
+              <LoginForm onSuccess={() => setIsAuthenticated(true)} />
+            </div>
           ) : (
-            <ChatInterface />
+            <>
+              {/* Avatar Pane - dedicated space that adjusts for chat position */}
+              <div
+                className={avatarPaneProps.className}
+                style={avatarPaneProps.style}
+              >
+                <AvatarModel />
+                {/* Subtle gradient overlay for depth */}
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900/30 to-transparent pointer-events-none" />
+              </div>
+
+              {/* Chat Interface - uses fixed positioning to overlay */}
+              <ChatInterface />
+            </>
           )}
-        </div>
+        </main>
       </Suspense>
     </div>
   );

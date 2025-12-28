@@ -569,9 +569,13 @@ const Scene: React.FC<SceneProps> = ({
   );
 };
 
-const AvatarModel: React.FC = () => {
+interface AvatarModelProps {
+  className?: string;
+}
+
+const AvatarModel: React.FC<AvatarModelProps> = ({ className = '' }) => {
   return (
-    <div className="w-full h-full absolute top-0 left-0 z-0">
+    <div className={`w-full h-full ${className}`}>
       <Canvas
         shadows
         gl={{
