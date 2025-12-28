@@ -167,7 +167,7 @@ export function TypeaheadSelect({
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Type to search..."
-                  className="w-full bg-gray-900/50 text-white text-sm pl-9 pr-3 py-2 rounded-lg border border-gray-600/50 focus:border-teal-500/50 focus:outline-none focus:ring-1 focus:ring-teal-500/30 placeholder-gray-500"
+                  className="w-full bg-gray-900 text-gray-100 text-sm pl-9 pr-3 py-2 rounded-lg border border-gray-600 focus:border-teal-500/50 focus:outline-none focus:ring-1 focus:ring-teal-500/30 placeholder:text-gray-400"
                 />
               </div>
             </div>
