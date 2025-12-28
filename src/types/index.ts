@@ -20,12 +20,12 @@ export interface VRMModel {
 export const AVAILABLE_VRM_MODELS: VRMModel[] = [
   { id: 'glenda', name: 'Glenda', path: '/model/Glenda.vrm', rotationY: 0, positionY: 0, scale: 1 },
   { id: 'mega', name: 'Mega', path: '/model/Mega.vrm', rotationY: 0, positionY: 0, scale: 1 },
-  { id: 'peach', name: 'Peach', path: '/model/peach.vrm', rotationY: Math.PI, positionY: 0, scale: 1 },
-  { id: 'robot', name: 'Auton', path: '/model/robot.vrm', rotationY: Math.PI, positionY: 0, scale: 1 },
-  { id: 'auton2', name: 'Auton 2', path: '/model/auton2.vrm', rotationY: Math.PI, positionY: 0, scale: 1 },
-  { id: 'auton3', name: 'Auton 3', path: '/model/auton3.vrm', rotationY: Math.PI, positionY: 0, scale: 1 },
-  { id: 'auton4', name: 'Auton 4', path: '/model/auton4.vrm', rotationY: Math.PI, positionY: 0, scale: 1 },
-  { id: 'auton6', name: 'Auton 6', path: '/model/auton6.vrm', rotationY: Math.PI, positionY: 0, scale: 1 },
+  { id: 'peach', name: 'Peach', path: '/model/peach.vrm', rotationY: 0, positionY: 0, scale: 1 },
+  { id: 'robot', name: 'Auton', path: '/model/robot.vrm', rotationY: 0, positionY: 0, scale: 1 },
+  { id: 'auton2', name: 'Auton 2', path: '/model/auton2.vrm', rotationY: 0, positionY: 0, scale: 1 },
+  { id: 'auton3', name: 'Auton 3', path: '/model/auton3.vrm', rotationY: 0, positionY: 0, scale: 1 },
+  { id: 'auton4', name: 'Auton 4', path: '/model/auton4.vrm', rotationY: 0, positionY: 0, scale: 1 },
+  { id: 'auton6', name: 'Auton 6', path: '/model/auton6.vrm', rotationY: 0, positionY: 0, scale: 1 },
 ];
 
 // Voice types
