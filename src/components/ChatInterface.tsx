@@ -744,7 +744,7 @@ const ChatInterface = (): JSX.Element => {
                   ? "Listening..."
                   : "Type a message..."
             }
-            className="flex-1 min-w-0 bg-gray-800/90 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-teal-500/50 disabled:opacity-50"
+            className="flex-1 min-w-0 bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-teal-500/50 disabled:opacity-50"
           />
 
           <motion.button

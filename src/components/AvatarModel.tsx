@@ -26,12 +26,13 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   const store = useChatStore();
   const { emotion, isSpeaking, visemes, selectedModelId, currentAnimation, animationQueue } = store;
 
-  // Get model path based on the selected model ID
-  // The key prop on the parent component handles model changes, so no timestamp needed
-  const MODEL_PATH_VRM = useMemo(() => {
+  // Get model config based on the selected model ID
+  const modelConfig = useMemo(() => {
     const model = AVAILABLE_VRM_MODELS.find(m => m.id === selectedModelId);
-    return model?.path || '/model/Billy.vrm';
+    return model || AVAILABLE_VRM_MODELS[0];
   }, [selectedModelId]);
+
+  const MODEL_PATH_VRM = modelConfig.path;
   
   // Load VRM model using VRMLoader
   const gltf = useLoader(GLTFLoader, MODEL_PATH_VRM, (loader) => {
@@ -187,21 +188,33 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       visemeApplier.setVRM(vrmObj as any);
 
-      // Position and scale the model
-      scene.position.set(position[0], position[1], position[2]);
-      scene.scale.setScalar(scale);
-      // Rotate to face the camera - Different models have different default orientations
-      const isPeachModel = selectedModelId === 'peach';
-      let yRotation = rotation[1];
+      // Calculate model bounds for auto-scaling
+      const box = new THREE.Box3().setFromObject(scene);
+      const modelHeight = box.max.y - box.min.y;
+      const modelCenter = new THREE.Vector3();
+      box.getCenter(modelCenter);
 
-      // Apply model-specific rotation adjustments
-      // Models may have different default orientations - adjust as needed
-      if (isPeachModel) {
-        yRotation += Math.PI; // Peach faces backwards by default
-      }
-      // Billy and Mega may need adjustment based on testing
+      // Target height for consistent avatar sizing (fits nicely in viewport)
+      const TARGET_HEIGHT = 1.6;
+      const autoScale = TARGET_HEIGHT / modelHeight;
 
+      // Apply scale: auto-scale * config scale * prop scale
+      const finalScale = autoScale * (modelConfig.scale ?? 1) * scale;
+      scene.scale.setScalar(finalScale);
+
+      // Recalculate bounds after scaling
+      const scaledBox = new THREE.Box3().setFromObject(scene);
+      const groundOffset = -scaledBox.min.y; // Move model so feet touch y=0
+
+      // Position model with feet on ground + any config offset
+      const modelPositionY = position[1] + groundOffset + (modelConfig.positionY ?? 0);
+      scene.position.set(position[0], modelPositionY, position[2]);
+
+      // Apply rotation with model-specific adjustment to face camera
+      const yRotation = rotation[1] + (modelConfig.rotationY ?? 0);
       scene.rotation.set(rotation[0], yRotation, rotation[2]);
+
+      console.log(`📏 [AvatarModel] Model "${modelConfig.id}" - height: ${modelHeight.toFixed(2)}m, autoScale: ${autoScale.toFixed(2)}, finalScale: ${finalScale.toFixed(2)}`);
 
       // Setup animation mixer with VRM scene
       mixer.current = new THREE.AnimationMixer(scene);
@@ -262,7 +275,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       visemeApplier.setVRM(null);
       isInitialized.current = false;
     };
-  }, [position, scale, rotation, selectedModelId]);
+  }, [position, scale, rotation, selectedModelId, modelConfig]);
 
   // Apply a natural standing pose to the VRM model
   const applyNaturalPose = (vrm: unknown) => {
