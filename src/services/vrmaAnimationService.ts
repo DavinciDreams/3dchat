@@ -76,10 +76,55 @@ export const VRMA_EXTENDED_ANIMATIONS: VRMAAnimationConfig[] = [
   { path: '/animations/vrma/golfPrePutt.vrma', name: 'golfPrePutt', description: 'Golf pre-putt stance' },
 ];
 
+// Breakdance animations
+export const VRMA_BREAKDANCE_ANIMATIONS: VRMAAnimationConfig[] = [
+  // 1990 spins
+  { path: '/animations/vrma/breakdance1990.vrma', name: 'breakdance1990' },
+  { path: '/animations/vrma/breakdance1990_2.vrma', name: 'breakdance1990_2' },
+  { path: '/animations/vrma/breakdance1990(2).vrma', name: 'breakdance1990_2_alt' },
+  { path: '/animations/vrma/breakdance1990(3).vrma', name: 'breakdance1990_3' },
+  // Endings
+  { path: '/animations/vrma/breakdanceEnding1.vrma', name: 'breakdanceEnding1' },
+  { path: '/animations/vrma/breakdanceEnding2.vrma', name: 'breakdanceEnding2' },
+  { path: '/animations/vrma/breakdanceEnding3.vrma', name: 'breakdanceEnding3' },
+  // Footwork
+  { path: '/animations/vrma/breakdanceFootwork1.vrma', name: 'breakdanceFootwork1' },
+  { path: '/animations/vrma/breakdanceFootwork2.vrma', name: 'breakdanceFootwork2' },
+  { path: '/animations/vrma/breakdanceFootwork3.vrma', name: 'breakdanceFootwork3' },
+  { path: '/animations/vrma/breakdanceFootworkToFreeze.vrma', name: 'breakdanceFootworkToFreeze' },
+  // Freezes
+  { path: '/animations/vrma/breakdanceFreezes.vrma', name: 'breakdanceFreezes' },
+  { path: '/animations/vrma/breakdanceFreezeVar1.vrma', name: 'breakdanceFreezeVar1' },
+  { path: '/animations/vrma/breakdanceFreezeVar2.vrma', name: 'breakdanceFreezeVar2' },
+  { path: '/animations/vrma/breakdanceFreezeVar3.vrma', name: 'breakdanceFreezeVar3' },
+  { path: '/animations/vrma/breakdanceFreezeVar4.vrma', name: 'breakdanceFreezeVar4' },
+  // Ready poses
+  { path: '/animations/vrma/breakdanceReady.vrma', name: 'breakdanceReady' },
+  { path: '/animations/vrma/breakdanceReady(2).vrma', name: 'breakdanceReady_2' },
+  { path: '/animations/vrma/breakdanceReady(3).vrma', name: 'breakdanceReady_3' },
+  // Swipes & Uprock
+  { path: '/animations/vrma/breakdanceSwipes.vrma', name: 'breakdanceSwipes' },
+  { path: '/animations/vrma/breakdanceUprock.vrma', name: 'breakdanceUprock' },
+  { path: '/animations/vrma/breakdanceUprock(2).vrma', name: 'breakdanceUprock_2' },
+  { path: '/animations/vrma/breakdanceUprockToGround.vrma', name: 'breakdanceUprockToGround' },
+  { path: '/animations/vrma/breakdanceUprockToGround(2).vrma', name: 'breakdanceUprockToGround_2' },
+  { path: '/animations/vrma/breakdanceUprockVar1.vrma', name: 'breakdanceUprockVar1' },
+  { path: '/animations/vrma/breakdanceUprockVar1End.vrma', name: 'breakdanceUprockVar1End' },
+  { path: '/animations/vrma/breakdanceUprockVar1Start.vrma', name: 'breakdanceUprockVar1Start' },
+  { path: '/animations/vrma/breakdanceUprockVar2.vrma', name: 'breakdanceUprockVar2' },
+  // Other breakdance moves
+  { path: '/animations/vrma/brooklynUprock.vrma', name: 'brooklynUprock' },
+  { path: '/animations/vrma/crosslegFreeze.vrma', name: 'crosslegFreeze' },
+  { path: '/animations/vrma/flair.vrma', name: 'flair' },
+  { path: '/animations/vrma/flair(2).vrma', name: 'flair_2' },
+  { path: '/animations/vrma/flair(3).vrma', name: 'flair_3' },
+];
+
 // Combined list of all animations
 export const VRMA_ANIMATIONS: VRMAAnimationConfig[] = [
   ...VRMA_CORE_ANIMATIONS,
   ...VRMA_EXTENDED_ANIMATIONS,
+  ...VRMA_BREAKDANCE_ANIMATIONS,
 ];
 
 // Map application animation states to VRMA animations
