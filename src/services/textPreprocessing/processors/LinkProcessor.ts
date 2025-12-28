@@ -28,12 +28,16 @@ export class LinkProcessor extends BaseProcessor {
   process(text: string, metadata: TextMetadata) {
     const startTime = performance.now();
     
-    let cleanText = text;
     const displayText = text;
-    const newMetadata = this.cloneMetadata(metadata);
+    // Only clone links field since this processor only modifies it
+    const newMetadata = this.cloneMetadata(metadata, ['links']);
+    
+    // Convert text to array for O(n) modifications
+    // eslint-disable-next-line prefer-const -- Array is modified in place via splice
+    let cleanTextChars = text.split('');
+    let positionOffset = 0;
     
     let match;
-    let positionOffset = 0;
     
     while ((match = URL_PATTERN.exec(text)) !== null) {
       const url = match[0];
@@ -51,15 +55,18 @@ export class LinkProcessor extends BaseProcessor {
         endIndex: endIndex - positionOffset
       });
       
-      // Remove from clean text (for TTS)
-      cleanText = cleanText.substring(0, startIndex - positionOffset) +
-                  cleanText.substring(endIndex - positionOffset);
+      // Remove from clean text using array splice (O(n) operation)
+      const removeStart = startIndex - positionOffset;
+      const removeLength = endIndex - startIndex;
+      cleanTextChars.splice(removeStart, removeLength);
       
       positionOffset += url.length;
     }
     
+    const cleanText = cleanTextChars.join('');
+    
     const elapsed = performance.now() - startTime;
-    if (elapsed > 10) {
+    if (import.meta.env.DEV && elapsed > 10) {
       console.warn(`⚠️ [LinkProcessor] Slow processing: ${elapsed.toFixed(2)}ms for ${text.length} chars`);
     }
     

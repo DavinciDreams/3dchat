@@ -26,13 +26,17 @@ export class PunctuationProcessor extends BaseProcessor {
   process(text: string, metadata: TextMetadata) {
     const startTime = performance.now();
     
-    let cleanText = text;
     const displayText = text;
-    const newMetadata = this.cloneMetadata(metadata);
+    // Only clone emphasis field since this processor only modifies it
+    const newMetadata = this.cloneMetadata(metadata, ['emphasis']);
+    
+    // Convert text to array for O(n) modifications
+    // eslint-disable-next-line prefer-const -- Array is modified in place via splice
+    let cleanTextChars = text.split('');
+    let positionOffset = 0;
     
     // Process asterisk-wrapped emphasis: *text* or **text**
     let match;
-    let positionOffset = 0;
     
     while ((match = /\*+([^*]+)\*+/g.exec(text)) !== null) {
       const fullMatch = match[0];
@@ -48,16 +52,18 @@ export class PunctuationProcessor extends BaseProcessor {
         type: 'asterisk'
       });
       
-      // Remove asterisks from clean text
-      cleanText = cleanText.substring(0, startIndex - positionOffset) +
-                  innerText +
-                  cleanText.substring(endIndex - positionOffset);
+      // Remove asterisks from clean text using array splice (O(n) operation)
+      const removeStart = startIndex - positionOffset;
+      const removeLength = fullMatch.length - innerText.length;
+      cleanTextChars.splice(removeStart, removeLength, ...innerText.split(''));
       
       positionOffset += fullMatch.length - innerText.length;
     }
     
+    const cleanText = cleanTextChars.join('');
+    
     // Process markdown heading markers: ### Heading
-    cleanText = cleanText.replace(HEADING_MARKER_PATTERN, '');
+    const finalCleanText = cleanText.replace(HEADING_MARKER_PATTERN, '');
     
     // Process CAPS for emphasis (all caps words 3+ characters)
     let capsMatch;
@@ -81,10 +87,10 @@ export class PunctuationProcessor extends BaseProcessor {
     }
     
     const elapsed = performance.now() - startTime;
-    if (elapsed > 10) {
+    if (import.meta.env.DEV && elapsed > 10) {
       console.warn(`⚠️ [PunctuationProcessor] Slow processing: ${elapsed.toFixed(2)}ms for ${text.length} chars`);
     }
     
-    return { cleanText, displayText, metadata: newMetadata };
+    return { cleanText: finalCleanText, displayText, metadata: newMetadata };
   }
 }

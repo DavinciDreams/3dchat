@@ -19,6 +19,7 @@
  */
 
 export { PreprocessingPipeline, preprocessingPipeline } from './PreprocessingPipeline';
+export type { PerformanceMetrics } from './PreprocessingPipeline';
 export { PunctuationProcessor } from './processors/PunctuationProcessor';
 export { EmojiProcessor } from './processors/EmojiProcessor';
 export { LinkProcessor } from './processors/LinkProcessor';
