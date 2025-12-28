@@ -36,14 +36,15 @@ function App() {
     const handleStorageChange = () => {
       const pos = localStorage.getItem('chatPosition') as ChatPosition;
       const collapsed = localStorage.getItem('chatCollapsed') === 'true';
-      if (pos) setChatPosition(pos);
-      setChatCollapsed(collapsed);
+      // Only update state if values actually changed to prevent unnecessary re-renders
+      if (pos && pos !== chatPosition) setChatPosition(pos);
+      if (collapsed !== chatCollapsed) setChatCollapsed(collapsed);
     };
 
     // Poll for changes since storage events don't fire in same window
     const interval = setInterval(handleStorageChange, 100);
     return () => clearInterval(interval);
-  }, []);
+  }, [chatPosition, chatCollapsed]);
 
   // Transform models to SelectOption format
   const modelOptions: SelectOption[] = useMemo(() =>
