@@ -32,5 +32,9 @@ animations-raw/
 *.zip
 *.ZIP
 
+# FBX2VRMA converter (development tool, not needed for deployment)
+fbx2vrma-converter/
+tools/fbx2vrma-converter/
+
 # Supabase temp files
 supabase/.temp/
