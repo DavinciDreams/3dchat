@@ -15,6 +15,7 @@ export const AVAILABLE_VRM_MODELS: VRMModel[] = [
   { id: 'glenda', name: 'Glenda', path: '/model/Glenda.vrm' },
   { id: 'mega', name: 'Mega', path: '/model/Mega.vrm' },
   { id: 'peach', name: 'Peach', path: '/model/peach.vrm' },
+  { id: 'robot', name: 'Auton', path: '/model/robot.vrm' },
 ];
 
 // Voice types
@@ -27,10 +28,36 @@ export interface Voice {
 }
 
 export const AVAILABLE_VOICES: Voice[] = [
-  { id: 'libby', name: 'en-GB-LibbyNeural', displayName: 'Libby (Female)', gender: 'female', language: 'en-GB' },
-  { id: 'jenny', name: 'en-GB-JennyNeural', displayName: 'Jenny (Female)', gender: 'female', language: 'en-GB' },
-  { id: 'ryan', name: 'en-US-RyanNeural', displayName: 'Ryan (Male)', gender: 'male', language: 'en-US' },
-  { id: 'guy', name: 'en-US-GuyNeural', displayName: 'Guy (Male)', gender: 'male', language: 'en-US' },
+  // US English - Female
+  { id: 'aria', name: 'en-US-AriaNeural', displayName: 'Aria', gender: 'female', language: 'en-US' },
+  { id: 'jenny', name: 'en-US-JennyNeural', displayName: 'Jenny', gender: 'female', language: 'en-US' },
+  { id: 'michelle', name: 'en-US-MichelleNeural', displayName: 'Michelle', gender: 'female', language: 'en-US' },
+  { id: 'sara', name: 'en-US-SaraNeural', displayName: 'Sara', gender: 'female', language: 'en-US' },
+  { id: 'nancy', name: 'en-US-NancyNeural', displayName: 'Nancy', gender: 'female', language: 'en-US' },
+  { id: 'jane', name: 'en-US-JaneNeural', displayName: 'Jane', gender: 'female', language: 'en-US' },
+  // US English - Male
+  { id: 'guy', name: 'en-US-GuyNeural', displayName: 'Guy', gender: 'male', language: 'en-US' },
+  { id: 'davis', name: 'en-US-DavisNeural', displayName: 'Davis', gender: 'male', language: 'en-US' },
+  { id: 'tony', name: 'en-US-TonyNeural', displayName: 'Tony', gender: 'male', language: 'en-US' },
+  { id: 'jason', name: 'en-US-JasonNeural', displayName: 'Jason', gender: 'male', language: 'en-US' },
+  { id: 'brandon', name: 'en-US-BrandonNeural', displayName: 'Brandon', gender: 'male', language: 'en-US' },
+  // UK English - Female
+  { id: 'libby', name: 'en-GB-LibbyNeural', displayName: 'Libby', gender: 'female', language: 'en-GB' },
+  { id: 'sonia', name: 'en-GB-SoniaNeural', displayName: 'Sonia', gender: 'female', language: 'en-GB' },
+  { id: 'maisie', name: 'en-GB-MaisieNeural', displayName: 'Maisie', gender: 'female', language: 'en-GB' },
+  // UK English - Male
+  { id: 'ryan', name: 'en-GB-RyanNeural', displayName: 'Ryan', gender: 'male', language: 'en-GB' },
+  { id: 'thomas', name: 'en-GB-ThomasNeural', displayName: 'Thomas', gender: 'male', language: 'en-GB' },
+  { id: 'alfie', name: 'en-GB-AlfieNeural', displayName: 'Alfie', gender: 'male', language: 'en-GB' },
+  // Australian English
+  { id: 'natasha', name: 'en-AU-NatashaNeural', displayName: 'Natasha', gender: 'female', language: 'en-AU' },
+  { id: 'william', name: 'en-AU-WilliamNeural', displayName: 'William', gender: 'male', language: 'en-AU' },
+  // Irish English
+  { id: 'emily', name: 'en-IE-EmilyNeural', displayName: 'Emily', gender: 'female', language: 'en-IE' },
+  { id: 'connor', name: 'en-IE-ConnorNeural', displayName: 'Connor', gender: 'male', language: 'en-IE' },
+  // Indian English
+  { id: 'neerja', name: 'en-IN-NeerjaNeural', displayName: 'Neerja', gender: 'female', language: 'en-IN' },
+  { id: 'prabhat', name: 'en-IN-PrabhatNeural', displayName: 'Prabhat', gender: 'male', language: 'en-IN' },
 ];
 
 // Avatar Model types
