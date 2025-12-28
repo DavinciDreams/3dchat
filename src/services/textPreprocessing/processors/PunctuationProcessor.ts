@@ -86,6 +86,6 @@ export class PunctuationProcessor extends BaseProcessor {
       console.warn(`⚠️ [PunctuationProcessor] Slow processing: ${elapsed.toFixed(2)}ms for ${text.length} chars`);
     }
     
-    return { cleanText: finalCleanText, displayText, metadata: newMetadata };
+    return { cleanText, displayText, metadata: newMetadata };
   }
 }
