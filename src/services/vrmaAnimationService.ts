@@ -20,14 +20,66 @@ export interface VRMAAnimationConfig {
   description?: string;
 }
 
-// Available VRMA animations
-export const VRMA_ANIMATIONS: VRMAAnimationConfig[] = [
+// Available VRMA animations - Original VRM Motion Pack
+export const VRMA_CORE_ANIMATIONS: VRMAAnimationConfig[] = [
   { path: '/animations/vrma/VRMA_02.vrma', name: 'greeting', description: 'Greeting animation' },
   { path: '/animations/vrma/VRMA_03.vrma', name: 'peace', description: 'Peace sign animation' },
   { path: '/animations/vrma/VRMA_04.vrma', name: 'shoot', description: 'Shoot animation' },
   { path: '/animations/vrma/VRMA_05.vrma', name: 'spin', description: 'Spin animation' },
   { path: '/animations/vrma/VRMA_06.vrma', name: 'modelPose', description: 'Model pose animation' },
   { path: '/animations/vrma/VRMA_07.vrma', name: 'squat', description: 'Squat animation' },
+];
+
+// Extended animations from Mixamo (converted from FBX)
+// These are the actual converted animations available
+export const VRMA_EXTENDED_ANIMATIONS: VRMAAnimationConfig[] = [
+  // Idle & Standing
+  { path: '/animations/idle.vrma', name: 'idle', description: 'Default standing pose' },
+  { path: '/animations/talkingOnPhone.vrma', name: 'talkingOnPhone', description: 'Talking on phone' },
+
+  // Greetings & Social
+  { path: '/animations/bowing.vrma', name: 'bowing', description: 'Bow gesture' },
+  { path: '/animations/salute.vrma', name: 'salute', description: 'Military-style salute' },
+  { path: '/animations/singing.vrma', name: 'singing', description: 'Singing animation' },
+
+  // Dance & Celebration
+  { path: '/animations/hipHopDance.vrma', name: 'hipHopDance', description: 'Hip hop dance moves' },
+  { path: '/animations/swinging.vrma', name: 'swinging', description: 'Swinging motion' },
+  { path: '/animations/catwalkWalkForwardHighKnees.vrma', name: 'catwalk', description: 'Catwalk strut' },
+
+  // Combat & Action
+  { path: '/animations/punch.vrma', name: 'punch', description: 'Punch forward' },
+  { path: '/animations/dropKick.vrma', name: 'dropKick', description: 'Drop kick attack' },
+  { path: '/animations/flyingKneePunchCombo.vrma', name: 'flyingKnee', description: 'Flying knee combo' },
+  { path: '/animations/doubleDaggerStab.vrma', name: 'daggerStab', description: 'Double dagger stab' },
+  { path: '/animations/bodyBlock.vrma', name: 'bodyBlock', description: 'Body block defense' },
+  { path: '/animations/centerBlock.vrma', name: 'centerBlock', description: 'Center block defense' },
+  { path: '/animations/catch.vrma', name: 'catch', description: 'Catch something' },
+  { path: '/animations/snatch.vrma', name: 'snatch', description: 'Snatch grab' },
+  { path: '/animations/reloading.vrma', name: 'reloading', description: 'Reload weapon' },
+  { path: '/animations/standing2HMagicAttack01.vrma', name: 'magicCast', description: 'Cast magic spell' },
+
+  // Movement
+  { path: '/animations/walking.vrma', name: 'walking', description: 'Walking in place' },
+  { path: '/animations/slowJogBackwards.vrma', name: 'jogBackwards', description: 'Jog backwards' },
+  { path: '/animations/jumping.vrma', name: 'jumping', description: 'Jump in place' },
+  { path: '/animations/climbingToTop.vrma', name: 'climbing', description: 'Climbing up' },
+  { path: '/animations/standToCover.vrma', name: 'takeCover', description: 'Take cover' },
+  { path: '/animations/zombieStandUp.vrma', name: 'zombieStandUp', description: 'Zombie stand up' },
+  { path: '/animations/startPlank.vrma', name: 'plank', description: 'Plank exercise' },
+  { path: '/animations/openingDoorInwards.vrma', name: 'openDoor', description: 'Open door' },
+  { path: '/animations/unarmedTurnLeft90.vrma', name: 'turnLeft', description: 'Turn left 90 degrees' },
+  { path: '/animations/rightTurnWBriefcase.vrma', name: 'turnRight', description: 'Turn right with briefcase' },
+
+  // Sports & Activities
+  { path: '/animations/golfBadShot.vrma', name: 'golfBadShot', description: 'Golf bad shot reaction' },
+  { path: '/animations/golfPrePutt.vrma', name: 'golfPrePutt', description: 'Golf pre-putt stance' },
+];
+
+// Combined list of all animations
+export const VRMA_ANIMATIONS: VRMAAnimationConfig[] = [
+  ...VRMA_CORE_ANIMATIONS,
+  ...VRMA_EXTENDED_ANIMATIONS,
 ];
 
 // Map application animation states to VRMA animations
@@ -101,22 +153,42 @@ class VRMAAnimationService {
 
   /**
    * Load all available VRMA animations
+   * Gracefully handles missing files - loads only animations that exist
+   * @param coreOnly If true, only load core animations (faster startup)
    * @returns Promise resolving to a map of animation names to animations
    */
-  async loadAllAnimations(): Promise<Map<string, VRMAAnimation>> {
-    const promises = VRMA_ANIMATIONS.map((config) => this.loadAnimation(config));
-    
-    try {
-      const animations = await Promise.all(promises);
-      animations.forEach((animation) => {
-        this.loadedAnimations.set(animation.name, animation);
-      });
-      
-      return this.loadedAnimations;
-    } catch (error) {
-      console.error('Error loading VRMA animations:', error);
-      throw error;
-    }
+  async loadAllAnimations(coreOnly = false): Promise<Map<string, VRMAAnimation>> {
+    const animationsToLoad = coreOnly ? VRMA_CORE_ANIMATIONS : VRMA_ANIMATIONS;
+
+    const results = await Promise.allSettled(
+      animationsToLoad.map((config) => this.loadAnimation(config))
+    );
+
+    let loadedCount = 0;
+    let failedCount = 0;
+
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        loadedCount++;
+      } else {
+        failedCount++;
+        // Don't log errors for extended animations that don't exist yet
+        if (!coreOnly) {
+          console.debug(`Animation not available: ${animationsToLoad[index].name}`);
+        }
+      }
+    });
+
+    console.log(`Loaded ${loadedCount} animations (${failedCount} not available)`);
+    return this.loadedAnimations;
+  }
+
+  /**
+   * Load only core animations (faster, guaranteed to exist)
+   * @returns Promise resolving to a map of animation names to animations
+   */
+  async loadCoreAnimations(): Promise<Map<string, VRMAAnimation>> {
+    return this.loadAllAnimations(true);
   }
 
   /**
