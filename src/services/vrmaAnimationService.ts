@@ -35,6 +35,7 @@ export const VRMA_CORE_ANIMATIONS: VRMAAnimationConfig[] = [
 export const VRMA_EXTENDED_ANIMATIONS: VRMAAnimationConfig[] = [
   // Idle & Standing
   { path: '/animations/vrma/idle.vrma', name: 'idle', description: 'Default standing pose' },
+  { path: '/animations/vrma/weightShift.vrma', name: 'weightShift', description: 'Weight shift idle' },
   { path: '/animations/vrma/talkingOnPhone.vrma', name: 'talkingOnPhone', description: 'Talking on phone' },
 
   // Greetings & Social
@@ -74,6 +75,29 @@ export const VRMA_EXTENDED_ANIMATIONS: VRMAAnimationConfig[] = [
   // Sports & Activities
   { path: '/animations/vrma/golfBadShot.vrma', name: 'golfBadShot', description: 'Golf bad shot reaction' },
   { path: '/animations/vrma/golfPrePutt.vrma', name: 'golfPrePutt', description: 'Golf pre-putt stance' },
+];
+
+// Gesture & Expression animations
+export const VRMA_GESTURE_ANIMATIONS: VRMAAnimationConfig[] = [
+  // Head gestures
+  { path: '/animations/vrma/headNod.vrma', name: 'headNod', description: 'Simple head nod' },
+  { path: '/animations/vrma/hardHeadNod.vrma', name: 'hardHeadNod', description: 'Strong head nod' },
+  { path: '/animations/vrma/lengthyHeadNod.vrma', name: 'lengthyHeadNod', description: 'Extended head nod' },
+  { path: '/animations/vrma/sarcasticHeadNod.vrma', name: 'sarcasticHeadNod', description: 'Sarcastic nod' },
+  { path: '/animations/vrma/shakingHeadNo.vrma', name: 'shakingHeadNo', description: 'Shake head no' },
+  { path: '/animations/vrma/annoyedHeadShake.vrma', name: 'annoyedHeadShake', description: 'Annoyed head shake' },
+  { path: '/animations/vrma/thoughtfulHeadShake.vrma', name: 'thoughtfulHeadShake', description: 'Thoughtful head shake' },
+
+  // Hand gestures
+  { path: '/animations/vrma/happyHandGesture.vrma', name: 'happyHandGesture', description: 'Happy hand gesture' },
+  { path: '/animations/vrma/dismissingGesture.vrma', name: 'dismissingGesture', description: 'Dismissing wave' },
+  { path: '/animations/vrma/acknowledging.vrma', name: 'acknowledging', description: 'Acknowledging gesture' },
+
+  // Emotional expressions
+  { path: '/animations/vrma/angryGesture.vrma', name: 'angryGesture', description: 'Angry gesture' },
+  { path: '/animations/vrma/beingCocky.vrma', name: 'beingCocky', description: 'Cocky pose' },
+  { path: '/animations/vrma/relievedSigh.vrma', name: 'relievedSigh', description: 'Relieved sigh' },
+  { path: '/animations/vrma/lookAwayGesture.vrma', name: 'lookAwayGesture', description: 'Look away gesture' },
 ];
 
 // Breakdance animations
@@ -124,6 +148,7 @@ export const VRMA_BREAKDANCE_ANIMATIONS: VRMAAnimationConfig[] = [
 export const VRMA_ANIMATIONS: VRMAAnimationConfig[] = [
   ...VRMA_CORE_ANIMATIONS,
   ...VRMA_EXTENDED_ANIMATIONS,
+  ...VRMA_GESTURE_ANIMATIONS,
   ...VRMA_BREAKDANCE_ANIMATIONS,
 ];
 
@@ -133,6 +158,13 @@ export const ANIMATION_STATE_TO_VRMA: Record<string, string> = {
   'talking': 'greeting',    // Use greeting for talking
   'thinking': 'spin',        // Use spin for thinking
   'happy': 'peace',         // Use peace sign for happy
+  'agreeing': 'headNod',    // Head nod for agreeing
+  'disagreeing': 'shakingHeadNo', // Shake head for disagreeing
+  'acknowledging': 'acknowledging', // Acknowledging gesture
+  'angry': 'angryGesture',  // Angry gesture
+  'cocky': 'beingCocky',    // Cocky pose
+  'relieved': 'relievedSigh', // Relieved sigh
+  'annoyed': 'annoyedHeadShake', // Annoyed head shake
 };
 
 class VRMAAnimationService {

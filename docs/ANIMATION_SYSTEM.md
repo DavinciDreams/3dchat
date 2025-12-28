@@ -1,6 +1,6 @@
 # Animation System Implementation
 
-This document describes the animation system additions made to the 3D Chat application, enabling 50+ VRMA animations triggered by an LLM-based animation judge.
+This document describes the animation system additions made to the 3D Chat application, enabling 70+ VRMA animations triggered by an LLM-based animation judge.
 
 ## Overview
 
@@ -47,11 +47,17 @@ Pre-bundled VRMA files in `public/animations/vrma/`:
 
 ### Extended Animations (Converted from Mixamo)
 Converted VRMA files in `public/animations/`:
-- **Idle & Social:** idle, talkingOnPhone, bowing, salute, singing
+- **Idle & Social:** idle, weightShift, talkingOnPhone, bowing, salute, singing
 - **Dance:** hipHopDance, swinging, catwalk
 - **Combat:** punch, dropKick, flyingKnee, daggerStab, bodyBlock, centerBlock, catch, snatch, reloading, magicCast
 - **Movement:** walking, jogBackwards, jumping, climbing, takeCover, zombieStandUp, plank, openDoor, turnLeft, turnRight
 - **Sports:** golfBadShot, golfPrePutt
+
+### Gesture Animations
+Subtle animations for emotional expression and communication:
+- **Head Gestures:** headNod, hardHeadNod, lengthyHeadNod, sarcasticHeadNod, shakingHeadNo, annoyedHeadShake, thoughtfulHeadShake
+- **Hand Gestures:** happyHandGesture, dismissingGesture, acknowledging
+- **Emotional Expressions:** angryGesture, beingCocky, relievedSigh, lookAwayGesture
 
 ## Conversion Pipeline
 

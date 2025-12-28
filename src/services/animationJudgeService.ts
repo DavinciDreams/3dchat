@@ -19,6 +19,7 @@ CORE ANIMATIONS:
 
 IDLE & SOCIAL:
 - idle: Default standing pose
+- weightShift: Shifting weight between feet - use for subtle idle variation
 - talkingOnPhone: Talking on phone animation
 - bowing: Respectful bow - use for formal greetings or respect
 - salute: Military-style salute - use for playful formality
@@ -28,6 +29,41 @@ DANCE & CELEBRATION:
 - hipHopDance: Hip hop dance moves - use for dancing or celebration
 - swinging: Swinging motion - use for playful swinging
 - catwalk: Catwalk strut - use for showing off or fashion
+
+BREAKDANCE:
+- breakdance1990: 1990 spin - use for breakdance power moves
+- breakdance1990_2: Alternative 1990 spin
+- breakdance1990_2_alt: Alternative 1990 spin variation
+- breakdance1990_3: Another 1990 spin variation
+- breakdanceEnding1: Breakdance ending pose 1
+- breakdanceEnding2: Breakdance ending pose 2
+- breakdanceEnding3: Breakdance ending pose 3
+- breakdanceFootwork1: Breakdance footwork pattern 1
+- breakdanceFootwork2: Breakdance footwork pattern 2
+- breakdanceFootwork3: Breakdance footwork pattern 3
+- breakdanceFootworkToFreeze: Footwork transitioning to freeze
+- breakdanceFreezes: Breakdance freeze poses
+- breakdanceFreezeVar1: Freeze variation 1
+- breakdanceFreezeVar2: Freeze variation 2
+- breakdanceFreezeVar3: Freeze variation 3
+- breakdanceFreezeVar4: Freeze variation 4
+- breakdanceReady: Breakdance ready stance
+- breakdanceReady_2: Alternative ready stance
+- breakdanceReady_3: Another ready stance
+- breakdanceSwipes: Breakdance swipes
+- breakdanceUprock: Breakdance uprock
+- breakdanceUprock_2: Alternative uprock
+- breakdanceUprockToGround: Uprock to ground transition
+- breakdanceUprockToGround_2: Alternative ground transition
+- breakdanceUprockVar1: Uprock variation 1
+- breakdanceUprockVar1End: Uprock variation 1 ending
+- breakdanceUprockVar1Start: Uprock variation 1 start
+- breakdanceUprockVar2: Uprock variation 2
+- brooklynUprock: Brooklyn uprock style
+- crosslegFreeze: Crossleg freeze pose
+- flair: Breakdance flair move
+- flair_2: Alternative flair move
+- flair_3: Another flair variation
 
 COMBAT & ACTION:
 - punch: Punch forward - use for action or fighting
@@ -56,6 +92,27 @@ MOVEMENT:
 SPORTS:
 - golfBadShot: Golf bad shot reaction - use for golf or frustration
 - golfPrePutt: Golf pre-putt stance - use for golf
+
+GESTURE ANIMATIONS (subtle expressions):
+HEAD GESTURES:
+- headNod: Simple nod - use for agreement, understanding, yes
+- hardHeadNod: Strong nod - use for emphatic agreement
+- lengthyHeadNod: Extended nod - use for thoughtful agreement
+- sarcasticHeadNod: Sarcastic nod - use for irony or sarcasm
+- shakingHeadNo: Shake head no - use for disagreement, refusal
+- annoyedHeadShake: Annoyed shake - use for frustration, annoyance
+- thoughtfulHeadShake: Thoughtful shake - use for uncertainty, contemplation
+
+HAND GESTURES:
+- happyHandGesture: Happy hand gesture - use for joy, celebration
+- dismissingGesture: Dismissing wave - use for dismissal, ending topic
+- acknowledging: Acknowledging gesture - use for recognition, "I hear you"
+
+EMOTIONAL EXPRESSIONS:
+- angryGesture: Angry gesture - use for anger, frustration
+- beingCocky: Cocky pose - use for confidence, arrogance, showing off
+- relievedSigh: Relieved sigh - use for relief, letting go of tension
+- lookAwayGesture: Look away - use for embarrassment, shame, or looking away
 
 Rules:
 1. Only trigger animations that naturally match what the avatar is saying
@@ -229,6 +286,58 @@ const ANIMATION_DURATIONS: Record<string, number> = {
   // Sports
   'golfBadShot': 4000,
   'golfPrePutt': 3500,
+
+  // Gesture animations
+  'weightShift': 3000,
+  'headNod': 2000,
+  'hardHeadNod': 1500,
+  'lengthyHeadNod': 3000,
+  'sarcasticHeadNod': 2500,
+  'shakingHeadNo': 2000,
+  'annoyedHeadShake': 2000,
+  'thoughtfulHeadShake': 2500,
+  'happyHandGesture': 2000,
+  'dismissingGesture': 2000,
+  'acknowledging': 2000,
+  'angryGesture': 2000,
+  'beingCocky': 3000,
+  'relievedSigh': 2500,
+  'lookAwayGesture': 3000,
+
+  // Breakdance animations
+  'breakdance1990': 4000,
+  'breakdance1990_2': 4000,
+  'breakdance1990_2_alt': 4000,
+  'breakdance1990_3': 4000,
+  'breakdanceEnding1': 3000,
+  'breakdanceEnding2': 3000,
+  'breakdanceEnding3': 3000,
+  'breakdanceFootwork1': 4000,
+  'breakdanceFootwork2': 4000,
+  'breakdanceFootwork3': 4000,
+  'breakdanceFootworkToFreeze': 4000,
+  'breakdanceFreezes': 3000,
+  'breakdanceFreezeVar1': 3000,
+  'breakdanceFreezeVar2': 3000,
+  'breakdanceFreezeVar3': 3000,
+  'breakdanceFreezeVar4': 3000,
+  'breakdanceReady': 3000,
+  'breakdanceReady_2': 3000,
+  'breakdanceReady_3': 3000,
+  'breakdanceSwipes': 4000,
+  'breakdanceUprock': 4000,
+  'breakdanceUprock_2': 4000,
+  'breakdanceUprockToGround': 4000,
+  'breakdanceUprockToGround_2': 4000,
+  'breakdanceUprockVar1': 4000,
+  'breakdanceUprockVar1End': 3000,
+  'breakdanceUprockVar1Start': 3000,
+  'breakdanceUprockVar2': 4000,
+  'brooklynUprock': 4000,
+  'crosslegFreeze': 3000,
+  'flair': 4000,
+  'flair_2': 4000,
+  'flair_3': 4000,
 };
 
 const DEFAULT_ANIMATION_DURATION = 3000;
@@ -255,7 +364,6 @@ export function processAnimationQueue(
   console.log('%c📋 [AnimationQueue] Animations:', 'color: #f39c12; font-weight: bold;', animations);
 
   let currentIndex = 0;
-  let accumulatedDelay = 0;
 
   const playNext = () => {
     if (currentIndex >= animations.length) {
