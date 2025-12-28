@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, MicOff, Loader2, Copy, Download, StopCircle, Plus, Play } from 'lucide-react';
+import { Send, Mic, MicOff, Loader2, Copy, Download, StopCircle, Plus, Play, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, PanelRight, PanelBottom, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChatStore } from '../store/chatStore';
 import { getAIResponse } from '../services/aiService';
@@ -9,6 +9,8 @@ import { preprocessingPipeline } from '../services/textPreprocessing';
 import { judgeAnimations, processAnimationQueue } from '../services/animationJudgeService';
 import { supabase } from '../lib/supabaseClient';
 import { ChatMessageProps, ServiceError, PreprocessedText, Emotion, AnimationJudgment, AVAILABLE_ANIMATIONS } from '../types';
+
+type ChatPosition = 'right' | 'bottom';
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const copyToClipboard = async () => {
@@ -28,12 +30,12 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   };
 
   const store = useChatStore.getState();
-  
+
   // Get processed message if available
   const processedMessage = store.processedMessages.find(
     pm => pm.id === message.id
   );
-  
+
   const contentToRender = processedMessage?.content || message.content;
   const metadata = processedMessage?.metadata;
 
@@ -77,19 +79,19 @@ const renderMessageContent = (content: string, metadata?: { links?: Array<{ url:
   if (!metadata || !metadata.links || metadata.links.length === 0) {
     return content;
   }
-  
+
   let lastIndex = 0;
   const parts: React.ReactNode[] = [];
-  
+
   // Sort links by position
   const sortedLinks = [...metadata.links].sort((a, b) => a.startIndex - b.startIndex);
-  
+
   for (const link of sortedLinks) {
     // Add text before the link
     if (link.startIndex > lastIndex) {
       parts.push(content.substring(lastIndex, link.startIndex));
     }
-    
+
     // Add the link
     parts.push(
       <a
@@ -102,16 +104,33 @@ const renderMessageContent = (content: string, metadata?: { links?: Array<{ url:
         {link.displayText}
       </a>
     );
-    
+
     lastIndex = link.endIndex;
   }
-  
+
   // Add remaining text
   if (lastIndex < content.length) {
     parts.push(content.substring(lastIndex));
   }
-  
+
   return parts;
+};
+
+// Custom hook for mobile detection
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  return isMobile;
 };
 
 const ChatInterface = (): JSX.Element => {
@@ -119,6 +138,18 @@ const ChatInterface = (): JSX.Element => {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [selectedTestAnimation, setSelectedTestAnimation] = useState<string>('');
+
+  // Position and collapse state
+  const [position, setPosition] = useState<ChatPosition>(() => {
+    const saved = localStorage.getItem('chatPosition');
+    return (saved as ChatPosition) || 'right';
+  });
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    const saved = localStorage.getItem('chatCollapsed');
+    return saved === 'true';
+  });
+
+  const isMobile = useIsMobile();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -133,6 +164,23 @@ const ChatInterface = (): JSX.Element => {
     setAnimationQueue,
     currentAnimation
   } = useChatStore();
+
+  // Save position preference
+  useEffect(() => {
+    localStorage.setItem('chatPosition', position);
+  }, [position]);
+
+  // Save collapsed preference
+  useEffect(() => {
+    localStorage.setItem('chatCollapsed', String(isCollapsed));
+  }, [isCollapsed]);
+
+  // On mobile, force bottom position
+  useEffect(() => {
+    if (isMobile && position !== 'bottom') {
+      setPosition('bottom');
+    }
+  }, [isMobile]);
 
   // Direct animation trigger for testing
   const triggerTestAnimation = (animationName: string) => {
@@ -176,7 +224,7 @@ const ChatInterface = (): JSX.Element => {
       if (user) {
         const { data, error } = await supabase
           .from('chats')
-          .insert([{ 
+          .insert([{
             created_at: new Date().toISOString(),
             user_id: user.id
           }])
@@ -335,7 +383,7 @@ const ChatInterface = (): JSX.Element => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (!isAuthenticated) {
       alert('Please log in to send messages');
       return;
@@ -343,7 +391,7 @@ const ChatInterface = (): JSX.Element => {
 
     const trimmedInput = input.trim();
     if (!trimmedInput || isProcessing) return;
-    
+
     try {
       if (currentChatId) {
         await supabase
@@ -359,9 +407,14 @@ const ChatInterface = (): JSX.Element => {
         role: 'user',
         content: trimmedInput
       });
-      
+
       setInput('');
-      
+
+      // Auto-expand when sending a message
+      if (isCollapsed) {
+        setIsCollapsed(false);
+      }
+
       await handleMessage(trimmedInput);
     } catch (error) {
       console.error('Error processing message:', error);
@@ -386,7 +439,7 @@ const ChatInterface = (): JSX.Element => {
 
     const { data, error } = await supabase
       .from('chats')
-      .insert([{ 
+      .insert([{
         created_at: new Date().toISOString(),
         user_id: user.id
       }])
@@ -405,10 +458,10 @@ const ChatInterface = (): JSX.Element => {
   const handleStopSpeaking = () => {
     console.log('🛑 [handleStopSpeaking] Stop speaking button clicked');
     console.log('🛑 [handleStopSpeaking] Current isSpeaking state:', isSpeaking);
-    
+
     // Use new stopAudio function instead of window.speechSynthesis
     stopAudio();
-    
+
     // Also cancel window.speechSynthesis as a fallback (for native speech API)
     if (window.speechSynthesis) {
       console.log('🛑 [handleStopSpeaking] Canceling window.speechSynthesis');
@@ -446,79 +499,178 @@ const ChatInterface = (): JSX.Element => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  return (
-    <div className="absolute bottom-0 left-0 right-0 max-h-[50vh] overflow-hidden flex flex-col px-4 pb-4 z-10">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-gray-900/90 backdrop-blur-md rounded-t-xl overflow-hidden border border-gray-700 shadow-lg"
-      >
-        <div className="flex items-center justify-between p-2 border-b border-white/10">
-          <button
-            onClick={handleNewChat}
-            className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-gray-800 transition-colors"
-          >
-            <Plus size={16} />
-            <span>New Chat</span>
-          </button>
+  const togglePosition = () => {
+    setPosition(prev => prev === 'right' ? 'bottom' : 'right');
+  };
 
-          {/* Animation Test Dropdown */}
+  const toggleCollapsed = () => {
+    setIsCollapsed(prev => !prev);
+  };
+
+  // Get collapse icon based on position
+  const CollapseIcon = position === 'right'
+    ? (isCollapsed ? ChevronLeft : ChevronRight)
+    : (isCollapsed ? ChevronUp : ChevronDown);
+
+  // Position-based classes
+  const containerClasses = position === 'right'
+    ? `fixed top-0 right-0 h-full z-20 flex transition-all duration-300 ease-in-out ${
+        isCollapsed ? 'w-12' : 'w-96 max-w-[90vw]'
+      }`
+    : `fixed bottom-0 left-0 right-0 z-20 flex flex-col transition-all duration-300 ease-in-out ${
+        isCollapsed ? 'h-12' : 'h-[50vh] max-h-[600px]'
+      }`;
+
+  // Collapsed button for when chat is collapsed
+  const CollapsedButton = () => (
+    <motion.button
+      onClick={toggleCollapsed}
+      className={`
+        flex items-center justify-center gap-2 bg-gray-900/95 backdrop-blur-md border border-gray-700
+        text-white hover:bg-gray-800 transition-all duration-300
+        ${position === 'right'
+          ? 'w-12 h-full rounded-l-xl border-r-0'
+          : 'w-full h-12 rounded-t-xl border-b-0'
+        }
+      `}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      <MessageSquare size={20} className="text-teal-400" />
+      {position === 'bottom' && (
+        <span className="text-sm font-medium">Open Chat</span>
+      )}
+      {messages.length > 0 && (
+        <span className="absolute top-2 right-2 bg-teal-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+          {messages.length}
+        </span>
+      )}
+    </motion.button>
+  );
+
+  if (isCollapsed) {
+    return (
+      <div className={containerClasses}>
+        <CollapsedButton />
+      </div>
+    );
+  }
+
+  return (
+    <div className={containerClasses}>
+      {/* Collapse handle for right position */}
+      {position === 'right' && (
+        <button
+          onClick={toggleCollapsed}
+          className="w-6 h-24 self-center -ml-3 bg-gray-800/90 hover:bg-gray-700 border border-gray-600 rounded-l-lg flex items-center justify-center transition-colors"
+          title="Collapse chat"
+        >
+          <ChevronRight size={16} />
+        </button>
+      )}
+
+      <motion.div
+        initial={{ opacity: 0, x: position === 'right' ? 20 : 0, y: position === 'bottom' ? 20 : 0 }}
+        animate={{ opacity: 1, x: 0, y: 0 }}
+        className={`
+          flex-1 bg-gray-900/95 backdrop-blur-md overflow-hidden border border-gray-700 shadow-2xl
+          flex flex-col
+          ${position === 'right' ? 'rounded-l-xl border-r-0' : 'rounded-t-xl border-b-0'}
+        `}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-2 border-b border-white/10 bg-gray-800/50">
           <div className="flex items-center gap-2">
-            <select
-              value={selectedTestAnimation}
-              onChange={(e) => setSelectedTestAnimation(e.target.value)}
-              className="bg-gray-800 text-white text-sm px-2 py-1 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              <option value="">Test Animation...</option>
-              {AVAILABLE_ANIMATIONS.map((anim) => (
-                <option key={anim} value={anim}>
-                  {anim}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={() => triggerTestAnimation(selectedTestAnimation)}
-              disabled={!selectedTestAnimation}
-              className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
-                selectedTestAnimation
-                  ? 'bg-purple-600 hover:bg-purple-500 text-white'
-                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              <Play size={14} />
-              <span>Play</span>
-            </button>
-            {currentAnimation && (
-              <span className="text-xs text-green-400 animate-pulse">
-                Playing: {currentAnimation}
-              </span>
+            {/* Collapse button for bottom position */}
+            {position === 'bottom' && (
+              <button
+                onClick={toggleCollapsed}
+                className="p-1.5 hover:bg-gray-700 rounded-md transition-colors"
+                title="Collapse chat"
+              >
+                <ChevronDown size={18} />
+              </button>
             )}
+
+            <button
+              onClick={handleNewChat}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-gray-700 transition-colors text-sm"
+            >
+              <Plus size={14} />
+              <span className="hidden sm:inline">New</span>
+            </button>
           </div>
 
-          {isSpeaking && (
-            <button
-              onClick={handleStopSpeaking}
-              className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-gray-800 transition-colors text-red-400"
-            >
-              <StopCircle size={16} />
-              <span>Stop Speaking</span>
-            </button>
+          <div className="flex items-center gap-1">
+            {/* Position toggle - hidden on mobile */}
+            {!isMobile && (
+              <button
+                onClick={togglePosition}
+                className="p-1.5 hover:bg-gray-700 rounded-md transition-colors"
+                title={`Move to ${position === 'right' ? 'bottom' : 'right'}`}
+              >
+                {position === 'right' ? <PanelBottom size={16} /> : <PanelRight size={16} />}
+              </button>
+            )}
+
+            {isSpeaking && (
+              <button
+                onClick={handleStopSpeaking}
+                className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-gray-700 transition-colors text-red-400 text-sm"
+              >
+                <StopCircle size={14} />
+                <span className="hidden sm:inline">Stop</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Animation Test - collapsible on mobile */}
+        <div className="flex items-center gap-2 px-2 py-1.5 border-b border-white/5 bg-gray-800/30">
+          <select
+            value={selectedTestAnimation}
+            onChange={(e) => setSelectedTestAnimation(e.target.value)}
+            className="flex-1 bg-gray-800 text-white text-xs px-2 py-1 rounded border border-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500"
+          >
+            <option value="">Test Animation...</option>
+            {AVAILABLE_ANIMATIONS.map((anim) => (
+              <option key={anim} value={anim}>
+                {anim}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => triggerTestAnimation(selectedTestAnimation)}
+            disabled={!selectedTestAnimation}
+            className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+              selectedTestAnimation
+                ? 'bg-purple-600 hover:bg-purple-500 text-white'
+                : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            <Play size={12} />
+          </button>
+          {currentAnimation && (
+            <span className="text-xs text-green-400 animate-pulse truncate max-w-20">
+              {currentAnimation}
+            </span>
           )}
         </div>
 
-        <div className="h-[30vh] overflow-y-auto py-4 px-6 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent">
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto py-3 px-4 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
           <AnimatePresence>
             {messages.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex h-full items-center justify-center text-white/70 text-center px-4"
+                className="flex h-full items-center justify-center text-white/50 text-center px-4"
               >
-                <p>
-                  {isAuthenticated 
-                    ? "Ask me anything! I'm a 3D AI assistant ready to help you."
-                    : "Please log in to start chatting with the AI assistant."}
+                <p className="text-sm">
+                  {isAuthenticated
+                    ? "Ask me anything!"
+                    : "Please log in to chat"}
                 </p>
               </motion.div>
             ) : (
@@ -536,29 +688,30 @@ const ChatInterface = (): JSX.Element => {
           </AnimatePresence>
           <div ref={messagesEndRef} />
         </div>
-        
-        <form 
+
+        {/* Input form */}
+        <form
           onSubmit={handleSubmit}
-          className="flex items-center p-3 border-t border-gray-700 bg-gray-800/50"
+          className="flex items-center gap-2 p-3 border-t border-gray-700 bg-gray-800/50"
         >
           <motion.button
             type="button"
             whileTap={{ scale: 0.9 }}
             onClick={handleMicToggle}
             disabled={isProcessing || !isAuthenticated}
-            className={`p-2 rounded-full mr-2 transition-colors ${
-              isListening 
-                ? 'bg-red-500 text-white' 
-                : 'bg-gray-800 text-white hover:bg-gray-700'
+            className={`p-2 rounded-full transition-colors flex-shrink-0 ${
+              isListening
+                ? 'bg-red-500 text-white'
+                : 'bg-gray-700 text-white hover:bg-gray-600'
             } ${(isProcessing || !isAuthenticated) ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isListening ? (
-              <Mic className="h-5 w-5" />
+              <Mic className="h-4 w-4" />
             ) : (
-              <MicOff className="h-5 w-5" />
+              <MicOff className="h-4 w-4" />
             )}
           </motion.button>
-          
+
           <input
             ref={inputRef}
             type="text"
@@ -566,43 +719,45 @@ const ChatInterface = (): JSX.Element => {
             onChange={(e) => setInput(e.target.value)}
             disabled={isProcessing || isListening || !isAuthenticated}
             placeholder={
-              !isAuthenticated 
-                ? "Please log in to chat" 
-                : isListening 
-                  ? "Listening..." 
-                  : "Type your message..."
+              !isAuthenticated
+                ? "Log in to chat"
+                : isListening
+                  ? "Listening..."
+                  : "Type a message..."
             }
-            className="flex-1 bg-gray-800/90 border border-gray-600 rounded-md px-4 py-2 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-teal-500/50 disabled:opacity-50"
+            className="flex-1 min-w-0 bg-gray-800/90 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-teal-500/50 disabled:opacity-50"
           />
-          
+
           <motion.button
             type="submit"
             whileTap={{ scale: 0.9 }}
             disabled={!input.trim() || isProcessing || !isAuthenticated}
-            className={`p-2 rounded-full ml-2 bg-teal-500 text-white  transition-opacity hover:bg-teal-400 ${
+            className={`p-2 rounded-full bg-teal-500 text-white transition-opacity hover:bg-teal-400 flex-shrink-0 ${
               !input.trim() || isProcessing || !isAuthenticated ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
             {isProcessing ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Send className="h-5 w-5" />
+              <Send className="h-4 w-4" />
             )}
           </motion.button>
         </form>
       </motion.div>
-      
+
+      {/* Status indicator */}
       <AnimatePresence>
         {(isProcessing || isSpeaking) && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="absolute top-0 left-0 right-0 flex justify-center"
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className={`
+              absolute bg-black/60 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm
+              ${position === 'right' ? 'top-4 left-4' : 'top-2 left-1/2 -translate-x-1/2'}
+            `}
           >
-            <div className="bg-black/40 text-white text-sm px-3 py-1 rounded-b-md">
-              {isProcessing ? 'Thinking...' : 'Speaking...'}
-            </div>
+            {isProcessing ? 'Thinking...' : 'Speaking...'}
           </motion.div>
         )}
       </AnimatePresence>
