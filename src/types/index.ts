@@ -289,7 +289,7 @@ export const CORE_ANIMATIONS = [
 // Extended animations (converted from Mixamo FBX files)
 export const EXTENDED_ANIMATIONS = [
   // Idle & Standing
-  'idle', 'talkingOnPhone',
+  'idle', 'weightShift', 'talkingOnPhone',
   // Greetings & Social
   'bowing', 'salute', 'singing',
   // Dance & Celebration
@@ -302,6 +302,29 @@ export const EXTENDED_ANIMATIONS = [
   'golfBadShot', 'golfPrePutt',
 ] as const;
 
+// Gesture animations (subtle emotional expressions)
+export const GESTURE_ANIMATIONS = [
+  // Head gestures
+  'headNod', 'hardHeadNod', 'lengthyHeadNod', 'sarcasticHeadNod',
+  'shakingHeadNo', 'annoyedHeadShake', 'thoughtfulHeadShake',
+  // Hand gestures
+  'happyHandGesture', 'dismissingGesture', 'acknowledging',
+  // Emotional expressions
+  'angryGesture', 'beingCocky', 'relievedSigh', 'lookAwayGesture',
+] as const;
+
+// Breakdance animations
+export const BREAKDANCE_ANIMATIONS = [
+  'breakdance1990', 'breakdance1990_2', 'breakdance1990_2_alt', 'breakdance1990_3',
+  'breakdanceEnding1', 'breakdanceEnding2', 'breakdanceEnding3',
+  'breakdanceFootwork1', 'breakdanceFootwork2', 'breakdanceFootwork3', 'breakdanceFootworkToFreeze',
+  'breakdanceFreezes', 'breakdanceFreezeVar1', 'breakdanceFreezeVar2', 'breakdanceFreezeVar3', 'breakdanceFreezeVar4',
+  'breakdanceReady', 'breakdanceReady_2', 'breakdanceReady_3',
+  'breakdanceSwipes', 'breakdanceUprock', 'breakdanceUprock_2', 'breakdanceUprockToGround', 'breakdanceUprockToGround_2',
+  'breakdanceUprockVar1', 'breakdanceUprockVar1End', 'breakdanceUprockVar1Start', 'breakdanceUprockVar2',
+  'brooklynUprock', 'crosslegFreeze', 'flair', 'flair_2', 'flair_3',
+] as const;
+
 // All available animations
-export const AVAILABLE_ANIMATIONS = [...CORE_ANIMATIONS, ...EXTENDED_ANIMATIONS] as const;
+export const AVAILABLE_ANIMATIONS = [...CORE_ANIMATIONS, ...EXTENDED_ANIMATIONS, ...GESTURE_ANIMATIONS, ...BREAKDANCE_ANIMATIONS] as const;
 export type AnimationName = typeof AVAILABLE_ANIMATIONS[number];
