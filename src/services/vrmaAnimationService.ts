@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMAnimationLoaderPlugin } from '@pixiv/three-vrm-animation';
+import { createVRMAnimationClip } from '@pixiv/three-vrm-animation';
 
 /**
  * VRMA Animation Service
@@ -41,6 +42,8 @@ class VRMAAnimationService {
   private loader: GLTFLoader;
   private loadedAnimations: Map<string, VRMAAnimation> = new Map();
   private loadingPromises: Map<string, Promise<VRMAAnimation>> = new Map();
+  // Cache for retargeted animation clips keyed by modelId + animationName
+  private retargetedClipCache: Map<string, THREE.AnimationClip> = new Map();
 
   constructor() {
     this.loader = new GLTFLoader();
@@ -157,11 +160,68 @@ class VRMAAnimationService {
   }
 
   /**
+   * Get or create a retargeted animation clip for a specific model
+   * @param vrmAnimation The VRM animation data
+   * @param vrm The VRM model instance
+   * @param modelId The model ID for caching
+   * @param animationName The animation name for caching
+   * @returns The retargeted animation clip
+   */
+  getOrCreateRetargetedClip(
+    vrmAnimation: unknown,
+    vrm: unknown,
+    modelId: string,
+    animationName: string
+  ): THREE.AnimationClip {
+    const cacheKey = `${modelId}_${animationName}`;
+    
+    // Check cache first
+    if (this.retargetedClipCache.has(cacheKey)) {
+      return this.retargetedClipCache.get(cacheKey)!;
+    }
+    
+    // Create new retargeted clip
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const retargetedClip = createVRMAnimationClip(vrmAnimation as any, vrm as any);
+    
+    // Cache the result
+    this.retargetedClipCache.set(cacheKey, retargetedClip);
+    
+    return retargetedClip;
+  }
+
+  /**
+   * Check if a retargeted clip exists in cache
+   * @param modelId The model ID
+   * @param animationName The animation name
+   * @returns True if cached
+   */
+  hasRetargetedClip(modelId: string, animationName: string): boolean {
+    const cacheKey = `${modelId}_${animationName}`;
+    return this.retargetedClipCache.has(cacheKey);
+  }
+
+  /**
    * Clear all loaded animations
    */
   clear(): void {
     this.loadedAnimations.clear();
     this.loadingPromises.clear();
+    this.retargetedClipCache.clear();
+  }
+
+  /**
+   * Clear retargeted clips for a specific model
+   * @param modelId The model ID to clear clips for
+   */
+  clearRetargetedClipsForModel(modelId: string): void {
+    const keysToDelete: string[] = [];
+    for (const key of this.retargetedClipCache.keys()) {
+      if (key.startsWith(`${modelId}_`)) {
+        keysToDelete.push(key);
+      }
+    }
+    keysToDelete.forEach(key => this.retargetedClipCache.delete(key));
   }
 
   /**
