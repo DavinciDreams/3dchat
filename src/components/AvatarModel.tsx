@@ -9,6 +9,8 @@ import { CharacterProps, SceneProps, AVAILABLE_VRM_MODELS } from '../types';
 import { visemeApplier } from '../services/visemeApplicationService';
 import { getCurrentViseme } from '../services/visemePreprocessor';
 import vrmaAnimationService, { VRMA_ANIMATIONS } from '../services/vrmaAnimationService';
+import { useAnimationLoadingStore } from '../store/animationLoadingStore';
+import { VRMOptimizedLoader } from '../services/vrmLoaderHelper';
 
 export interface ExtendedCharacterProps extends CharacterProps {
   selectedModel?: string;
@@ -25,6 +27,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 }) => {
   const store = useChatStore();
   const { emotion, isSpeaking, visemes, selectedModelId, currentAnimation, animationQueue } = store;
+  const loadingStore = useAnimationLoadingStore();
 
   // Get model config based on the selected model ID
   const modelConfig = useMemo(() => {
@@ -34,10 +37,9 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 
   const MODEL_PATH_VRM = modelConfig.path;
   
-  // Load VRM model using VRMLoader
-  const gltf = useLoader(GLTFLoader, MODEL_PATH_VRM, (loader) => {
-    loader.register((parser) => new VRMLoaderPlugin(parser));
-  });
+  // Load VRM model using optimized loader that skips external texture lookups
+  // VRM files have all textures embedded as data URIs, so external lookups are wasteful
+  const gltf = useLoader(VRMOptimizedLoader, MODEL_PATH_VRM);
   
   const mixer = useRef<THREE.AnimationMixer | null>(null);
   const currentActions = useRef<Record<string, THREE.AnimationAction>>({});
@@ -63,36 +65,53 @@ const Character: React.FC<ExtendedCharacterProps> = ({
    * Only loads the animation when first triggered, not all upfront
    */
   const loadVRMAAnimation = async (animationName: string) => {
-    if (!mixer.current || !vrm) return;
+    console.log(`%c📥 [loadVRMAAnimation] START: ${animationName}`, 'color: #3498db; font-weight: bold;');
+    console.log(`%c📥 [loadVRMAAnimation] mixer.current:`, 'color: #3498db;', !!mixer.current);
+    console.log(`%c📥 [loadVRMAAnimation] vrm:`, 'color: #3498db;', !!vrm);
+    
+    if (!mixer.current || !vrm) {
+      console.warn(`%c📥 [loadVRMAAnimation] ABORT: mixer or vrm not ready`, 'color: #e74c3c;');
+      return;
+    }
 
     try {
       // First, load the VRMA file if not already loaded
       const animConfig = VRMA_ANIMATIONS.find(a => a.name === animationName);
+      console.log(`%c📥 [loadVRMAAnimation] animConfig found:`, 'color: #3498db;', !!animConfig);
+      
       if (!animConfig) {
         console.warn(`VRMA animation '${animationName}' not found in config`);
         return;
       }
 
       // Load the VRMA animation file
+      console.log(`%c📥 [loadVRMAAnimation] Loading VRMA file: ${animConfig.path}`, 'color: #3498db;');
       const loadedAnim = await vrmaAnimationService.loadAnimation(animConfig);
+      console.log(`%c📥 [loadVRMAAnimation] loadedAnim result:`, 'color: #3498db;', loadedAnim);
+      
       if (!loadedAnim) {
         console.warn(`Failed to load VRMA animation '${animationName}'`);
         return;
       }
 
       // Now retarget the animation for the current model
+      console.log(`%c📥 [loadVRMAAnimation] Creating retargeted clip for model: ${selectedModelId}`, 'color: #3498db;');
       const retargetedClip = vrmaAnimationService.getOrCreateRetargetedClip(
         loadedAnim.vrmAnimation,
         vrm,
         selectedModelId,
         animationName
       );
+      console.log(`%c📥 [loadVRMAAnimation] retargetedClip created:`, 'color: #3498db;', !!retargetedClip);
+      
       const action = mixer.current!.clipAction(retargetedClip);
+      console.log(`%c📥 [loadVRMAAnimation] action created:`, 'color: #3498db;', !!action);
+      
       vrmaActions.current[animationName] = action;
       vrmaClips.current[animationName] = retargetedClip;
       loadedVrmaAnimations.current.add(animationName);
 
-      console.log(`VRMA animation '${animationName}' loaded`);
+      console.log(`%c✅ [loadVRMAAnimation] COMPLETE: '${animationName}' - vrmaActions.current now has:`, 'color: #27ae60; font-weight: bold;', Object.keys(vrmaActions.current));
     } catch (error) {
       // Log errors but continue - some animations may not be compatible with all models
       console.warn(`Failed to load VRMA animation '${animationName}':`, error);
@@ -116,20 +135,23 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // Detect VRM version
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const metaVersion = (vrmObj.meta as any)?.metaVersion;
-      const isVRM1 = metaVersion === '1.0';
-      const isVRM0 = metaVersion === '0.0' || !metaVersion;
+      // Handle both "1" and "1.0" format for VRM1.0
+      const isVRM1 = metaVersion === '1.0' || metaVersion === '1';
+      const isVRM0 = metaVersion === '0.0' || metaVersion === '0' || !metaVersion;
       
-      console.log(`Loading VRM model: ${selectedModelId}, Version: ${metaVersion || 'unknown'}`);
+      console.log(`%c🔍 [VRM Version] Model: ${selectedModelId}, Version: ${metaVersion || 'unknown'}, isVRM0: ${isVRM0}, isVRM1: ${isVRM1}`, 'background: #9b59b6; color: white; padding: 2px 6px; border-radius: 3px;');
       
       // Apply VRM 0.x specific transformations
       if (isVRM0) {
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           VRMUtils.rotateVRM0(vrmObj as any);
-          console.log('Applied VRM 0.x rotation');
+          console.log('%c✅ [VRM Rotation] Applied VRMUtils.rotateVRM0() (rotates VRM0.x by 180°)', 'color: #27ae60; font-weight: bold;');
         } catch (error) {
           console.warn('Failed to apply VRM 0.x rotation:', error);
         }
+      } else {
+        console.log('%c⏭️ [VRM Rotation] Skipping VRMUtils.rotateVRM0() - VRM1.0 model', 'color: #f39c12;');
       }
       
       // Apply VRM optimizations with error handling for VRM 1.0 textures
@@ -211,7 +233,29 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       scene.position.set(position[0], modelPositionY, position[2]);
 
       // Apply rotation with model-specific adjustment to face camera
-      const yRotation = rotation[1] + (modelConfig.rotationY ?? 0);
+      // VRM0.x models: rotateVRM0() already provides 180° rotation, so use 0 from config
+      // VRM1.0 models: may need rotation adjustment
+      let configRotationY = modelConfig.rotationY ?? 0;
+      
+      // For VRM1.0 models, apply rotation only if explicitly set in config
+      // If rotationY is undefined, use default behavior (no additional rotation)
+      if (isVRM1 && configRotationY !== undefined) {
+        console.log('%c🔄 [Rotation] Using explicit rotationY from config:', 'color: #3498db;', configRotationY);
+      } else if (isVRM1) {
+        console.log('%c⚠️ [Rotation] VRM1.0 model with no explicit rotationY - using default orientation', 'color: #f39c12;');
+      }
+      
+      const yRotation = rotation[1] + (configRotationY ?? 0);
+      
+      console.log('%c🔄 [Rotation Debug]', 'background: #e67e22; color: white; padding: 2px 6px; border-radius: 3px;');
+      console.log(`  - Model: ${modelConfig.id}`);
+      console.log(`  - VRM Version: ${metaVersion || 'unknown'}`);
+      console.log(`  - isVRM0: ${isVRM0} (rotateVRM0 was ${isVRM0 ? 'applied' : 'skipped'})`);
+      console.log(`  - Base rotation[1]: ${rotation[1]} (${(rotation[1] * 180 / Math.PI).toFixed(1)}°)`);
+      console.log(`  - modelConfig.rotationY: ${configRotationY} (${(configRotationY * 180 / Math.PI).toFixed(1)}°)`);
+      console.log(`  - Final yRotation: ${yRotation} (${(yRotation * 180 / Math.PI).toFixed(1)}°)`);
+      console.log(`  - Expected: ${isVRM0 ? 'VRM0.x: rotateVRM0() + 0 from config' : 'VRM1.0: Math.PI from config'}`);
+      
       scene.rotation.set(rotation[0], yRotation, rotation[2]);
 
       console.log(`📏 [AvatarModel] Model "${modelConfig.id}" - height: ${modelHeight.toFixed(2)}m, autoScale: ${autoScale.toFixed(2)}, finalScale: ${finalScale.toFixed(2)}`);
@@ -226,27 +270,28 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         currentActions.current[clip.name] = action;
       });
 
-      // Load all VRMA animations with proper retargeting
-      // Preload all core animations for best experience
-      const coreAnimations = ['modelPose', 'greeting', 'peace', 'shoot', 'spin', 'squat'];
-      const extendedAnimations = [
-        'idle', 'talkingOnPhone', 'bowing', 'salute', 'singing',
-        'hipHopDance', 'swinging', 'catwalk',
-        'punch', 'dropKick', 'flyingKnee', 'daggerStab', 'bodyBlock', 'centerBlock', 'catch', 'snatch', 'reloading', 'magicCast',
-        'walking', 'jogBackwards', 'jumping', 'climbing', 'takeCover', 'zombieStandUp', 'plank', 'openDoor', 'turnLeft', 'turnRight',
-        'golfBadShot', 'golfPrePutt'
-      ];
+      // Load CRITICAL animations synchronously for immediate avatar functionality
+      console.log('%c🚀 [AvatarModel] Loading CRITICAL animations...', 'color: #e74c3c; font-weight: bold;');
 
-      // Load all animations in parallel
-      const allAnimations = [...coreAnimations, ...extendedAnimations];
-      console.log(`📦 [AvatarModel] Loading ${allAnimations.length} VRMA animations...`);
-
-      Promise.allSettled(allAnimations.map(name => loadVRMAAnimation(name)))
-        .then((results) => {
-          const loaded = results.filter(r => r.status === 'fulfilled').length;
-          const failed = results.filter(r => r.status === 'rejected').length;
-          console.log(`📦 [AvatarModel] Loaded ${loaded}/${allAnimations.length} animations (${failed} failed)`);
-
+      vrmaAnimationService.loadCriticalAnimations()
+        .then(async () => {
+          console.log('%c🔍 [AvatarModel] loadCriticalAnimations() completed', 'color: #9b59b6; font-weight: bold;');
+          console.log('%c🔍 [AvatarModel] vrmaActions.current BEFORE setting loaded:', 'color: #9b59b6;', Object.keys(vrmaActions.current));
+          console.log('%c🔍 [AvatarModel] vrmaClips.current BEFORE setting loaded:', 'color: #9b59b6;', Object.keys(vrmaClips.current));
+          console.log('%c🔍 [AvatarModel] vrmaAnimationService loadedAnimations:', 'color: #9b59b6;', vrmaAnimationService.getLoadedAnimationNames());
+          
+          // CRITICAL FIX: Call loadVRMAAnimation for each CRITICAL animation to create THREE.js actions
+          // The service only loads VRMA files, we need to create actions from them
+          const { CRITICAL_ANIMATIONS } = await import('../config/animationPriorities');
+          console.log('%c🔧 [AvatarModel] Creating THREE.js actions for CRITICAL animations...', 'color: #e67e22; font-weight: bold;');
+          
+          for (const animName of CRITICAL_ANIMATIONS) {
+            await loadVRMAAnimation(animName);
+          }
+          
+          console.log('%c🔧 [AvatarModel] THREE.js actions created. vrmaActions.current:', 'color: #27ae60; font-weight: bold;', Object.keys(vrmaActions.current));
+          
+          loadingStore.setCriticalLoaded(true);
           setVrmaAnimationsLoaded(true);
           isInitialized.current = true;
 
@@ -260,6 +305,8 @@ const Character: React.FC<ExtendedCharacterProps> = ({
               } catch {
                 console.warn('Failed to play modelPose animation');
               }
+            } else {
+              console.warn('%c⚠️ [AvatarModel] modelPose action NOT FOUND in vrmaActions.current', 'color: #e74c3c; font-weight: bold;');
             }
           } else {
             console.log('%c⏭️ [AvatarModel] Skipping idle - animation already playing: ' + store.currentAnimation, 'color: #f39c12;');
@@ -272,9 +319,20 @@ const Character: React.FC<ExtendedCharacterProps> = ({
             ...animations.map(a => a.name),
             ...Object.keys(vrmaClips.current)
           ]);
-        }).catch((error) => {
-          console.warn('Failed to load VRMA animations:', error);
+        })
+        .catch((error) => {
+          console.error('Failed to load CRITICAL animations:', error);
           setVrmaAnimationsLoaded(false);
+        });
+
+      // Start background loading of HIGH priority animations after CRITICAL load completes
+      vrmaAnimationService.loadHighPriorityAnimations()
+        .then(() => {
+          loadingStore.setHighPriorityComplete(true);
+          console.log('%c✅ [AvatarModel] Background loading of HIGH priority animations complete', 'color: #27ae60; font-weight: bold;');
+        })
+        .catch((error) => {
+          console.warn('Failed to load HIGH priority animations:', error);
         });
 
       console.log('VRM model loaded:', vrm);
