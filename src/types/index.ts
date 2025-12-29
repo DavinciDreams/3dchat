@@ -30,6 +30,8 @@ export const AVAILABLE_VRM_MODELS: VRMModel[] = [
   { id: 'ancientauton2', name: 'Ancient Auton 2', path: '/model/ancientauton2.vrm', rotationY: 0, positionY: 0, scale: 1 },
   { id: 'ancientauton3', name: 'Ancient Auton 3', path: '/model/ancientauton3.vrm', rotationY: 0, positionY: 0, scale: 1 },
   { id: 'ancientauton4', name: 'Ancient Auton 4', path: '/model/ancientauton4.vrm', rotationY: 0, positionY: 0, scale: 1 },
+  { id: 'ancientauton5', name: 'Ancient Auton 5', path: '/model/ancientauton5.vrm', rotationY: 0, positionY: 0, scale: 1 },
+  { id: 'ancientauton6', name: 'Ancient Auton 6', path: '/model/ancientauton6.vrm', rotationY: 0, positionY: 0, scale: 1 },
 ];
 
 // Voice types
