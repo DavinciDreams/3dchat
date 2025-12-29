@@ -2,10 +2,18 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMAnimationLoaderPlugin } from '@pixiv/three-vrm-animation';
 import { createVRMAnimationClip } from '@pixiv/three-vrm-animation';
+import {
+  CRITICAL_ANIMATIONS,
+  HIGH_PRIORITY_ANIMATIONS,
+  getFallbackAnimation,
+  getAnimationTier,
+  type AnimationPriority,
+} from '../config/animationPriorities';
 
 /**
  * VRMA Animation Service
  * Handles loading and management of VRMA animation files
+ * Supports lazy loading with priority tiers
  */
 
 export interface VRMAAnimation {
@@ -123,7 +131,7 @@ export const VRMA_EXTENDED_ANIMATIONS: VRMAAnimationConfig[] = [
   { path: '/animations/vrma/petting.vrma', name: 'petting', description: 'Petting' },
   { path: '/animations/vrma/pianoPlaying.vrma', name: 'pianoPlaying', description: 'Piano playing' },
   { path: '/animations/vrma/playingDrums.vrma', name: 'playingDrums', description: 'Playing drums' },
-  { path: '/animations/vrma/playingTheViolin.vrma', name: 'playingTheViolin', description: 'Playing the violin' },
+  { path: '/animations/vrma/playingTheViolin.vrma', name: 'playingTheViolin', description: 'Playing violin' },
   { path: '/animations/vrma/plotting.vrma', name: 'plotting', description: 'Plotting' },
   { path: '/animations/vrma/pointing.vrma', name: 'pointing', description: 'Pointing' },
   { path: '/animations/vrma/praying.vrma', name: 'praying', description: 'Praying' },
@@ -272,6 +280,12 @@ class VRMAAnimationService {
   private loadingPromises: Map<string, Promise<VRMAAnimation>> = new Map();
   // Cache for retargeted animation clips keyed by modelId + animationName
   private retargetedClipCache: Map<string, THREE.AnimationClip> = new Map();
+  // Track failed animations for retry logic
+  private failedAnimations: Map<string, { count: number; lastError: string }> = new Map();
+  // Track loading states for animations
+  private loadingStates: Map<string, 'idle' | 'loading' | 'loaded' | 'error'> = new Map();
+  // Maximum retries for failed animations
+  private readonly MAX_RETRIES = 3;
 
   constructor() {
     this.loader = new GLTFLoader();
@@ -281,7 +295,7 @@ class VRMAAnimationService {
   /**
    * Load a single VRMA animation file
    * @param config The VRMA animation configuration
-   * @returns Promise resolving to the loaded animation
+   * @returns Promise resolving to loaded animation
    */
   async loadAnimation(config: VRMAAnimationConfig): Promise<VRMAAnimation> {
     // Return cached animation if already loaded
@@ -305,12 +319,12 @@ class VRMAAnimationService {
           throw new Error(`No VRM animations found in VRMA file: ${config.path}`);
         }
 
-        // Use the first VRM animation from the VRMA file
+        // Use first VRM animation from VRMA file
         const vrmAnimation = vrmAnimations[0];
         const animation: VRMAAnimation = {
           name: config.name,
-          clip: gltf.animations[0], // Keep the raw clip for reference
-          vrmAnimation: vrmAnimation, // Store the VRM animation data for retargeting
+          clip: gltf.animations[0], // Keep raw clip for reference
+          vrmAnimation: vrmAnimation, // Store VRM animation data for retargeting
         };
 
         this.loadedAnimations.set(config.name, animation);
@@ -335,7 +349,7 @@ class VRMAAnimationService {
    */
   async loadAllAnimations(coreOnly = false): Promise<Map<string, VRMAAnimation>> {
     const animationsToLoad = coreOnly ? VRMA_CORE_ANIMATIONS : VRMA_ANIMATIONS;
-
+    
     const results = await Promise.allSettled(
       animationsToLoad.map((config) => this.loadAnimation(config))
     );
@@ -393,7 +407,7 @@ class VRMAAnimationService {
   /**
    * Check if an animation is loaded
    * @param name The animation name
-   * @returns True if the animation is loaded
+   * @returns True if animation is loaded
    */
   isLoaded(name: string): boolean {
     return this.loadedAnimations.has(name);
@@ -432,7 +446,7 @@ class VRMAAnimationService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const retargetedClip = createVRMAnimationClip(vrmAnimation as any, vrm as any);
     
-    // Cache the result
+    // Cache result
     this.retargetedClipCache.set(cacheKey, retargetedClip);
     
     return retargetedClip;
@@ -473,11 +487,240 @@ class VRMAAnimationService {
   }
 
   /**
-   * Get the number of loaded animations
+   * Get number of loaded animations
    * @returns The count of loaded animations
    */
   getLoadedCount(): number {
     return this.loadedAnimations.size;
+  }
+
+  /**
+   * Check if an animation is currently loading
+   * @param name The animation name
+   * @returns True if animation is currently loading
+   */
+  isLoading(name: string): boolean {
+    return this.loadingPromises.has(name);
+  }
+
+  /**
+   * Get loading state for an animation
+   * @param name The animation name
+   * @returns The loading state
+   */
+  getLoadingState(name: string): 'idle' | 'loading' | 'loaded' | 'error' {
+    return this.loadingStates.get(name) || 'idle';
+  }
+
+  /**
+   * Get fallback animation for a given animation name
+   * @param animationName The animation name
+   * @returns The fallback animation name
+   */
+  getFallbackAnimation(animationName: string): string {
+    return getFallbackAnimation(animationName);
+  }
+
+  /**
+   * Load CRITICAL tier animations synchronously
+   * These animations are required for basic avatar functionality
+   * @returns Promise resolving when all critical animations are loaded
+   */
+  async loadCriticalAnimations(): Promise<void> {
+    console.log(`%c🚀 [VRMAAnimationService] Loading ${CRITICAL_ANIMATIONS.length} CRITICAL animations...`, 'color: #e74c3c; font-weight: bold;');
+
+    const results = await Promise.allSettled(
+      CRITICAL_ANIMATIONS.map(name => {
+        const config = VRMA_ANIMATIONS.find(a => a.name === name);
+        if (!config) {
+          console.warn(`CRITICAL animation config not found: ${name}`);
+          return Promise.reject(new Error(`Config not found: ${name}`));
+        }
+        return this.loadAnimationWithRetry(config);
+      })
+    );
+
+    let loadedCount = 0;
+    let failedCount = 0;
+
+    results.forEach((result, index) => {
+      const animName = CRITICAL_ANIMATIONS[index];
+      if (result.status === 'fulfilled') {
+        loadedCount++;
+        this.loadingStates.set(animName, 'loaded');
+      } else {
+        failedCount++;
+        this.loadingStates.set(animName, 'error');
+        console.warn(`Failed to load CRITICAL animation: ${animName}`, result.reason);
+      }
+    });
+
+    console.log(`%c✅ [VRMAAnimationService] Loaded ${loadedCount}/${CRITICAL_ANIMATIONS.length} CRITICAL animations (${failedCount} failed)`, 'color: #27ae60; font-weight: bold;');
+  }
+
+  /**
+   * Load HIGH priority animations in background batches
+   * These animations are frequently used but not critical for initial load
+   * @returns Promise resolving when all high priority animations are loaded
+   */
+  async loadHighPriorityAnimations(): Promise<void> {
+    console.log(`%c🔄 [VRMAAnimationService] Starting background load of ${HIGH_PRIORITY_ANIMATIONS.length} HIGH priority animations...`, 'color: #f39c12; font-weight: bold;');
+
+    const batchSize = 5;
+    const batches: string[][] = [];
+
+    // Split into batches
+    for (let i = 0; i < HIGH_PRIORITY_ANIMATIONS.length; i += batchSize) {
+      batches.push(HIGH_PRIORITY_ANIMATIONS.slice(i, i + batchSize));
+    }
+
+    let loadedCount = 0;
+    let failedCount = 0;
+
+    // Load batches sequentially with small delays
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex];
+      console.log(`%c📦 [VRMAAnimationService] Loading HIGH priority batch ${batchIndex + 1}/${batches.length} (${batch.length} animations)...`, 'color: #3498db;');
+
+      const results = await Promise.allSettled(
+        batch.map(name => {
+          const config = VRMA_ANIMATIONS.find(a => a.name === name);
+          if (!config) {
+            console.warn(`HIGH priority animation config not found: ${name}`);
+            return Promise.reject(new Error(`Config not found: ${name}`));
+          }
+          return this.loadAnimationWithRetry(config);
+        })
+      );
+
+      results.forEach((result) => {
+        const animName = batch[results.indexOf(result)];
+        if (result.status === 'fulfilled') {
+          loadedCount++;
+          this.loadingStates.set(animName, 'loaded');
+        } else {
+          failedCount++;
+          this.loadingStates.set(animName, 'error');
+          // Log but don't fail whole batch
+          console.debug(`Failed to load HIGH priority animation: ${animName}`);
+        }
+      });
+
+      // Small delay between batches to avoid overwhelming system
+      if (batchIndex < batches.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    console.log(`%c✅ [VRMAAnimationService] Background load complete: ${loadedCount}/${HIGH_PRIORITY_ANIMATIONS.length} HIGH priority animations loaded (${failedCount} failed)`, 'color: #27ae60; font-weight: bold;');
+  }
+
+  /**
+   * Load an animation with retry logic and exponential backoff
+   * @param config The VRMA animation configuration
+   * @param retryCount Current retry attempt (default: 0)
+   * @returns Promise resolving to loaded animation
+   */
+  private async loadAnimationWithRetry(
+    config: VRMAAnimationConfig,
+    retryCount = 0
+  ): Promise<VRMAAnimation> {
+    const animationName = config.name;
+
+    // Check if animation is permanently failed
+    const failedInfo = this.failedAnimations.get(animationName);
+    if (failedInfo && failedInfo.count >= this.MAX_RETRIES) {
+      console.warn(`Animation ${animationName} permanently failed after ${this.MAX_RETRIES} retries`);
+      throw new Error(`Animation ${animationName} failed permanently`);
+    }
+
+    // Set loading state
+    this.loadingStates.set(animationName, 'loading');
+
+    try {
+      const animation = await this.loadAnimation(config);
+      // Clear failure info on success
+      this.failedAnimations.delete(animationName);
+      return animation;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn(`Animation load failed: ${animationName} (attempt ${retryCount + 1}/${this.MAX_RETRIES})`, errorMessage);
+
+      // Track failure
+      const currentFailures = (failedInfo?.count || 0) + 1;
+      this.failedAnimations.set(animationName, {
+        count: currentFailures,
+        lastError: errorMessage
+      });
+
+      // Retry with exponential backoff
+      if (retryCount < this.MAX_RETRIES) {
+        const backoffDelay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+        console.log(`Retrying ${animationName} in ${backoffDelay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+        return this.loadAnimationWithRetry(config, retryCount + 1);
+      }
+
+      // Max retries exceeded
+      this.loadingStates.set(animationName, 'error');
+      throw new Error(`Failed to load animation ${animationName} after ${this.MAX_RETRIES} retries`);
+    }
+  }
+
+  /**
+   * Load an animation on-demand with fallback support
+   * @param animationName The animation name to load
+   * @returns Promise resolving to loaded animation
+   */
+  async loadAnimationOnDemand(animationName: string): Promise<VRMAAnimation> {
+    // Check if already loaded
+    if (this.loadedAnimations.has(animationName)) {
+      return this.loadedAnimations.get(animationName)!;
+    }
+
+    // Check if currently loading
+    if (this.loadingPromises.has(animationName)) {
+      console.log(`Animation ${animationName} is already loading, waiting...`);
+      return this.loadingPromises.get(animationName)!;
+    }
+
+    // Find config
+    const config = VRMA_ANIMATIONS.find(a => a.name === animationName);
+    if (!config) {
+      throw new Error(`Animation config not found: ${animationName}`);
+    }
+
+    // Load with retry logic
+    try {
+      return await this.loadAnimationWithRetry(config);
+    } catch (error) {
+      console.error(`Failed to load animation on-demand: ${animationName}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get failed animations information
+   * @returns Map of failed animations with failure counts
+   */
+  getFailedAnimations(): Map<string, { count: number; lastError: string }> {
+    return new Map(this.failedAnimations);
+  }
+
+  /**
+   * Reset failure tracking for an animation (useful for retrying after network issues)
+   * @param animationName The animation name to reset
+   */
+  resetFailureTracking(animationName: string): void {
+    this.failedAnimations.delete(animationName);
+    this.loadingStates.delete(animationName);
+  }
+
+  /**
+   * Clear all failure tracking
+   */
+  clearFailureTracking(): void {
+    this.failedAnimations.clear();
   }
 }
 

@@ -15,23 +15,26 @@ export interface VRMModel {
 }
 
 // Model configurations with normalization adjustments
-// rotationY: Math.PI = 180° (faces backward by default)
+// rotationY: Y-axis rotation in radians to face forward (default: 0)
+// Note: Rotation is handled based on VRM version in AvatarModel.tsx:
+// - VRM0.x: VRMUtils.rotateVRM0() provides 180° rotation
+// - VRM1.0: Additional Math.PI rotation may be applied if needed
 // positionY: negative = model origin is above feet, positive = below
 export const AVAILABLE_VRM_MODELS: VRMModel[] = [
-  { id: 'robot', name: 'Auton', path: '/model/robot.vrm', rotationY: 0, positionY: 0, scale: 1 },
-  { id: 'auton2', name: 'Auton 2', path: '/model/auton2.vrm', rotationY: 0, positionY: 0, scale: 1 },
-  { id: 'auton3', name: 'Auton 3', path: '/model/auton3.vrm', rotationY: 0, positionY: 0, scale: 1 },
-  { id: 'auton4', name: 'Auton 4', path: '/model/auton4.vrm', rotationY: 0, positionY: 0, scale: 1 },
-  { id: 'auton5', name: 'Auton 5', path: '/model/auton5.vrm', rotationY: 0, positionY: 0, scale: 1 },
-  { id: 'auton6', name: 'Auton 6', path: '/model/auton6.vrm', rotationY: 0, positionY: 0, scale: 1 },
-  { id: 'auton7', name: 'Auton 7', path: '/model/auton7.vrm', rotationY: 0, positionY: 0, scale: 1 },
-  { id: 'auton8', name: 'Auton 8', path: '/model/auton8.vrm', rotationY: 0, positionY: 0, scale: 1 },
-  { id: 'ancientauton', name: 'Ancient Auton', path: '/model/ancientauton.vrm', rotationY: 0, positionY: 0, scale: 1 },
-  { id: 'ancientauton2', name: 'Ancient Auton 2', path: '/model/ancientauton2.vrm', rotationY: 0, positionY: 0, scale: 1 },
-  { id: 'ancientauton3', name: 'Ancient Auton 3', path: '/model/ancientauton3.vrm', rotationY: 0, positionY: 0, scale: 1 },
-  { id: 'ancientauton4', name: 'Ancient Auton 4', path: '/model/ancientauton4.vrm', rotationY: 0, positionY: 0, scale: 1 },
-  { id: 'ancientauton5', name: 'Ancient Auton 5', path: '/model/ancientauton5.vrm', rotationY: 0, positionY: 0, scale: 1 },
-  { id: 'ancientauton6', name: 'Ancient Auton 6', path: '/model/ancientauton6.vrm', rotationY: 0, positionY: 0, scale: 1 },
+  { id: 'robot', name: 'Auton', path: '/model/robot.vrm', rotationY: Math.PI, positionY: 0, scale: 1 },
+  { id: 'auton2', name: 'Auton 2', path: '/model/auton2.vrm', rotationY: undefined, positionY: 0, scale: 1 },
+  { id: 'auton3', name: 'Auton 3', path: '/model/auton3.vrm', rotationY: undefined, positionY: 0, scale: 1 },
+  { id: 'auton4', name: 'Auton 4', path: '/model/auton4.vrm', rotationY: undefined, positionY: 0, scale: 1 },
+  { id: 'auton5', name: 'Auton 5', path: '/model/auton5.vrm', rotationY: undefined, positionY: 0, scale: 1 },
+  { id: 'auton6', name: 'Auton 6', path: '/model/auton6.vrm', rotationY: undefined, positionY: 0, scale: 1 },
+  { id: 'auton7', name: 'Auton 7', path: '/model/auton7.vrm', rotationY: undefined, positionY: 0, scale: 1 },
+  { id: 'auton8', name: 'Auton 8', path: '/model/auton8.vrm', rotationY: undefined, positionY: 0, scale: 1 },
+  { id: 'ancientauton', name: 'Ancient Auton', path: '/model/ancientauton.vrm', rotationY: undefined, positionY: 0, scale: 1 },
+  { id: 'ancientauton2', name: 'Ancient Auton 2', path: '/model/ancientauton2.vrm', rotationY: undefined, positionY: 0, scale: 1 },
+  // ancientauton3.vrm is missing/corrupted - removed from list
+  { id: 'ancientauton4', name: 'Ancient Auton 4', path: '/model/ancientauton4.vrm', rotationY: undefined, positionY: 0, scale: 1 },
+  { id: 'ancientauton5', name: 'Ancient Auton 5', path: '/model/ancientauton5.vrm', rotationY: undefined, positionY: 0, scale: 1 },
+  { id: 'ancientauton6', name: 'Ancient Auton 6', path: '/model/ancientauton6.vrm', rotationY: undefined, positionY: 0, scale: 1 },
 ];
 
 // Voice types
