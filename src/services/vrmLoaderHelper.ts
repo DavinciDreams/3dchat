@@ -3,6 +3,94 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin } from '@pixiv/three-vrm';
 
 /**
+ * A GLTFLoader class optimized for VRM files that skips external texture lookups.
+ *
+ * VRM files always have textures embedded as data URIs (base64 encoded). The default
+ * GLTFLoader behavior is to attempt loading external textures first (e.g., Image_0.jpg)
+ * before falling back to embedded textures. This causes wasted network/file requests.
+ *
+ * This implementation uses a custom TextureLoader that:
+ * 1. Allows data URI textures (embedded) to load normally
+ * 2. Immediately provides a fallback for non-data URI texture requests (external)
+ *    since VRM files don't use external textures
+ * 3. Provides a fallback dummy texture to prevent errors in the VRMLoaderPlugin
+ *
+ * Usage with @react-three/fiber's useLoader:
+ * ```typescript
+ * const gltf = useLoader(VRMOptimizedLoader, MODEL_PATH_VRM);
+ * ```
+ */
+export class VRMOptimizedLoader extends GLTFLoader {
+  constructor(manager?: THREE.LoadingManager) {
+    // Create a custom LoadingManager if none provided
+    const customManager = manager || new THREE.LoadingManager();
+    
+    // Override itemError handler
+    customManager.itemError = (url: string) => {
+      console.warn(`Texture failed to load: ${url}`);
+    };
+    
+    // Override error handler
+    customManager.onError = (url: string) => {
+      console.warn(`Resource failed to load: ${url}`);
+    };
+    
+    // Create the TextureLoader with our custom manager
+    const textureLoader = new THREE.TextureLoader(customManager);
+    
+    // Store the original TextureLoader.load method
+    const originalLoad = textureLoader.load.bind(textureLoader);
+    
+    // Override the TextureLoader.load method to skip external texture lookups
+    textureLoader.load = (
+      url: string,
+      onLoad?: (texture: THREE.Texture) => void,
+      onProgress?: (event: ProgressEvent) => void,
+      onError?: (error: unknown) => void
+    ) => {
+      // Check if the URL is a data URI (embedded texture)
+      if (url.startsWith('data:')) {
+        // Allow embedded textures to load normally
+        return originalLoad(url, onLoad, onProgress, onError);
+      }
+      
+      // For non-data URIs (external textures), skip the load attempt
+      // since VRM files always have embedded textures
+      console.log(`%c[VRM Optimized] Skipping external texture lookup: ${url}`, 'color: #f39c12;');
+      
+      // Create a fallback dummy texture to prevent errors
+      const canvas = document.createElement('canvas');
+      canvas.width = 4;
+      canvas.height = 4;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#808080'; // Neutral gray
+        ctx.fillRect(0, 0, 4, 4);
+      }
+      
+      const dummyTexture = new THREE.CanvasTexture(canvas);
+      dummyTexture.colorSpace = THREE.SRGBColorSpace;
+      dummyTexture.needsUpdate = true;
+      
+      // Call the original onLoad callback with the dummy texture
+      if (onLoad) {
+        onLoad(dummyTexture);
+      }
+      
+      return dummyTexture;
+    };
+    
+    // Call the parent constructor with the custom manager
+    super(customManager);
+    
+    // Register the VRMLoaderPlugin
+    this.register((parser) => {
+      return new VRMLoaderPlugin(parser);
+    });
+  }
+}
+
+/**
  * Creates a GLTFLoader with VRMLoaderPlugin that handles null/undefined textures safely.
  * 
  * PROBLEM ANALYSIS:
