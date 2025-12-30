@@ -1,6 +1,7 @@
 import { VRM } from '@pixiv/three-vrm';
 import { VisemeName } from '../types';
 import { getVRMBlendShapes } from './visemePreprocessor';
+import type { PhonemeWeights, WLipSyncService } from './wLipSyncService';
 
 export class VisemeApplier {
   private vrm: VRM | null = null;
@@ -9,6 +10,8 @@ export class VisemeApplier {
   private transitionProgress: number = 1.0;
   private readonly transitionDuration: number = 0.1;
   private availableExpressions: Set<string> = new Set();
+  private wLipSyncService: WLipSyncService | null = null;
+  private useWLipSync: boolean = false;
 
   setVRM(vrm: VRM | null) {
     this.vrm = vrm;
@@ -79,6 +82,63 @@ export class VisemeApplier {
     this.currentViseme = 'sil';
     this.targetViseme = 'sil';
     this.transitionProgress = 1.0;
+  }
+
+  /**
+   * Enable wLipSync for audio-based lip sync
+   *
+   * @param wLipSyncService - The wLipSync service instance
+   */
+  enableWLipSync(wLipSyncService: WLipSyncService): void {
+    this.wLipSyncService = wLipSyncService;
+    this.useWLipSync = true;
+    console.log('[VisemeApplier] wLipSync enabled');
+  }
+
+  /**
+   * Disable wLipSync and fall back to text-based visemes
+   */
+  disableWLipSync(): void {
+    this.wLipSyncService = null;
+    this.useWLipSync = false;
+    console.log('[VisemeApplier] wLipSync disabled, using text-based visemes');
+  }
+
+  /**
+   * Apply visemes from wLipSync audio analysis
+   *
+   * @param weights - Phoneme weights from wLipSync (A, E, I, O, U)
+   */
+  applyFromAudio(weights: PhonemeWeights): void {
+    if (!this.vrm?.expressionManager) return;
+
+    // Map wLipSync phonemes to VRM blend shapes:
+    // A -> aa, E -> ee, I -> ih, O -> oh, U -> ou
+    const phonemeToBlendShape: Record<keyof PhonemeWeights, string[]> = {
+      A: ['aa'],
+      E: ['ee'],
+      I: ['ih'],
+      O: ['oh'],
+      U: ['ou'],
+    };
+
+    // Apply each phoneme weight to corresponding blend shape
+    Object.entries(weights).forEach(([phoneme, weight]) => {
+      if (weight > 0.01) { // Only apply if weight is significant
+        const blendShapes = phonemeToBlendShape[phoneme as keyof PhonemeWeights];
+        if (blendShapes) {
+          for (const shapeName of blendShapes) {
+            try {
+              this.vrm!.expressionManager!.setValue(shapeName, weight);
+            } catch {
+              // Expression may not exist, silently handle
+            }
+          }
+        }
+      }
+    });
+
+    this.vrm.expressionManager.update();
   }
 }
 

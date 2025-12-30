@@ -6,31 +6,32 @@ import {
   TimelineEvent
 } from '../types';
 import { TimelineManager } from './timelineManager';
+import { animationLayeringService } from './animationLayeringService';
 
 /**
  * AnimationQueueService
  * 
- * Manages layered animation playback with interruptibility support.
+ * Manages queued animation playback with interruptibility support.
+ * Uses AnimationLayeringService for weight-based blending and layer management.
  * Animations can play simultaneously on different body layers.
  */
 export class AnimationQueueService {
   private queue: QueuedAnimation[] = [];
   private activeLayers: Map<AnimationLayerType, QueuedAnimation> = new Map();
   private timelineManager: TimelineManager;
-  private mixer: THREE.AnimationMixer;
   private options: Required<AnimationQueueOptions>;
-  private actionCache: Map<string, THREE.AnimationAction> = new Map();
   private animationCounter: number = 0;
-  private animationLayerMap: Map<string, AnimationLayerType> = new Map();
 
   constructor(options: AnimationQueueOptions) {
     this.timelineManager = options.timelineManager;
-    this.mixer = options.mixer;
     this.options = {
       mixer: options.mixer,
       timelineManager: options.timelineManager,
       defaultBlendDuration: options.defaultBlendDuration ?? 300
     };
+    
+    // Initialize AnimationLayeringService with mixer
+    animationLayeringService.setMixer(options.mixer);
   }
 
   /**
@@ -156,12 +157,7 @@ export class AnimationQueueService {
    */
   pause(): void {
     console.log('%c⏸️ [AnimationQueue] Pausing all animations', 'color: #f39c12;');
-    this.activeLayers.forEach(anim => {
-      const action = this.getAction(anim.name);
-      if (action) {
-        action.paused = true;
-      }
-    });
+    animationLayeringService.pauseAll();
   }
 
   /**
@@ -169,12 +165,7 @@ export class AnimationQueueService {
    */
   resume(): void {
     console.log('%c▶️ [AnimationQueue] Resuming all animations', 'color: #27ae60;');
-    this.activeLayers.forEach(anim => {
-      const action = this.getAction(anim.name);
-      if (action) {
-        action.paused = false;
-      }
-    });
+    animationLayeringService.resumeAll();
   }
 
   /**
@@ -211,7 +202,7 @@ export class AnimationQueueService {
   }
 
   /**
-   * Play animation with layering support
+   * Play animation with layering support using AnimationLayeringService
    * @param animation - Animation to play
    */
   private playAnimation(animation: QueuedAnimation): void {
@@ -220,79 +211,33 @@ export class AnimationQueueService {
     console.log(`%c▶️ [AnimationQueue] Playing: ${animation.name} on ${layerType}`, 
       'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px;');
     
-    // Fade out current animation on this layer
-    const current = this.activeLayers.get(layerType);
-    if (current) {
-      this.fadeOutAnimation(current, animation.blendIn);
-    }
-
-    // Fade in new animation
-    this.fadeInAnimation(animation, animation.blendIn);
-    this.activeLayers.set(layerType, animation);
-  }
-
-  /**
-   * Fade in animation
-   * @param animation - Animation to fade in
-   * @param duration - Fade duration in milliseconds
-   */
-  private fadeInAnimation(animation: QueuedAnimation, duration: number): void {
-    const action = this.getAction(animation.name);
-    if (!action) {
-      console.warn(`%c⚠️ [AnimationQueue] No action found for: ${animation.name}`, 
-        'color: #f39c12;');
-      return;
-    }
+    // Play animation using AnimationLayeringService
+    const animationId = animationLayeringService.playAnimation(
+      animation.name,
+      layerType,
+      {
+        fadeInDuration: animation.blendIn / 1000, // Convert ms to seconds
+        fadeOutDuration: animation.blendOut / 1000,
+        loop: animation.duration > 0 ? THREE.LoopRepeat : THREE.LoopOnce
+      }
+    );
     
-    action.reset();
-    action.fadeIn(duration / 1000).play(); // Convert ms to seconds
+    // Track animation ID for later cancellation
+    if (animation.id) {
+      this.activeLayers.set(layerType, { ...animation, id: animationId });
+    }
   }
 
   /**
-   * Fade out animation
+   * Fade out animation using AnimationLayeringService
    * @param animation - Animation to fade out
    * @param duration - Fade duration in milliseconds
    */
   private fadeOutAnimation(animation: QueuedAnimation, duration: number): void {
-    const action = this.getAction(animation.name);
-    if (!action) {
-      return;
+    // Stop animation using AnimationLayeringService
+    if (animation.id) {
+      animationLayeringService.stopAnimation(animation.id, duration / 1000); // Convert ms to seconds
     }
-    
-    action.fadeOut(duration / 1000); // Convert ms to seconds
-  }
-
-  /**
-   * Get or create animation action
-   * @param name - Animation name
-   * @returns Animation action or null
-   */
-  private getAction(name: string): THREE.AnimationAction | null {
-    // Check cache first
-    if (this.actionCache.has(name)) {
-      return this.actionCache.get(name)!;
-    }
-    
-    // Note: The actual animation clips are managed by vrmaAnimationService
-    // This method is a placeholder - in practice, AvatarModel will
-    // provide the actual actions. For now, return null.
-    console.warn(`%c⚠️ [AnimationQueue] Action not in cache: ${name}`, 
-      'color: #f39c12;');
-    return null;
-  }
-
-  /**
-   * Register an animation action (called by AvatarModel)
-   * @param name - Animation name
-   * @param action - Animation action to register
-   * @param layer - Optional animation layer
-   */
-  registerAction(name: string, action: THREE.AnimationAction, layer?: AnimationLayerType): void {
-    this.actionCache.set(name, action);
-    if (layer) {
-      this.animationLayerMap.set(name, layer);
-    }
-    console.log(`%c📝 [AnimationQueue] Registered action: ${name} on layer: ${layer || 'none'}`, 'color: #3498db;');
   }
 
   /**
@@ -313,8 +258,7 @@ export class AnimationQueueService {
    * Clear action cache
    */
   clearActionCache(): void {
-    this.actionCache.clear();
-    this.animationLayerMap.clear();
+    animationLayeringService.clear();
   }
 }
 
@@ -337,7 +281,8 @@ export function initializeAnimationQueueService(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const service = animationQueueService as any;
   service.timelineManager = timelineManager;
-  service.mixer = mixer;
+  // AnimationLayeringService is already initialized with mixer in constructor
+  animationLayeringService.setMixer(mixer);
 }
 
 // Export class for testing

@@ -14,6 +14,7 @@ import {
 export class TimelineManager {
   private events: TimelineEvent[] = [];
   private audioStartTime: number = 0;
+  private audioDuration: number = 0;
   private playing: boolean = false;
   private animationFrameId: number | null = null;
   private lastTickTime: number = 0;
@@ -40,6 +41,7 @@ export class TimelineManager {
     console.log(`%c⏱️ [TimelineManager] Starting timeline with duration: ${audioDuration}ms`,
       'background: #3498db; color: white; padding: 4px 8px; border-radius: 4px;');
     
+    this.audioDuration = audioDuration;
     this.audioStartTime = performance.now();
     this.playing = true;
     this.lastTickTime = 0;
@@ -116,6 +118,14 @@ export class TimelineManager {
   }
 
   /**
+   * Get total timeline duration
+   * @returns Duration in milliseconds
+   */
+  getDuration(): number {
+    return this.audioDuration;
+  }
+
+  /**
    * Get upcoming events
    * @param count - Maximum number of events to return
    * @returns Array of upcoming events
@@ -175,7 +185,57 @@ export class TimelineManager {
   }
 
   /**
-   * Main tick loop - executes events whose time has come
+   * Start timeline from text duration (text-based timing)
+   * @param textDuration - Text duration in milliseconds
+   */
+  startFromText(textDuration: number): void {
+    console.log(`%c⏱️ [TimelineManager] Starting timeline from text duration: ${textDuration}ms`,
+      'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px;');
+
+    this.audioDuration = textDuration;
+    this.audioStartTime = performance.now();
+    this.playing = true;
+    this.lastTickTime = 0;
+    this.tick();
+  }
+
+  /**
+   * Adjust timeline duration (for syncing with audio)
+   * @param newDuration - New duration in milliseconds
+   */
+  adjustDuration(newDuration: number): void {
+    console.log(`%c⏱️ [TimelineManager] Adjusting timeline duration from ${this.getDuration()}ms to ${newDuration}ms`,
+      'background: #f39c12; color: white; padding: 4px 8px; border-radius: 4px;');
+
+    const ratio = newDuration / this.getDuration();
+    if (ratio !== 1) {
+      // Scale all event timestamps by the ratio
+      this.events.forEach(event => {
+        event.timestamp = Math.floor(event.timestamp * ratio);
+      });
+    }
+
+    this.audioDuration = newDuration;
+    this.onTimelineComplete?.();
+  }
+
+  /**
+   * Get current progress (0-1)
+   * @returns Progress value between 0 and 1
+   */
+  getProgress(): number {
+    const duration = this.getDuration();
+    if (duration <= 0) {
+      return 0;
+    }
+
+    const currentTime = this.getCurrentTime();
+    const progress = currentTime / duration;
+    return Math.max(0, Math.min(1, progress));
+  }
+
+  /**
+   * Main tick loop - executes on each animation frame
    */
   private tick(): void {
     if (!this.playing) return;

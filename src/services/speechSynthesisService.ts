@@ -17,6 +17,7 @@ let audioContext: AudioContext | null = null;
 let currentAudioSource: AudioBufferSourceNode | null = null; // Track active audio source for cancellation
 let audioPlaybackStartTime: number = 0; // Track when audio started for timeline sync
 let audioPlaybackDuration: number = 0; // Track total duration for timeline sync
+let currentAudioSourceForLipSync: AudioBufferSourceNode | null = null; // Track audio source for wLipSync connection
 
 // TTS Cache instance
 const ttsCache = new TTSCache(50, 5 * 60 * 1000); // 50 entries, 5 minute TTL
