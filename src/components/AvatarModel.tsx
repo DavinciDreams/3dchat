@@ -301,7 +301,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // This must be done after mixer is created and before animations are loaded
       if (!isInitialized.current) {
         console.log('%c🔧 [AvatarModel] Initializing animation queue service...', 'background: #3498db; color: white; padding: 2px 6px; border-radius: 3px;');
-        initializeAnimationQueueService(mixer.current, timelineManager);
+        initializeAnimationQueueService(mixer.current, timelineManager, vrm, selectedModelId);
         isInitialized.current = true;
       }
 
