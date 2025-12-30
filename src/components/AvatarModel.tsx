@@ -10,8 +10,12 @@ import { getCurrentViseme } from '../services/visemePreprocessor';
 import vrmaAnimationService, { VRMA_ANIMATIONS } from '../services/vrmaAnimationService';
 import { useAnimationLoadingStore } from '../store/animationLoadingStore';
 import { VRMOptimizedLoader } from '../services/vrmLoaderHelper';
-import { animationQueueService, initializeAnimationQueueService } from '../services/animationQueueService';
+import { initializeAnimationQueueService } from '../services/animationQueueService';
 import { timelineManager } from '../services/timelineManager';
+import { animationLayeringService } from '../services/animationLayeringService';
+import { getWLipSyncService } from '../services/wLipSyncService';
+import type { PhonemeWeights } from '../services/wLipSyncService';
+import { hasProfile } from '../config/vrmProfiles';
 
 export interface ExtendedCharacterProps extends CharacterProps {
   selectedModel?: string;
@@ -54,6 +58,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   const sceneRef = useRef<THREE.Group | null>(null);
   const isInitialized = useRef<boolean>(false);
   const [vrmaAnimationsLoaded, setVrmaAnimationsLoaded] = useState(false);
+  const wLipSyncEnabled = useRef<boolean>(false);
   
   // Track which VRMA animations have been loaded for lazy loading
   const loadedVrmaAnimations = useRef<Set<string>>(new Set());
@@ -113,8 +118,8 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       vrmaClips.current[animationName] = retargetedClip;
       loadedVrmaAnimations.current.add(animationName);
 
-      // Register action with animation queue service for layering support
-      animationQueueService.registerAction(animationName, action, layer);
+      // Register animation with AnimationLayeringService for native blending
+      animationLayeringService.registerAnimation(animationName, retargetedClip);
 
       console.log(`%c✅ [loadVRMAAnimation] COMPLETE: '${animationName}' - vrmaActions.current now has:`, 'color: #27ae60; font-weight: bold;', Object.keys(vrmaActions.current));
     } catch (error) {
@@ -129,6 +134,29 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       if (isInitialized.current && mixer.current) {
         console.log('%c⏭️ [AvatarModel] Skipping re-initialization - already initialized', 'color: #f39c12;');
         return;
+      }
+
+      // Initialize wLipSync if profile is available for this model
+      if (selectedModelId && hasProfile(selectedModelId)) {
+        wLipSyncEnabled.current = true;
+        console.log(`[AvatarModel] wLipSync profile available for model: ${selectedModelId}`);
+      }
+
+      // Reinitialize wLipSync when model changes
+      if (wLipSyncEnabled.current && selectedModelId) {
+        const wLipSync = getWLipSyncService();
+        if (wLipSync.getModelId() !== selectedModelId) {
+          // Initialize wLipSync asynchronously
+          wLipSync.initialize(selectedModelId)
+            .then(() => {
+              visemeApplier.enableWLipSync(wLipSync);
+              console.log(`[AvatarModel] wLipSync reinitialized for model: ${selectedModelId}`);
+            })
+            .catch((error) => {
+              console.warn('[AvatarModel] wLipSync reinitialization failed, falling back to text-based visemes:', error);
+              wLipSyncEnabled.current = false;
+            });
+        }
       }
 
       console.log('%c🔧 [AvatarModel] Initializing VRM...', 'background: #3498db; color: white; padding: 2px 6px; border-radius: 3px;');
@@ -479,29 +507,36 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         visemeStartTime.current = 0;
       }
     }
+    
+    // Apply wLipSync when available
+    if (wLipSyncEnabled.current) {
+      const wLipSync = getWLipSyncService();
+      if (wLipSync.isReady()) {
+        const weights: PhonemeWeights = wLipSync.getWeights();
+        visemeApplier.applyFromAudio(weights);
+      }
+    }
   });
 
-  // Helper function to fade to an animation action with layering support
+  // Helper function to play animation using AnimationLayeringService with native blending
   const fadeToAction = (actionName: string, duration: number = 0.3, layer?: AnimationLayerType) => {
     console.log('%c🎭 [fadeToAction] Called with:', 'color: #3498db; font-weight: bold;', actionName);
     console.log('%c🎭 [fadeToAction] Layer:', 'color: #3498db;', layer);
     console.log('%c🎭 [fadeToAction] vrmaAnimationsLoaded:', 'color: #3498db;', vrmaAnimationsLoaded);
     console.log('%c🎭 [fadeToAction] Available VRMA actions:', 'color: #3498db;', Object.keys(vrmaActions.current));
     console.log('%c🎭 [fadeToAction] Available embedded actions:', 'color: #3498db;', Object.keys(currentActions.current));
-
+    
     if (!mixer.current) {
       console.log('%c🎭 [fadeToAction] No mixer - aborting', 'color: #e74c3c;');
       return;
     }
 
-    // Try VRMA actions first, then embedded animations
-    let action = vrmaActions.current[actionName];
-    if (!action) {
-      action = currentActions.current[actionName];
-    }
-    if (!action) {
-      console.warn('%c🎭 [fadeToAction] Animation NOT FOUND: ' + actionName, 'background: #e74c3c; color: white; padding: 2px 6px;');
-      console.warn('%c🎭 [fadeToAction] Requested: "' + actionName + '" but available are:', 'color: #e74c3c;', Object.keys(vrmaActions.current));
+    // Check if animation is registered with AnimationLayeringService
+    const isRegistered = animationLayeringService.getRegisteredAnimations().includes(actionName);
+    
+    if (!isRegistered) {
+      console.warn('%c🎭 [fadeToAction] Animation NOT REGISTERED: ' + actionName, 'background: #e74c3c; color: white; padding: 2px 6px;');
+      console.warn('%c🎭 [fadeToAction] Requested: "' + actionName + '" but available are:', 'color: #e74c3c;', animationLayeringService.getRegisteredAnimations());
       // Fall back to natural pose if no animation found
       if (vrmRef.current) {
         applyNaturalPose(vrmRef.current);
@@ -509,45 +544,22 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       return;
     }
 
-    console.log('%c🎭 [fadeToAction] Animation FOUND, fading out same-layer animations...', 'color: #3498db; font-weight: bold;');
-
-    // If layer is specified, only fade out animations on the same layer
-    // This enables layering - animations on different layers can play simultaneously
-    if (layer) {
-      // Fade out only actions on the same layer
-      // For now, we use a simple heuristic: VRMA actions are considered one layer,
-      // embedded animations another. Full layering support would require
-      // tracking which action belongs to which layer.
-      console.log('%c🎭 [fadeToAction] Layer-aware fade - only fading same-type actions', 'color: #f39c12;');
-      
-      // Only fade out VRMA actions if this is a VRMA action
-      if (vrmaActions.current[actionName]) {
-        Object.values(vrmaActions.current).forEach(a => {
-          if (a !== action) a.fadeOut(duration);
-        });
-      } else {
-        // Only fade out embedded actions if this is an embedded action
-        Object.values(currentActions.current).forEach(a => {
-          if (a !== action) a.fadeOut(duration);
-        });
-      }
-    } else {
-      // No layer specified - fade all other actions (old behavior for backward compatibility)
-      Object.values(currentActions.current).forEach(a => {
-        if (a !== action) a.fadeOut(duration);
-      });
-      Object.values(vrmaActions.current).forEach(a => {
-        if (a !== action) a.fadeOut(duration);
-      });
-    }
-
-    // Try to play the animation, but handle binding failures gracefully
+    // Use AnimationLayeringService for native weight-based blending
+    // Default to 'idle' layer if no layer specified
+    const targetLayer = layer ?? 'idle';
+    
+    console.log('%c🎭 [fadeToAction] Playing with AnimationLayeringService on layer:', 'color: #3498db; font-weight: bold;', targetLayer);
+    
     try {
-      action.reset().fadeIn(duration).play();
+      animationLayeringService.playAnimation(actionName, targetLayer, {
+        fadeInDuration: duration,
+        fadeOutDuration: duration,
+        loop: THREE.LoopRepeat
+      });
       console.log('%c✨ [fadeToAction] ANIMATION PLAYING: ' + actionName, 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;');
     } catch (error) {
       console.warn('%c🎭 [fadeToAction] FAILED to play: ' + actionName, 'background: #e74c3c; color: white; padding: 2px 6px;', error);
-      // Fall back to natural pose if VRMA animation fails
+      // Fall back to natural pose if animation fails
       if (vrmRef.current) {
         applyNaturalPose(vrmRef.current);
       }

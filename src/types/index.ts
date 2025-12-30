@@ -475,24 +475,6 @@ export interface TimelineState {
   clearTimeline: () => void;
 }
 
-// Timeline coordinator interface for unified event management
-export interface TimelineCoordinator {
-  // Audio events
-  onAudioStart: (duration: number) => void;
-  onAudioProgress: (currentTime: number) => void;
-  onAudioEnd: () => void;
-  
-  // Animation events
-  scheduleAnimation: (animation: ScheduledAnimation) => void;
-  interruptAnimations: () => void;
-  
-  // Viseme events
-  scheduleViseme: (viseme: VisemeData, time: number) => void;
-  
-  // Emotion events
-  scheduleEmotion: (emotion: Emotion, time: number) => void;
-}
-
 // Layer priorities
 export const LAYER_PRIORITIES: Record<AnimationLayerType, number> = {
   full_body: 100,
@@ -559,4 +541,366 @@ export enum ParallelExecutionError {
   EVENT_MISSED = 'event_missed',
   SYNC_FAILURE = 'sync_failure',
   AUDIO_INTERRUPTED = 'audio_interrupted'
+}
+
+// ============================================
+// Text-Based Timing System Types
+// ============================================
+
+/**
+ * Options for TextTimingEstimator
+ */
+export interface TextTimingEstimatorOptions {
+  // Word-based timing (milliseconds per word)
+  wordsPerMinute?: number;
+  minWordDuration?: number;
+  maxWordDuration?: number;
+
+  // Character-based timing (milliseconds per character)
+  msPerCharacter?: number;
+  msPerSpace?: number;
+
+  // Punctuation pauses (milliseconds)
+  pauseAfterComma?: number;
+  pauseAfterPeriod?: number;
+  pauseAfterQuestion?: number;
+  pauseAfterExclamation?: number;
+  pauseAfterColon?: number;
+  pauseAfterSemicolon?: number;
+  pauseAfterDash?: number;
+
+  // Sentence pauses
+  pauseBetweenSentences?: number;
+  pauseBetweenParagraphs?: number;
+
+  // Emphasis modifiers
+  emphasisMultiplier?: number;
+  emphasisPause?: number;
+
+  // Word count adjustments
+  shortWordThreshold?: number;
+  shortWordMultiplier?: number;
+  longWordThreshold?: number;
+  longWordMultiplier?: number;
+
+  // Calibration
+  calibrationFactor?: number;
+  calibrationOffset?: number;
+
+  // Streaming support
+  streamingChunkSize?: number;
+  streamingBufferMs?: number;
+
+  // Edge cases
+  minTotalDuration?: number;
+  maxTotalDuration?: number;
+  emptyTextDuration?: number;
+
+  // Logging
+  enableDebugLogging?: boolean;
+  logTimingBreakdown?: boolean;
+}
+
+/**
+ * Represents a segment of text with timing information
+ */
+export interface TextSegment {
+  /** The text content of this segment */
+  text: string;
+
+  /** Start position in original text (character index) */
+  startIndex: number;
+
+  /** End position in original text (character index) */
+  endIndex: number;
+
+  /** Estimated duration in milliseconds */
+  duration: number;
+
+  /** Start time relative to beginning (milliseconds) */
+  startTime: number;
+
+  /** End time relative to beginning (milliseconds) */
+  endTime: number;
+
+  /** Type of segment (word, pause, punctuation, etc.) */
+  type: 'word' | 'pause' | 'punctuation' | 'sentence' | 'paragraph';
+
+  /** Whether this segment contains emphasized text */
+  isEmphasized: boolean;
+
+  /** If this is a pause, the pause duration in milliseconds */
+  pauseDuration?: number;
+
+  /** Punctuation character if this is a punctuation segment */
+  punctuation?: string;
+}
+
+/**
+ * Complete timeline built from text analysis
+ */
+export interface TextTimeline {
+  /** The original text that was analyzed */
+  originalText: string;
+
+  /** All text segments with timing information */
+  segments: TextSegment[];
+
+  /** Total estimated duration in milliseconds */
+  totalDuration: number;
+
+  /** Word count */
+  wordCount: number;
+
+  /** Sentence count */
+  sentenceCount: number;
+
+  /** Character count (excluding spaces) */
+  characterCount: number;
+
+  /** Timestamp when timeline was created */
+  createdAt: number;
+}
+
+/**
+ * Analysis results from text timing estimation
+ */
+export interface TextAnalysis {
+  /** The text that was analyzed */
+  text: string;
+
+  /** Estimated total duration in milliseconds */
+  estimatedDuration: number;
+
+  /** Word count */
+  wordCount: number;
+
+  /** Sentence count */
+  sentenceCount: number;
+
+  /** Character count */
+  characterCount: number;
+
+  /** Average words per minute based on estimation */
+  wordsPerMinute: number;
+
+  /** Average duration per word (milliseconds) */
+  avgWordDuration: number;
+
+  /** Total pause time (milliseconds) */
+  totalPauseTime: number;
+
+  /** Percentage of time spent on pauses */
+  pausePercentage: number;
+
+  /** Breakdown by segment type */
+  segmentBreakdown: {
+    words: number;
+    pauses: number;
+    punctuation: number;
+    sentences: number;
+    paragraphs: number;
+  };
+
+  /** Emphasized segments */
+  emphasizedSegments: Array<{
+    text: string;
+    startIndex: number;
+    endIndex: number;
+    duration: number;
+  }>;
+}
+
+/**
+ * State of the TimelineCoordinator
+ */
+export interface TimelineCoordinatorState {
+  /** Current state of the coordinator */
+  status: 'idle' | 'initialized' | 'running' | 'paused' | 'completed' | 'error';
+
+  /** The text timeline being used */
+  timeline: TextTimeline | null;
+
+  /** Current position in timeline (milliseconds) */
+  currentTime: number;
+
+  /** Total duration of timeline (milliseconds) */
+  totalDuration: number;
+
+  /** Whether audio is available for sync */
+  hasAudio: boolean;
+
+  /** Audio duration if available (milliseconds) */
+  audioDuration: number | null;
+
+  /** Whether timeline is synchronized with audio */
+  isSynced: boolean;
+
+  /** Sync ratio (text duration / audio duration) */
+  syncRatio: number;
+
+  /** Last error if any */
+  error: string | null;
+
+  /** Timestamp when state was last updated */
+  lastUpdated: number;
+}
+
+/**
+ * Options for TimelineCoordinator initialization
+ */
+export interface TimelineCoordinatorOptions {
+  /** TextTimingEstimator instance to use */
+  estimator: TextTimingEstimator;
+
+  /** TimelineManager instance to coordinate with */
+  timelineManager: unknown; // Use unknown to avoid circular dependency with TimelineManager class
+
+  /** Whether to enable debug logging */
+  debug?: boolean;
+
+  /** Maximum allowed sync drift (milliseconds) */
+  maxSyncDrift?: number;
+
+  /** Whether to auto-sync with audio when available */
+  autoSync?: boolean;
+}
+
+/**
+ * Text timing estimator class type
+ */
+export interface TextTimingEstimator {
+  /**
+   * Estimate duration for a given text
+   * @param text - The text to estimate duration for
+   * @returns Estimated duration in milliseconds
+   */
+  estimateDuration(text: string): number;
+
+  /**
+   * Build a complete timeline from text
+   * @param text - The text to build timeline from
+   * @returns Complete TextTimeline with segments
+   */
+  buildTimeline(text: string): TextTimeline;
+
+  /**
+   * Analyze text and return detailed analysis
+   * @param text - The text to analyze
+   * @returns Detailed TextAnalysis
+   */
+  analyzeText(text: string): TextAnalysis;
+
+  /**
+   * Calibrate the estimator based on actual audio duration
+   * @param text - The text that was spoken
+   * @param actualDuration - The actual audio duration in milliseconds
+   */
+  calibrate(text: string, actualDuration: number): void;
+
+  /**
+   * Reset calibration to default values
+   */
+  resetCalibration(): void;
+
+  /**
+   * Get current calibration factor
+   */
+  getCalibrationFactor(): number;
+
+  /**
+   * Set timing options
+   * @param options - New options to apply
+   */
+  setOptions(options: Partial<TextTimingEstimatorOptions>): void;
+
+  /**
+   * Get current timing options
+   */
+  getOptions(): TextTimingEstimatorOptions;
+}
+
+/**
+ * Timeline coordinator class type
+ */
+export interface TimelineCoordinator {
+  /**
+   * Initialize coordinator from text
+   * @param text - The text to initialize from
+   * @param animations - Optional animations to schedule
+   * @param emotion - Optional starting emotion
+   */
+  initializeFromText(text: string, animations?: ScheduledAnimation[], emotion?: Emotion): void;
+
+  /**
+   * Sync timeline with actual audio duration
+   * @param audioDuration - The actual audio duration in milliseconds
+   */
+  syncWithAudio(audioDuration: number): void;
+
+  /**
+   * Append streamed text (for streaming scenarios)
+   * @param text - The new text to append
+   */
+  appendStreamedText(text: string): void;
+
+  /**
+   * Start the timeline
+   */
+  start(): void;
+
+  /**
+   * Pause the timeline
+   */
+  pause(): void;
+
+  /**
+   * Resume the timeline
+   */
+  resume(): void;
+
+  /**
+   * Stop the timeline
+   */
+  stop(): void;
+
+  /**
+   * Get current state
+   */
+  getState(): TimelineCoordinatorState;
+
+  /**
+   * Get current progress (0-1)
+   */
+  getProgress(): number;
+
+  /**
+   * Get current time in milliseconds
+   */
+  getCurrentTime(): number;
+
+  /**
+   * Get total duration in milliseconds
+   */
+  getTotalDuration(): number;
+
+  /**
+   * Get the text timeline
+   */
+  getTimeline(): TextTimeline | null;
+
+  /**
+   * Check if timeline is running
+   */
+  isRunning(): boolean;
+
+  /**
+   * Check if timeline is synchronized with audio
+   */
+  isSynced(): boolean;
+
+  /**
+   * Reset coordinator state
+   */
+  reset(): void;
 }
