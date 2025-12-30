@@ -5,7 +5,7 @@ const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 // Use a fast, cheap model for the judge - falls back to free model if not specified
 const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openai/gpt-4o-mini';
 
-const SYSTEM_PROMPT = `You are an animation director for a 3D avatar. Given a conversation exchange, decide which animations the avatar should perform while speaking its response.
+const SYSTEM_PROMPT = `You are an animation director for a 3D avatar. Given a conversation exchange, decide which animations the avatar should perform to accompany speaking its response.
 
 Available animations by category:
 
@@ -236,7 +236,7 @@ Rules:
 2. Can return multiple animations to be played in sequence with delays
 3. Return empty array if no animation fits the context
 4. Consider the user's request AND the AI's response
-5. Be selective - not every response needs an animation (most don't!)
+5. Be selective - not every response needs an animation
 6. If the user explicitly asks for an action (spin, wave, dance, etc), definitely include it
 7. Prefer core animations for basic interactions, extended for more specific scenarios`;
 

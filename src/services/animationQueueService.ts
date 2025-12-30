@@ -7,6 +7,7 @@ import {
 } from '../types';
 import { TimelineManager } from './timelineManager';
 import { animationLayeringService } from './animationLayeringService';
+import vrmaAnimationService, { VRMA_ANIMATIONS } from './vrmaAnimationService';
 
 /**
  * AnimationQueueService
@@ -21,6 +22,14 @@ export class AnimationQueueService {
   private timelineManager: TimelineManager;
   private options: Required<AnimationQueueOptions>;
   private animationCounter: number = 0;
+  
+  // References needed for on-demand animation loading
+  private mixer: THREE.AnimationMixer | null = null;
+  private vrm: unknown | null = null;
+  private selectedModelId: string = '';
+  
+  // Track which animations are currently being loaded to prevent duplicate loads
+  private loadingAnimations: Map<string, Promise<void>> = new Map();
 
   constructor(options: AnimationQueueOptions) {
     this.timelineManager = options.timelineManager;
@@ -32,6 +41,79 @@ export class AnimationQueueService {
     
     // Initialize AnimationLayeringService with mixer
     animationLayeringService.setMixer(options.mixer);
+    this.mixer = options.mixer;
+  }
+
+  /**
+   * Load and register an animation on-demand
+   * This is called when an animation is requested but not yet registered
+   * @param animationName - Animation name to load
+   * @param layer - Optional layer for bone masking
+   * @returns Promise resolving when animation is loaded and registered
+   */
+  private async loadAndRegisterAnimation(
+    animationName: string,
+    layer?: AnimationLayerType
+  ): Promise<void> {
+    // Return existing promise if already loading
+    if (this.loadingAnimations.has(animationName)) {
+      console.log(`%c📥 [AnimationQueue] Animation already loading: ${animationName}`, 'color: #f39c12;');
+      return this.loadingAnimations.get(animationName)!;
+    }
+
+    console.log(`%c📥 [AnimationQueue] Loading and registering animation on-demand: ${animationName}`, 
+      'color: #3498db; font-weight: bold;');
+
+    const loadPromise = (async () => {
+      if (!this.mixer || !this.vrm) {
+        console.warn(`%c📥 [AnimationQueue] Cannot load animation - mixer or vrm not ready`, 'color: #e74c3c;');
+        throw new Error('Mixer or VRM not ready for animation loading');
+      }
+
+      try {
+        // Find animation config
+        const animConfig = VRMA_ANIMATIONS.find(a => a.name === animationName);
+        if (!animConfig) {
+          console.warn(`VRMA animation '${animationName}' not found in config`);
+          throw new Error(`Animation config not found: ${animationName}`);
+        }
+
+        // Load VRMA animation file
+        const loadedAnim = await vrmaAnimationService.loadAnimation(animConfig);
+        
+        if (!loadedAnim) {
+          console.warn(`Failed to load VRMA animation '${animationName}'`);
+          throw new Error(`Failed to load animation: ${animationName}`);
+        }
+
+        // Create retargeted clip for current model
+        const retargetedClip = vrmaAnimationService.getOrCreateRetargetedClip(
+          loadedAnim.vrmAnimation,
+          this.vrm,
+          this.selectedModelId,
+          animationName,
+          layer
+        );
+
+        // Register animation with AnimationLayeringService
+        animationLayeringService.registerAnimation(animationName, retargetedClip);
+
+        console.log(`%c✅ [AnimationQueue] Animation loaded and registered: ${animationName}`, 
+          'color: #27ae60; font-weight: bold;');
+      } catch (error) {
+        console.error(`%c❌ [AnimationQueue] Failed to load animation: ${animationName}`, 
+          'color: #e74c3c;', error);
+        throw error;
+      }
+    })();
+
+    this.loadingAnimations.set(animationName, loadPromise);
+    
+    try {
+      await loadPromise;
+    } finally {
+      this.loadingAnimations.delete(animationName);
+    }
   }
 
   /**
@@ -205,11 +287,26 @@ export class AnimationQueueService {
    * Play animation with layering support using AnimationLayeringService
    * @param animation - Animation to play
    */
-  private playAnimation(animation: QueuedAnimation): void {
+  private async playAnimation(animation: QueuedAnimation): Promise<void> {
     const layerType = animation.layer;
     
     console.log(`%c▶️ [AnimationQueue] Playing: ${animation.name} on ${layerType}`, 
       'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px;');
+    
+    // Check if animation is registered with AnimationLayeringService
+    const isRegistered = animationLayeringService.getRegisteredAnimations().includes(animation.name);
+    
+    if (!isRegistered) {
+      console.log(`%c📥 [AnimationQueue] Animation not registered, loading on-demand: ${animation.name}`, 
+        'color: #f39c12;');
+      try {
+        await this.loadAndRegisterAnimation(animation.name, layerType);
+      } catch (error) {
+        console.error(`%c❌ [AnimationQueue] Failed to load animation: ${animation.name}`, 
+          'color: #e74c3c;', error);
+        return; // Skip playing if load failed
+      }
+    }
     
     // Play animation using AnimationLayeringService
     const animationId = animationLayeringService.playAnimation(
@@ -270,19 +367,37 @@ export const animationQueueService = new AnimationQueueService({
 
 /**
  * Initialize animation queue service with required dependencies
- * @param mixer - THREE AnimationMixer from AvatarModel
+ * @param mixer - THREE.AnimationMixer from AvatarModel
  * @param timelineManager - TimelineManager instance
+ * @param vrm - VRM model instance for animation retargeting
+ * @param selectedModelId - Selected model ID for caching
  */
 export function initializeAnimationQueueService(
   mixer: THREE.AnimationMixer,
-  timelineManager: TimelineManager
+  timelineManager: TimelineManager,
+  vrm?: unknown,
+  selectedModelId?: string
 ): void {
   // Update the singleton's dependencies
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const service = animationQueueService as any;
   service.timelineManager = timelineManager;
+  service.mixer = mixer;
+  
+  // Set VRM and model ID for on-demand animation loading
+  if (vrm !== undefined) {
+    service.vrm = vrm;
+  }
+  if (selectedModelId !== undefined) {
+    service.selectedModelId = selectedModelId;
+  }
+  
   // AnimationLayeringService is already initialized with mixer in constructor
   animationLayeringService.setMixer(mixer);
+  
+  console.log('%c🔧 [AnimationQueueService] Initialized with:', 
+    'color: #3498db; font-weight: bold;', 
+    { mixer: !!mixer, vrm: !!vrm, selectedModelId });
 }
 
 // Export class for testing
