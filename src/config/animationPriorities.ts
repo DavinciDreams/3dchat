@@ -16,7 +16,7 @@ export interface AnimationMetadata {
 // CRITICAL Tier - Load immediately during initialization
 export const CRITICAL_ANIMATIONS = [
   'modelPose',    // Default idle state - always needed
-  'greeting',     // Used while speaking - high frequency
+  'standingGreeting',     // Used while speaking - high frequency
   'peace',        // Happy emotion - high frequency
   'headNod',      // Agreement gestures - high frequency
   'shakingHeadNo', // Disagreement gestures - high frequency
@@ -30,15 +30,15 @@ export const HIGH_PRIORITY_ANIMATIONS = [
   'beingCocky', 'relievedSigh', 'disappointed', 'bashful',
 
   // Common social gestures
-  'waving', 'bowing', 'salute', 'shakingHands1',
+  'waving',  'salute', 'shakingHands1',
   'pointing', 'shrugging',
 
   // Common movements
-  'idle', 'weightShift', 'walking', 'jumping',
+  'lookAround', 'idle', 'weightShift', 'walking', 'jumping',
   'sitting',
 
   // Common actions
-  'punch', 'catch', 'throwing', 'typing',
+  'typing',
 ] as const;
 
 // MEDIUM Tier - Load on-demand when requested
@@ -54,26 +54,26 @@ export const MEDIUM_PRIORITY_ANIMATIONS = [
   // Combat & Martial Arts
   'dropKick', 'flyingKnee', 'daggerStab', 'bodyBlock',
   'centerBlock', 'reloading', 'magicCast', 'aimingGun',
-  'takeCover', 'ninjaIdle', 'kipUp', 'roar',
+  'takeCover', 'ninjaIdle', 'kipUp', 'roar', 'punch',
 
   // Movement variations
   'jogBackwards', 'climbing', 'turnLeft', 'turnRight',
   'runningUpStairs', 'startWalking', 'crouchToStand', 'sitToStand',
   'standToSit', 'jumpingDown', 'jumpingJacks', 'vaultOverBox',
-  'skateboarding', 'swimming', 'paddling',
 
   // Sports
   'golfBadShot', 'golfPrePutt', 'golfDrive', 'golfPuttVictory',
-  'situps', 'plank', 'cartwheel', 'backflip',
+  'situps', 'plank', 'cartwheel', 'backflip', 'golfDrive',
+  'skateboarding', 'swimming', 'paddling', 'catch', 'throwing', 'fishingCast',
 
   // Stealth
   'lowCrawl', 'sneakingForward', 'sneakyWalking', 'lookOverShoulder',
-  'nervouslyLookAround', 'plotting',
+  'nervouslyLookAround', 'plotting','militarySignaling',
 
   // Other common actions
-  'talkingOnPhone', 'lookAround', 'textingAndWalking', 'pacingAndTalkingOnAPhone',
-  'fishingCast', 'rummaging', 'searchingPockets', 'buttonPushing',
-  'openDoor', 'startClimbingLadder', 'militarySignaling', 'patting',
+  'talkingOnPhone', 'textingAndWalking', 'pacingAndTalkingOnAPhone',
+  'rummaging', 'searchingPockets', 'buttonPushing',
+  'openDoor', 'startClimbingLadder', 'patting',
   'petting', 'pettingAnimal', 'kiss', 'blowAKiss', 'praying',
   'yawn', 'smoking', 'lyingDown', 'layingIdle', 'kneeling',
 ] as const;
@@ -97,20 +97,16 @@ export const LOW_PRIORITY_ANIMATIONS = [
 
   // Social variations
   'standingGreeting', 'standingArguing', 'sittingTalking', 'sittingDisapproval',
-  'beckoning', 'standingJump', 'sadWalk', 'defeatIdle',
-  'victoryIdle', 'victory', 'yelling', 'standingClap',
+  'beckoning', 'standingJump', 'sadWalk', 'victory', 'yelling', 'standingClap',
 
   // Rare movements
   'standardRun', 'floating', 'gettingUp', 'zombieStandUp',
   'catwalkTwistLToWalk180', 'catwalkWalkStopTwistR', 'entry', 'push',
-  'pushStart', 'snatch', 'throwing',
-
+  'pushStart', 'snatch', 
   // Rare actions
   'angryGesture_1', 'aimingGun', 'victory', 'situps', 'plank',
-  'golfDrive', 'golfPuttVictory', 'jumpingJacks', 'vaultOverBox',
-  'skateboarding', 'swimming', 'paddling', 'lowCrawl', 'sneakingForward',
-  'sneakyWalking', 'lookOverShoulder', 'nervouslyLookAround', 'plotting',
-  'militarySignaling', 'rummaging', 'searchingPockets', 'buttonPushing',
+  'jumpingJacks', 'vaultOverBox',
+  'rummaging', 'searchingPockets', 'buttonPushing',
 
   // Rare idle states
   'boredmelancholyIdle_1', 'ninjaIdle', 'defeatIdle', 'victoryIdle',

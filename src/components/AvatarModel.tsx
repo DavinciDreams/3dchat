@@ -2,15 +2,16 @@ import React, { useRef, useEffect, Suspense, useMemo, useState } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { VRMUtils } from '@pixiv/three-vrm';
 import { useChatStore } from '../store/chatStore';
-import { CharacterProps, SceneProps, AVAILABLE_VRM_MODELS } from '../types';
+import { CharacterProps, SceneProps, AVAILABLE_VRM_MODELS, AnimationLayerType } from '../types';
 import { visemeApplier } from '../services/visemeApplicationService';
 import { getCurrentViseme } from '../services/visemePreprocessor';
 import vrmaAnimationService, { VRMA_ANIMATIONS } from '../services/vrmaAnimationService';
 import { useAnimationLoadingStore } from '../store/animationLoadingStore';
 import { VRMOptimizedLoader } from '../services/vrmLoaderHelper';
+import { animationQueueService, initializeAnimationQueueService } from '../services/animationQueueService';
+import { timelineManager } from '../services/timelineManager';
 
 export interface ExtendedCharacterProps extends CharacterProps {
   selectedModel?: string;
@@ -26,7 +27,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   rotation = DEFAULT_ROTATION,
 }) => {
   const store = useChatStore();
-  const { emotion, isSpeaking, visemes, selectedModelId, currentAnimation, animationQueue } = store;
+  const { emotion, isSpeaking, visemes, selectedModelId, currentAnimation } = store;
   const loadingStore = useAnimationLoadingStore();
 
   // Get model config based on the selected model ID
@@ -53,10 +54,10 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   const sceneRef = useRef<THREE.Group | null>(null);
   const isInitialized = useRef<boolean>(false);
   const [vrmaAnimationsLoaded, setVrmaAnimationsLoaded] = useState(false);
+  
   // Track which VRMA animations have been loaded for lazy loading
   const loadedVrmaAnimations = useRef<Set<string>>(new Set());
 
-  
   const vrm = gltf.userData.vrm as unknown;
   const scene = gltf.scene;
 
@@ -64,7 +65,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
    * Load a single VRMA animation on-demand with caching
    * Only loads the animation when first triggered, not all upfront
    */
-  const loadVRMAAnimation = async (animationName: string) => {
+  const loadVRMAAnimation = async (animationName: string, layer?: AnimationLayerType) => {
     console.log(`%c📥 [loadVRMAAnimation] START: ${animationName}`, 'color: #3498db; font-weight: bold;');
     console.log(`%c📥 [loadVRMAAnimation] mixer.current:`, 'color: #3498db;', !!mixer.current);
     console.log(`%c📥 [loadVRMAAnimation] vrm:`, 'color: #3498db;', !!vrm);
@@ -100,7 +101,8 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         loadedAnim.vrmAnimation,
         vrm,
         selectedModelId,
-        animationName
+        animationName,
+        layer
       );
       console.log(`%c📥 [loadVRMAAnimation] retargetedClip created:`, 'color: #3498db;', !!retargetedClip);
       
@@ -110,6 +112,9 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       vrmaActions.current[animationName] = action;
       vrmaClips.current[animationName] = retargetedClip;
       loadedVrmaAnimations.current.add(animationName);
+
+      // Register action with animation queue service for layering support
+      animationQueueService.registerAction(animationName, action, layer);
 
       console.log(`%c✅ [loadVRMAAnimation] COMPLETE: '${animationName}' - vrmaActions.current now has:`, 'color: #27ae60; font-weight: bold;', Object.keys(vrmaActions.current));
     } catch (error) {
@@ -235,17 +240,18 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // Apply rotation with model-specific adjustment to face camera
       // VRM0.x models: rotateVRM0() already provides 180° rotation, so use 0 from config
       // VRM1.0 models: may need rotation adjustment
-      let configRotationY = modelConfig.rotationY ?? 0;
       
       // For VRM1.0 models, apply rotation only if explicitly set in config
       // If rotationY is undefined, use default behavior (no additional rotation)
+      const configRotationY = modelConfig.rotationY ?? 0;
+      
       if (isVRM1 && configRotationY !== undefined) {
         console.log('%c🔄 [Rotation] Using explicit rotationY from config:', 'color: #3498db;', configRotationY);
       } else if (isVRM1) {
         console.log('%c⚠️ [Rotation] VRM1.0 model with no explicit rotationY - using default orientation', 'color: #f39c12;');
       }
       
-      const yRotation = rotation[1] + (configRotationY ?? 0);
+      const yRotation = rotation[1] + configRotationY;
       
       console.log('%c🔄 [Rotation Debug]', 'background: #e67e22; color: white; padding: 2px 6px; border-radius: 3px;');
       console.log(`  - Model: ${modelConfig.id}`);
@@ -262,6 +268,15 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 
       // Setup animation mixer with VRM scene
       mixer.current = new THREE.AnimationMixer(scene);
+
+      // Initialize animation queue service with mixer and timeline manager
+      // This must be done after mixer is created and before animations are loaded
+      if (!isInitialized.current) {
+        console.log('%c🔧 [AvatarModel] Initializing animation queue service...', 'background: #3498db; color: white; padding: 2px 6px; border-radius: 3px;');
+        initializeAnimationQueueService(mixer.current, timelineManager);
+        isInitialized.current = true;
+      }
+
       const animations = gltf.animations;
 
       // Load embedded animations from VRM file
@@ -466,9 +481,10 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     }
   });
 
-  // Helper function to fade to an animation action
-  const fadeToAction = (actionName: string, duration: number = 0.3) => {
+  // Helper function to fade to an animation action with layering support
+  const fadeToAction = (actionName: string, duration: number = 0.3, layer?: AnimationLayerType) => {
     console.log('%c🎭 [fadeToAction] Called with:', 'color: #3498db; font-weight: bold;', actionName);
+    console.log('%c🎭 [fadeToAction] Layer:', 'color: #3498db;', layer);
     console.log('%c🎭 [fadeToAction] vrmaAnimationsLoaded:', 'color: #3498db;', vrmaAnimationsLoaded);
     console.log('%c🎭 [fadeToAction] Available VRMA actions:', 'color: #3498db;', Object.keys(vrmaActions.current));
     console.log('%c🎭 [fadeToAction] Available embedded actions:', 'color: #3498db;', Object.keys(currentActions.current));
@@ -493,15 +509,37 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       return;
     }
 
-    console.log('%c🎭 [fadeToAction] Animation FOUND, fading out others...', 'color: #3498db; font-weight: bold;');
+    console.log('%c🎭 [fadeToAction] Animation FOUND, fading out same-layer animations...', 'color: #3498db; font-weight: bold;');
 
-    // Fade out all other actions
-    Object.values(currentActions.current).forEach(a => {
-      if (a !== action) a.fadeOut(duration);
-    });
-    Object.values(vrmaActions.current).forEach(a => {
-      if (a !== action) a.fadeOut(duration);
-    });
+    // If layer is specified, only fade out animations on the same layer
+    // This enables layering - animations on different layers can play simultaneously
+    if (layer) {
+      // Fade out only actions on the same layer
+      // For now, we use a simple heuristic: VRMA actions are considered one layer,
+      // embedded animations another. Full layering support would require
+      // tracking which action belongs to which layer.
+      console.log('%c🎭 [fadeToAction] Layer-aware fade - only fading same-type actions', 'color: #f39c12;');
+      
+      // Only fade out VRMA actions if this is a VRMA action
+      if (vrmaActions.current[actionName]) {
+        Object.values(vrmaActions.current).forEach(a => {
+          if (a !== action) a.fadeOut(duration);
+        });
+      } else {
+        // Only fade out embedded actions if this is an embedded action
+        Object.values(currentActions.current).forEach(a => {
+          if (a !== action) a.fadeOut(duration);
+        });
+      }
+    } else {
+      // No layer specified - fade all other actions (old behavior for backward compatibility)
+      Object.values(currentActions.current).forEach(a => {
+        if (a !== action) a.fadeOut(duration);
+      });
+      Object.values(vrmaActions.current).forEach(a => {
+        if (a !== action) a.fadeOut(duration);
+      });
+    }
 
     // Try to play the animation, but handle binding failures gracefully
     try {
@@ -546,7 +584,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     }
   }, [currentAnimation, vrmaAnimationsLoaded]);
 
-  // Handle emotion-based animations (only when no explicit animation is playing)
+  // Handle emotion-based animations
   useEffect(() => {
     if (!mixer.current) {
       console.log('%c🎭 [AvatarModel] Emotion: No mixer yet', 'color: #95a5a6;');
@@ -558,15 +596,9 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       return;
     }
 
-    // Don't override explicit animation triggers OR active animation queue
+    // Log if we're overriding an explicit animation (for debugging)
     if (currentAnimation) {
-      console.log('%c🎬 [AvatarModel] Skipping emotion animation - explicit animation playing: ' + currentAnimation, 'color: #9b59b6;');
-      return;
-    }
-
-    if (animationQueue.length > 0) {
-      console.log('%c🎬 [AvatarModel] Skipping emotion animation - animation queue active (' + animationQueue.length + ' items)', 'color: #9b59b6;');
-      return;
+      console.log('%c🎬 [AvatarModel] Overriding explicit animation with emotion animation: ' + currentAnimation, 'color: #f39c12;');
     }
 
     console.log('%c🎭 [AvatarModel] Emotion animation check - emotion: ' + emotion + ', isSpeaking: ' + isSpeaking, 'color: #3498db;');
@@ -603,7 +635,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
           fadeToAction('modelPose');
       }
     }
-  }, [emotion, isSpeaking, vrmaAnimationsLoaded, currentAnimation, animationQueue]);
+  }, [emotion, isSpeaking, vrmaAnimationsLoaded]);
 
   // Performance monitoring
   useEffect(() => {

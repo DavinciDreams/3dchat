@@ -339,3 +339,224 @@ export const BREAKDANCE_ANIMATIONS = [
 // All available animations
 export const AVAILABLE_ANIMATIONS = [...CORE_ANIMATIONS, ...EXTENDED_ANIMATIONS, ...GESTURE_ANIMATIONS, ...BREAKDANCE_ANIMATIONS] as const;
 export type AnimationName = typeof AVAILABLE_ANIMATIONS[number];
+
+// ============================================
+// Parallel Execution Strategy Types
+// ============================================
+
+// Animation layer types for layered animation playback
+export type AnimationLayerType =
+  | 'full_body'      // High priority, overrides everything
+  | 'upper_body'      // Can layer over lower body
+  | 'lower_body'      // Can layer under upper body
+  | 'gesture'         // Hand/head gestures, lowest priority
+  | 'idle';           // Default state
+
+// Timeline event types
+export type TimelineEventType = 'animation' | 'viseme' | 'emotion' | 'custom';
+
+// Timeline event for scheduling time-based callbacks
+export interface TimelineEvent {
+  id: string;
+  timestamp: number;  // Absolute timestamp or relative to audio start
+  type: TimelineEventType;
+  data: unknown;
+  callback: () => void;
+  priority?: number;  // For event ordering at same timestamp
+}
+
+// Timeline manager options
+export interface TimelineOptions {
+  tickRate?: number;  // ms between ticks (default: ~16ms for 60fps)
+  maxLookahead?: number;  // ms to look ahead for events
+}
+
+// Scheduled animation with timing information
+export interface ScheduledAnimation {
+  name: string;
+  triggerTime: number;  // Milliseconds from audio start
+  duration: number;     // Animation duration in ms
+  layer?: AnimationLayerType;
+  interruptible?: boolean;
+}
+
+// Queued animation for the animation queue service
+export interface QueuedAnimation {
+  id: string;
+  name: string;
+  layer: AnimationLayerType;
+  startTime: number;
+  duration: number;
+  blendIn: number;
+  blendOut: number;
+  interruptible: boolean;
+  fadeIn?: number;
+  fadeOut?: number;
+}
+
+// Animation layer configuration
+export interface AnimationLayer {
+  id: string;
+  priority: number;  // Higher = more important
+  currentAnimation: string | null;
+  blendWeight: number;  // 0-1
+}
+
+// Animation queue service options
+export interface AnimationQueueOptions {
+  mixer: THREE.AnimationMixer;
+  timelineManager: TimelineManager;
+  defaultBlendDuration?: number;
+}
+
+// Prefetch service options
+export interface PrefetchOptions {
+  batchSize?: number;
+  priority?: 'speed' | 'completeness';
+  timeout?: number;
+}
+
+// Prefetch result
+export interface PrefetchResult {
+  successful: string[];
+  failed: Array<{ name: string; error: string }>;
+  duration: number;
+}
+
+// Audio playback options with event callbacks
+export interface AudioPlaybackOptions {
+  onProgress?: (currentTime: number, duration: number) => void;
+  onEnded?: () => void;
+  onInterrupted?: () => void;
+  onError?: (error: Error) => void;
+}
+
+// TTS result with prefetch information
+export interface TTSWithPrefetchResult extends TTSResult {
+  prefetchedAnimations: string[];
+  prefetchDuration: number;
+}
+
+// Enhanced animation judgment with timing and layer suggestions
+export interface AnimationJudgmentWithTiming extends AnimationJudgment {
+  // Suggested timing relative to audio
+  suggestedTiming?: 'early' | 'middle' | 'late' | 'distributed';
+  // Layer suggestions
+  suggestedLayer?: AnimationLayerType;
+  // Interruptibility
+  interruptible?: boolean;
+}
+
+// Timeline state for store
+export interface TimelineState {
+  // Timeline status
+  isPlaying: boolean;
+  startTime: number | null;
+  currentTime: number;
+  duration: number;
+  
+  // Scheduled events
+  scheduledAnimations: ScheduledAnimation[];
+  scheduledVisemes: Array<{ viseme: VisemeData; time: number }>;
+  scheduledEmotions: Array<{ emotion: Emotion; time: number }>;
+  
+  // Active state
+  activeAnimations: Map<AnimationLayerType, string>;
+  currentViseme: VisemeName | null;
+  currentEmotion: Emotion;
+  
+  // Actions
+  startTimeline: (duration: number) => void;
+  stopTimeline: () => void;
+  scheduleAnimation: (animation: ScheduledAnimation) => void;
+  scheduleViseme: (viseme: VisemeData, time: number) => void;
+  scheduleEmotion: (emotion: Emotion, time: number) => void;
+  updateCurrentTime: (time: number) => void;
+  clearTimeline: () => void;
+}
+
+// Timeline coordinator interface for unified event management
+export interface TimelineCoordinator {
+  // Audio events
+  onAudioStart: (duration: number) => void;
+  onAudioProgress: (currentTime: number) => void;
+  onAudioEnd: () => void;
+  
+  // Animation events
+  scheduleAnimation: (animation: ScheduledAnimation) => void;
+  interruptAnimations: () => void;
+  
+  // Viseme events
+  scheduleViseme: (viseme: VisemeData, time: number) => void;
+  
+  // Emotion events
+  scheduleEmotion: (emotion: Emotion, time: number) => void;
+}
+
+// Layer priorities
+export const LAYER_PRIORITIES: Record<AnimationLayerType, number> = {
+  full_body: 100,
+  upper_body: 75,
+  lower_body: 50,
+  gesture: 25,
+  idle: 0
+};
+
+// Parallel execution configuration
+export interface ParallelExecutionConfig {
+  enabled: boolean;
+  prefetchBatchSize: number;
+  prefetchTimeout: number;
+  timelineTickRate: number;
+  maxTimelineDrift: number;
+  defaultBlendDuration: number;
+  animationLayerPriorities: Record<AnimationLayerType, number>;
+}
+
+export const DEFAULT_PARALLEL_EXECUTION_CONFIG: ParallelExecutionConfig = {
+  enabled: true,
+  prefetchBatchSize: 3,
+  prefetchTimeout: 5000,
+  timelineTickRate: 16,  // ~60fps
+  maxTimelineDrift: 100,
+  defaultBlendDuration: 300,
+  animationLayerPriorities: {
+    full_body: 100,
+    upper_body: 75,
+    lower_body: 50,
+    gesture: 25,
+    idle: 0
+  }
+};
+
+// Parallel execution metrics
+export interface ParallelExecutionMetrics {
+  // Pipeline timing
+  ttsDuration: number;
+  prefetchDuration: number;
+  totalPipelineDuration: number;
+  
+  // Animation timing
+  animationLoadSuccess: number;
+  animationLoadFailure: number;
+  animationTriggerAccuracy: number;  // ms difference from target
+  
+  // Timeline metrics
+  timelineDrift: number;
+  eventsTriggered: number;
+  eventsMissed: number;
+  
+  // User experience
+  perceivedLatency: number;
+  syncQuality: number;  // 0-100 score
+}
+
+// Parallel execution error types
+export enum ParallelExecutionError {
+  TTS_FAILURE = 'tts_failure',
+  PREFETCH_FAILURE = 'prefetch_failure',
+  TIMELINE_DRIFT = 'timeline_drift',
+  EVENT_MISSED = 'event_missed',
+  SYNC_FAILURE = 'sync_failure',
+  AUDIO_INTERRUPTED = 'audio_interrupted'
+}
