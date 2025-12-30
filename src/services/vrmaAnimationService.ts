@@ -9,6 +9,8 @@ import {
   getAnimationTier,
   type AnimationPriority,
 } from '../config/animationPriorities';
+import type { AnimationLayerType } from '../types';
+import { maskAnimationClip } from '../utils/animationMasking';
 
 /**
  * VRMA Animation Service
@@ -262,9 +264,9 @@ export const VRMA_ANIMATIONS: VRMAAnimationConfig[] = [
 // Map application animation states to VRMA animations
 export const ANIMATION_STATE_TO_VRMA: Record<string, string> = {
   'idle': 'modelPose',      // Use model pose for idle
-  'talking': 'greeting',    // Use greeting for talking
-  'thinking': 'spin',        // Use spin for thinking
-  'happy': 'peace',         // Use peace sign for happy
+  'talking': 'talking',    // Use talking for talking
+  'thinking': 'thinking',        // Use thinking for thinking
+  'happy': 'happyIdle',         // Use happyIdle sign for happy
   'agreeing': 'headNod',    // Head nod for agreeing
   'disagreeing': 'shakingHeadNo', // Shake head for disagreeing
   'acknowledging': 'acknowledging', // Acknowledging gesture
@@ -427,15 +429,17 @@ class VRMAAnimationService {
    * @param vrm The VRM model instance
    * @param modelId The model ID for caching
    * @param animationName The animation name for caching
+   * @param layer Optional animation layer for bone masking
    * @returns The retargeted animation clip
    */
   getOrCreateRetargetedClip(
     vrmAnimation: unknown,
     vrm: unknown,
     modelId: string,
-    animationName: string
+    animationName: string,
+    layer?: AnimationLayerType
   ): THREE.AnimationClip {
-    const cacheKey = `${modelId}_${animationName}`;
+    const cacheKey = `${modelId}_${animationName}_${layer || 'full'}`;
     
     // Check cache first
     if (this.retargetedClipCache.has(cacheKey)) {
@@ -444,7 +448,12 @@ class VRMAAnimationService {
     
     // Create new retargeted clip
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const retargetedClip = createVRMAnimationClip(vrmAnimation as any, vrm as any);
+    let retargetedClip = createVRMAnimationClip(vrmAnimation as any, vrm as any);
+    
+    // Apply bone masking if layer is specified
+    if (layer) {
+      retargetedClip = maskAnimationClip(retargetedClip, layer);
+    }
     
     // Cache result
     this.retargetedClipCache.set(cacheKey, retargetedClip);
@@ -456,10 +465,11 @@ class VRMAAnimationService {
    * Check if a retargeted clip exists in cache
    * @param modelId The model ID
    * @param animationName The animation name
+   * @param layer Optional animation layer
    * @returns True if cached
    */
-  hasRetargetedClip(modelId: string, animationName: string): boolean {
-    const cacheKey = `${modelId}_${animationName}`;
+  hasRetargetedClip(modelId: string, animationName: string, layer?: AnimationLayerType): boolean {
+    const cacheKey = `${modelId}_${animationName}_${layer || 'full'}`;
     return this.retargetedClipCache.has(cacheKey);
   }
 
@@ -479,6 +489,7 @@ class VRMAAnimationService {
   clearRetargetedClipsForModel(modelId: string): void {
     const keysToDelete: string[] = [];
     for (const key of this.retargetedClipCache.keys()) {
+      // Match keys starting with modelId (handles new format: modelId_animName_layer)
       if (key.startsWith(`${modelId}_`)) {
         keysToDelete.push(key);
       }

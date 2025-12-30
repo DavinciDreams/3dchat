@@ -3,9 +3,11 @@ import {
 } from 'edge-tts-universal';
 import { ServiceError } from '../errors/AppError';
 import { useChatStore } from '../store/chatStore';
-import { VisemeData, AVAILABLE_VOICES } from '../types';
+import { VisemeData, AVAILABLE_VOICES, AudioPlaybackOptions, TTSWithPrefetchResult } from '../types';
 import { textToVisemes } from './visemePreprocessor';
 import { TTSCache } from './speechSynthesisService/TTSCache';
+import { animationPrefetchService } from './animationPrefetchService';
+import { AnimationTrigger } from '../types';
 
 // Default voice (will be overridden by selected voice from store)
 const DEFAULT_VOICE_NAME = 'en-GB-LibbyNeural';
@@ -13,6 +15,8 @@ const FALLBACK_VOICE_NAME = 'Google US English';
 
 let audioContext: AudioContext | null = null;
 let currentAudioSource: AudioBufferSourceNode | null = null; // Track active audio source for cancellation
+let audioPlaybackStartTime: number = 0; // Track when audio started for timeline sync
+let audioPlaybackDuration: number = 0; // Track total duration for timeline sync
 
 // TTS Cache instance
 const ttsCache = new TTSCache(50, 5 * 60 * 1000); // 50 entries, 5 minute TTL
@@ -270,4 +274,201 @@ export function stopAudio(): void {
   }
   
   useChatStore.getState().setSpeaking(false);
+}
+
+/**
+ * Get current playback time in milliseconds
+ * @returns Current playback time or 0 if not playing
+ */
+export function getCurrentPlaybackTime(): number {
+  if (!audioPlaybackStartTime || !audioPlaybackDuration) {
+    return 0;
+  }
+  return Math.min(performance.now() - audioPlaybackStartTime, audioPlaybackDuration);
+}
+
+/**
+ * Get total audio duration in milliseconds
+ * @returns Total duration or 0 if not playing
+ */
+export function getPlaybackDuration(): number {
+  return audioPlaybackDuration;
+}
+
+/**
+ * Check if audio is currently playing
+ * @returns True if audio is playing
+ */
+export function isAudioPlaying(): boolean {
+  return currentAudioSource !== null && audioPlaybackStartTime > 0;
+}
+
+/**
+ * Play audio with event callbacks for timeline coordination
+ * @param audioBuffer - Audio buffer to play
+ * @param options - Playback options with callbacks
+ */
+export async function playAudioWithEvents(
+  audioBuffer: ArrayBuffer,
+  options: AudioPlaybackOptions = {}
+): Promise<void> {
+  console.log('🔊 [playAudioWithEvents] Starting audio playback with events');
+  
+  // Stop any existing audio before playing new audio
+  if (currentAudioSource) {
+    console.log('🔊 [playAudioWithEvents] Stopping existing audio source');
+    try {
+      currentAudioSource.stop();
+      currentAudioSource.disconnect();
+    } catch (e) {
+      console.warn('🔊 [playAudioWithEvents] Error stopping existing audio:', e);
+    }
+    currentAudioSource = null;
+  }
+  
+  try {
+    if (!audioBuffer || audioBuffer.byteLength === 0) {
+      console.warn('playAudioWithEvents received empty or null audioBuffer');
+      throw new ServiceError('speech', 'unknown', 'Audio buffer is empty', 0);
+    }
+    
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
+    
+    const decodedData = await audioContext.decodeAudioData(audioBuffer);
+    const source = audioContext.createBufferSource();
+    source.buffer = decodedData;
+    
+    // Store reference to current audio source for cancellation
+    currentAudioSource = source;
+    audioPlaybackStartTime = performance.now();
+    audioPlaybackDuration = decodedData.duration * 1000; // Convert to milliseconds
+    
+    console.log('🔊 [playAudioWithEvents] Audio duration:', audioPlaybackDuration, 'ms');
+    
+    // Get the mute state from store
+    const isMuted = useChatStore.getState().isMuted;
+    
+    // Use a GainNode to control volume based on mute state
+    const gainNode = audioContext.createGain();
+    gainNode.gain.value = isMuted ? 0 : 1;
+    
+    source.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Track progress with interval
+    let progressInterval: number | null = null;
+    
+    const cleanup = () => {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+      currentAudioSource = null;
+      audioPlaybackStartTime = 0;
+    };
+    
+    // Setup progress tracking
+    if (options.onProgress) {
+      progressInterval = window.setInterval(() => {
+        const currentTime = getCurrentPlaybackTime();
+        options.onProgress!(currentTime, audioPlaybackDuration);
+      }, 50); // Update every 50ms
+    }
+    
+    // Play and handle completion
+    await new Promise<void>((resolve, reject) => {
+      source.onended = () => {
+        console.log('🔊 [playAudioWithEvents] Audio playback ended naturally');
+        cleanup();
+        options.onEnded?.();
+        resolve();
+      };
+      
+      source.addEventListener('error', (error) => {
+        console.error('🔊 [playAudioWithEvents] AudioSource error:', error);
+        cleanup();
+        options.onError?.(new Error('Error playing audio: ' + error));
+        reject(new Error('Error playing audio: ' + error));
+      });
+      
+      try {
+        source.start(0);
+        console.log('🔊 [playAudioWithEvents] Audio started successfully');
+      } catch (startError) {
+        console.error('🔊 [playAudioWithEvents] Error starting audio source:', startError);
+        cleanup();
+        options.onError?.(startError as Error);
+        reject(startError);
+      }
+    });
+  } catch (error) {
+    console.error('🔊 [playAudioWithEvents] Error playing audio:', error);
+    currentAudioSource = null;
+    audioPlaybackStartTime = 0;
+    options.onError?.(error as Error);
+    throw new ServiceError(
+      'speech',
+      'unknown',
+      'Failed to play audio',
+      0
+    );
+  } finally {
+    useChatStore.getState().setSpeaking(false);
+  }
+}
+
+/**
+ * Generate TTS audio and prefetch animations in parallel
+ * @param text - Text to convert to speech
+ * @param animations - Animations to prefetch
+ * @returns TTS result with prefetch information
+ */
+export async function textToSpeechWithPrefetch(
+  text: string,
+  animations: AnimationTrigger[]
+): Promise<TTSWithPrefetchResult> {
+  console.log('%c⚡ [textToSpeechWithPrefetch] Starting parallel TTS + prefetch',
+    'background: #e91e63; color: white; padding: 4px 8px; border-radius: 4px;');
+  
+  const startTime = performance.now();
+  
+  // Run TTS and prefetch in parallel
+  const [ttsResult, prefetchResult] = await Promise.allSettled([
+    textToSpeech(text),
+    animationPrefetchService.prefetchAnimations(animations)
+  ]);
+  
+  const elapsed = performance.now() - startTime;
+  
+  // Handle TTS result
+  if (ttsResult.status === 'fulfilled' && ttsResult.value) {
+    console.log('%c✅ [textToSpeechWithPrefetch] TTS complete', 'background: #27ae60; color: white; padding: 4px 8px;');
+  } else {
+    const error = ttsResult.status === 'rejected' ? ttsResult.reason : new Error('TTS returned null');
+    console.error('%c❌ [textToSpeechWithPrefetch] TTS failed', 'background: #e74c3c; color: white; padding: 4px 8px;', error);
+    throw error;
+  }
+  
+  // Handle prefetch result
+  if (prefetchResult.status === 'fulfilled') {
+    console.log('%c✅ [textToSpeechWithPrefetch] Prefetch complete', 'background: #27ae60; color: white; padding: 4px 8px;', prefetchResult.value);
+  } else {
+    console.warn('%c⚠️ [textToSpeechWithPrefetch] Prefetch failed (non-critical)',
+      'background: #f39c12; color: white; padding: 4px 8px;', prefetchResult.reason);
+  }
+  
+  return {
+    ...ttsResult.value!,
+    prefetchedAnimations: prefetchResult.status === 'fulfilled'
+      ? prefetchResult.value.successful
+      : [],
+    prefetchDuration: prefetchResult.status === 'fulfilled'
+      ? prefetchResult.value.duration
+      : elapsed
+  };
 }

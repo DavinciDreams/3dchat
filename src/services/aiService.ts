@@ -6,6 +6,15 @@ import { ServiceError } from '../errors/AppError';
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
 
+const SYSTEM_PROMPT = `You are a helpful AI assistant. Your responses will be displayed by a 3D animated avatar in a web browser. The avatar will act out what you write through natural gestures and animations.
+
+Write naturally and expressively. The animation system will interpret your text and choose appropriate animations. For example:
+- Saying "yes" or "no" will make the avatar nod or shake its head
+- Saying "I like dancing" will make the avatar dance
+- Expressing excitement, sadness, anger, or other emotions will trigger corresponding gestures
+
+Keep your responses conversational and engaging. The avatar will bring your words to life through movement.`;
+
 export async function getAIResponse(input: string): Promise<AIResponse> {
   try {
     const store = useChatStore.getState();
@@ -21,6 +30,7 @@ export async function getAIResponse(input: string): Promise<AIResponse> {
       {
         model: OPENROUTER_MODEL,
         messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
           ...store.messages.map(msg => ({
             role: msg.role,
             content: msg.content

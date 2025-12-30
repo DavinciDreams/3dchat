@@ -2,7 +2,8 @@ import { useChatStore } from '../store/chatStore';
 import { getAIResponse } from './aiService';
 import { textToSpeech, playAudio } from './speechSynthesisService';
 import { preprocessingPipeline } from './textPreprocessing';
-import { SpeechResponse, PreprocessedText, Emotion } from '../types';
+import { judgeAnimations, processAnimationQueue } from './animationJudgeService';
+import { SpeechResponse, PreprocessedText, Emotion, AnimationJudgment } from '../types';
 import { ServiceError } from '../errors/AppError';
 
 // Add browser native speech synthesis
@@ -100,8 +101,11 @@ function setupRecognitionHandlers(): void {
       if (response) {
         const text = typeof response === 'string' ? response : response.content;
         
-        // Preprocess the text
-        const processed: PreprocessedText = preprocessingPipeline.process(text);
+        // Run preprocessing and animation judgment in parallel
+        const [processed, animationJudgment] = await Promise.all([
+          Promise.resolve(preprocessingPipeline.process(text)),
+          judgeAnimations(speechResult, text)
+        ]);
         
         // Log preprocessing results for debugging
         console.group('📝 Text Preprocessing (Speech Recognition)');
@@ -119,6 +123,11 @@ function setupRecognitionHandlers(): void {
           console.log('🔗 Links detected:', processed.metadata.links);
         }
         console.groupEnd();
+
+        // Log animation judgment
+        console.log('%c🎬 ANIMATION JUDGMENT RESULT (Speech)', 'background: #4ecdc4; color: black; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+        console.log('%c🎬 Animations:', 'color: #4ecdc4; font-weight: bold;', animationJudgment.animations);
+        console.log('%c🎬 Reasoning:', 'color: #4ecdc4; font-weight: bold;', animationJudgment.reasoning);
         
         // Store the processed message
         store.setProcessedMessage({
@@ -134,6 +143,33 @@ function setupRecognitionHandlers(): void {
           role: 'assistant',
           content: processed.displayText
         });
+        
+        // Queue animations to play during speech
+        if (animationJudgment.animations.length > 0) {
+          console.log('%c🚀 QUEUEING ANIMATIONS (Speech)', 'background: #f39c12; color: black; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+          console.log('%c🚀 Animation count:', 'color: #f39c12; font-weight: bold;', animationJudgment.animations.length);
+
+          store.setAnimationQueue(animationJudgment.animations);
+
+          // Process the animation queue
+          processAnimationQueue(
+            animationJudgment.animations,
+            (animationName) => {
+              console.log('%c⚡ TRIGGERING ANIMATION: ' + animationName, 'background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;');
+              console.log('%c⚡ Calling setCurrentAnimation...', 'color: #e74c3c; font-weight: bold;');
+              store.setCurrentAnimation(animationName);
+              console.log('%c⚡ Store currentAnimation is now:', 'color: #e74c3c; font-weight: bold;', store.currentAnimation);
+            },
+            () => {
+              // Reset to idle when all animations complete
+              console.log('%c✅ ANIMATION QUEUE COMPLETE (Speech)', 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+              store.setCurrentAnimation(null);
+              store.setAnimationQueue([]);
+            }
+          );
+        } else {
+          console.log('%c⚠️ NO ANIMATIONS TO QUEUE (Speech)', 'background: #95a5a6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+        }
         
         // Use cleanText for speech synthesis
         const audioResult = await textToSpeech(processed.cleanText);
