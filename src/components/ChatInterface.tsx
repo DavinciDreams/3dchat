@@ -7,6 +7,7 @@ import { startListening, stopListening } from '../services/speechService';
 import { judgeAnimations, processAnimationQueue } from '../services/animationJudgeService';
 import { textToSpeech, playAudio } from '../services/speechSynthesisService';
 import { supabase } from '../lib/supabaseClient';
+import AnimationIndicator from './AnimationIndicator';
 import {
   ChatMessageProps,
   ServiceError,
@@ -587,6 +588,9 @@ const ChatInterface = (): JSX.Element => {
           </AnimatePresence>
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Animation Indicator */}
+        <AnimationIndicator currentAnimation={currentAnimation} isSpeaking={isSpeaking} />
 
         {/* Input form */}
         <form
