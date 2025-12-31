@@ -125,8 +125,6 @@ export interface ChatState {
   isListening: boolean;
   isMuted: boolean;
   emotion: Emotion;
-  visemes: VisemeData[];
-  visemeDuration: number;
   selectedModelId: string;
   selectedVoiceId: string;
   animationQueue: AnimationTrigger[];
@@ -138,8 +136,6 @@ export interface ChatState {
   setListening: (isListening: boolean) => void;
   setIsMuted: (isMuted: boolean) => void;
   setEmotion: (emotion: Emotion) => void;
-  setVisemes: (visemes: VisemeData[]) => void;
-  setVisemeDuration: (duration: number) => void;
   setSelectedModelId: (modelId: string) => void;
   setSelectedVoiceId: (voiceId: string) => void;
   setAnimationQueue: (queue: AnimationTrigger[]) => void;
@@ -148,19 +144,7 @@ export interface ChatState {
 }
 
 // Speech and animation types
-export type VisemeName = 
-  | 'sil' | 'PP' | 'FF' | 'TH' | 'DD' 
-  | 'kk' | 'CH' | 'SS' | 'nn' | 'RR' 
-  | 'aa' | 'E'  | 'ih' | 'oh' | 'ou';
-
-export interface VisemeData {
-  name: VisemeName;
-  weight: number;
-  duration?: number;
-}
-
 export interface AnimationState {
-  visemes: VisemeData[];
   blinkEnabled: boolean;
   idleEnabled: boolean;
   currentAnimation?: string;
@@ -219,14 +203,12 @@ export interface AIResponse {
 
 export interface SpeechResponse {
   audioBuffer: ArrayBuffer;
-  visemes: VisemeData[];
   duration: number;
   error?: AppError;
 }
 
 export interface TTSResult {
   audioBuffer: ArrayBuffer;
-  visemes: VisemeData[];
   duration: number;
 }
 
@@ -353,7 +335,7 @@ export type AnimationLayerType =
   | 'idle';           // Default state
 
 // Timeline event types
-export type TimelineEventType = 'animation' | 'viseme' | 'emotion' | 'custom';
+export type TimelineEventType = 'animation' | 'emotion' | 'custom';
 
 // Timeline event for scheduling time-based callbacks
 export interface TimelineEvent {
@@ -457,19 +439,16 @@ export interface TimelineState {
   
   // Scheduled events
   scheduledAnimations: ScheduledAnimation[];
-  scheduledVisemes: Array<{ viseme: VisemeData; time: number }>;
   scheduledEmotions: Array<{ emotion: Emotion; time: number }>;
   
   // Active state
   activeAnimations: Map<AnimationLayerType, string>;
-  currentViseme: VisemeName | null;
   currentEmotion: Emotion;
   
   // Actions
   startTimeline: (duration: number) => void;
   stopTimeline: () => void;
   scheduleAnimation: (animation: ScheduledAnimation) => void;
-  scheduleViseme: (viseme: VisemeData, time: number) => void;
   scheduleEmotion: (emotion: Emotion, time: number) => void;
   updateCurrentTime: (time: number) => void;
   clearTimeline: () => void;

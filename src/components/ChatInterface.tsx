@@ -2,30 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Mic, MicOff, Loader2, Copy, Download, StopCircle, Plus, Play, ChevronDown, ChevronRight, PanelRight, PanelBottom, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChatStore, MAX_MESSAGES } from '../store/chatStore';
-import { useTimelineStore } from '../store/timelineStore';
 import { getAIResponse } from '../services/aiService';
 import { startListening, stopListening } from '../services/speechService';
-import {
-  textToSpeechWithPrefetch,
-  playAudioWithEvents,
-  stopAudio
-} from '../services/speechSynthesisService';
-import { preprocessingPipeline } from '../services/textPreprocessing';
-import {
-  judgeAnimationsWithTiming,
-  distributeAnimationsAcrossAudio
-} from '../services/animationJudgeService';
+import { judgeAnimations, processAnimationQueue } from '../services/animationJudgeService';
+import { textToSpeech, playAudio } from '../services/speechSynthesisService';
 import { supabase } from '../lib/supabaseClient';
 import {
   ChatMessageProps,
   ServiceError,
-  Emotion,
   AVAILABLE_ANIMATIONS
 } from '../types';
-import { timelineManager } from '../services/timelineManager';
-import {
-  animationQueueService
-} from '../services/animationQueueService';
 
 type ChatPosition = 'right' | 'bottom';
 
@@ -45,16 +31,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
-
-  const store = useChatStore.getState();
-
-  // Get processed message if available
-  const processedMessage = store.processedMessages.find(
-    pm => pm.id === message.id
-  );
-
-  const contentToRender = processedMessage?.content || message.content;
-  const metadata = processedMessage?.metadata;
 
   return (
     <div className={`mb-4 ${message.role === 'user' ? 'text-right' : ''}`}>
@@ -84,53 +60,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
               : 'bg-gray-800 text-white rounded-tl-none'
           }`}
         >
-          {renderMessageContent(contentToRender, metadata)}
+          {message.content}
         </div>
       </div>
     </div>
   );
-};
-
-// Helper function to render message content with links
-const renderMessageContent = (content: string, metadata?: { links?: Array<{ url: string; displayText: string; startIndex: number; endIndex: number }> }) => {
-  if (!metadata || !metadata.links || metadata.links.length === 0) {
-    return content;
-  }
-
-  let lastIndex = 0;
-  const parts: React.ReactNode[] = [];
-
-  // Sort links by position
-  const sortedLinks = [...metadata.links].sort((a, b) => a.startIndex - b.startIndex);
-
-  for (const link of sortedLinks) {
-    // Add text before the link
-    if (link.startIndex > lastIndex) {
-      parts.push(content.substring(lastIndex, link.startIndex));
-    }
-
-    // Add the link
-    parts.push(
-      <a
-        key={`${link.url}-${link.startIndex}`}
-        href={link.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-blue-500 underline hover:text-blue-700"
-      >
-        {link.displayText}
-      </a>
-    );
-
-    lastIndex = link.endIndex;
-  }
-
-  // Add remaining text
-  if (lastIndex < content.length) {
-    parts.push(content.substring(lastIndex));
-  }
-
-  return parts;
 };
 
 // Custom hook for mobile detection
@@ -272,174 +206,84 @@ const ChatInterface = (): JSX.Element => {
       if (response) {
         const text = typeof response === 'string' ? response : response.content;
 
-        // Run preprocessing and animation judgment with timing in parallel
-        const [processed, animationJudgment] = await Promise.all([
-          Promise.resolve(preprocessingPipeline.process(text)),
-          judgeAnimationsWithTiming(content, text)
-        ]);
+        // Get animation judgment using the judge system
+        const animationJudgment = await judgeAnimations(input, text);
 
-        // Log preprocessing results for debugging
-        console.group('📝 Text Preprocessing');
-        console.log('🤖 Model Output (original):', text);
-        console.log('🎤 Speech Output (cleanText):', processed.cleanText);
-        console.log('🖥️  Display Output (displayText):', processed.displayText);
-        console.log('📊 Metadata:', processed.metadata);
-        if (processed.metadata.emphasis.length > 0) {
-          console.log('✨ Emphasis detected:', processed.metadata.emphasis);
-        }
-        if (processed.metadata.emojis.length > 0) {
-          console.log('😀 Emojis detected:', processed.metadata.emojis);
-        }
-        if (processed.metadata.links.length > 0) {
-          console.log('🔗 Links detected:', processed.metadata.links);
-        }
-        console.groupEnd();
-
-        // Log animation judgment with timing
-        console.log('%c🎬 ANIMATION JUDGMENT RESULT', 'background: #4ecdc4; color: black; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+        // Log animation judgment result
+        console.log('%c🎬 ANIMATION JUDGMENT RESULT (Text)', 'background: #4ecdc4; color: black; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
         console.log('%c🎬 Animations:', 'color: #4ecdc4; font-weight: bold;', animationJudgment.animations);
         console.log('%c🎬 Reasoning:', 'color: #4ecdc4; font-weight: bold;', animationJudgment.reasoning);
-        console.log('%c🎬 Suggested Timing:', 'color: #4ecdc4; font-weight: bold;', animationJudgment.suggestedTiming);
-        console.log('%c🎬 Suggested Layer:', 'color: #4ecdc4; font-weight: bold;', animationJudgment.suggestedLayer);
 
-        // Store the processed message with metadata
-        const processedMessageId = crypto.randomUUID();
-        
-        // Batch state updates for better performance
+        // Add message directly without preprocessing
         useChatStore.setState((state) => ({
-          processedMessages: [
-            ...state.processedMessages,
-            {
-              id: processedMessageId,
-              role: 'assistant',
-              content: processed.displayText,
-              timestamp: Date.now(),
-              metadata: processed.metadata
-            }
-          ].slice(-MAX_MESSAGES),
           messages: [
             ...state.messages,
             {
               id: crypto.randomUUID(),
               timestamp: Date.now(),
-              role: 'assistant',
-              content: processed.displayText
+              role: 'assistant' as const,
+              content: text
             }
           ].slice(-MAX_MESSAGES),
           isSpeaking: true
         }));
-        
-        // Parallelize database insertion and TTS generation with animation prefetch (independent operations)
-        const [dbResult, audioBuffer] = await Promise.allSettled([
+
+        // Insert message to database
+        const dbResult = await Promise.resolve(
           currentChatId ? supabase
             .from('chat_messages')
             .insert([{
               chat_id: currentChatId,
-              content: processed.displayText,
+              content: text,
               role: 'assistant'
-            }]) : Promise.resolve(null),
-          // TTS with animation prefetch
-          textToSpeechWithPrefetch(processed.cleanText, animationJudgment.animations)
-        ]);
+            }]) : Promise.resolve(null)
+        );
         
         // Handle database result
-        if (dbResult.status === 'rejected') {
-          console.error('Error inserting message to database:', dbResult.reason);
+        if (dbResult && 'error' in dbResult && dbResult.error) {
+          console.error('Error inserting message to database:', dbResult.error);
         }
 
         useChatStore.getState().setSpeaking(true);
 
-        // Handle TTS result from Promise.allSettled
-        if (audioBuffer.status === 'fulfilled' && audioBuffer.value) {
-          console.log('TTS result received:', audioBuffer.value);
-          const audioDuration = audioBuffer.value.duration * 1000; // Convert to milliseconds
+        // Queue animations to play during speech
+        if (animationJudgment.animations.length > 0) {
+          console.log('%c🚀 QUEUEING ANIMATIONS (Text)', 'background: #f39c12; color: black; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+          console.log('%c🚀 Animation count:', 'color: #f39c12; font-weight: bold;', animationJudgment.animations.length);
 
-          // Get timeline store for state management
-          const timelineStore = useTimelineStore.getState();
+          setAnimationQueue(animationJudgment.animations);
 
-          // Start timeline manager with audio duration
-          console.log('%c⏱️ [Timeline] Starting timeline manager with duration:', 'color: #3498db; font-weight: bold;', audioDuration);
-          timelineManager.start(audioDuration);
-          timelineStore.startTimeline(audioDuration);
-
-          // Schedule animations via timeline if animations are available
-          if (animationJudgment.animations.length > 0) {
-            console.log('%c🚀 SCHEDULING ANIMATIONS VIA TIMELINE', 'background: #f39c12; color: black; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
-            console.log('%c🚀 Animation count:', 'color: #f39c12; font-weight: bold;', animationJudgment.animations.length);
-
-            // Distribute animations across audio duration
-            const scheduled = distributeAnimationsAcrossAudio(
-              animationJudgment.animations,
-              audioDuration,
-              animationJudgment.suggestedTiming
-            );
-
-            // Schedule each animation via animation queue service
-            scheduled.forEach(anim => {
-              animationQueueService.scheduleAnimation({
-                id: crypto.randomUUID(),
-                name: anim.name,
-                layer: animationJudgment.suggestedLayer || 'gesture',
-                startTime: anim.triggerTime,
-                duration: anim.duration,
-                blendIn: 300,
-                blendOut: 300,
-                interruptible: anim.interruptible ?? true
-              });
-            });
-          } else {
-            console.log('%c⚠️ NO ANIMATIONS TO SCHEDULE', 'background: #95a5a6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
-          }
-
-          // Define audio end handler
-          const handleAudioEnd = () => {
-            console.log('Audio playback finished');
-            timelineManager.stop();
-            timelineStore.stopTimeline();
-            timelineStore.clearTimeline();
-
-            // Reset to idle when audio ends
-            useChatStore.getState().setCurrentAnimation(null);
-            useChatStore.getState().setAnimationQueue([]);
-
-            // Trigger gestures from emoji metadata
-            if (processed.metadata.emojis.length > 0) {
-              const store = useChatStore.getState();
-              processed.metadata.emojis.forEach((emojiData) => {
-                if (emojiData.gesture) {
-                  // Cast to Emotion type if it's a valid emotion
-                  if (['neutral', 'happy', 'thinking', 'sad'].includes(emojiData.gesture)) {
-                    store.setEmotion(emojiData.gesture as Emotion);
-                  }
-                }
-              });
+          // Process animation queue
+          processAnimationQueue(
+            animationJudgment.animations,
+            (animationName) => {
+              console.log('%c⚡ TRIGGERING ANIMATION: ' + animationName, 'background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;');
+              console.log('%c⚡ Calling setCurrentAnimation...', 'color: #e74c3c; font-weight: bold;');
+              setCurrentAnimation(animationName);
+              console.log('%c⚡ Store currentAnimation is now:', 'color: #e74c3c; font-weight: bold;', useChatStore.getState().currentAnimation);
+            },
+            () => {
+              // Reset to idle when all animations complete
+              console.log('%c✅ ANIMATION QUEUE COMPLETE (Text)', 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+              setCurrentAnimation(null);
+              setAnimationQueue([]);
+              useChatStore.setState({ isSpeaking: false });
             }
-          };
+          );
+        } else {
+          console.log('%c⚠️ NO ANIMATIONS TO QUEUE (Text)', 'background: #95a5a6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+          // Reset speaking state if no animations
+          useChatStore.setState({ isSpeaking: false });
+        }
 
-          // Play audio with timeline events
-          try {
-            await playAudioWithEvents(audioBuffer.value.audioBuffer, {
-              onProgress: (currentTime) => {
-                timelineStore.updateCurrentTime(currentTime);
-                timelineManager.onTick?.(currentTime);
-              },
-              onEnded: handleAudioEnd,
-              onError: (error) => {
-                console.error('Audio error:', error);
-                handleAudioEnd();
-              }
-            });
-          } catch (playError) {
-            console.error('Error during audio playback:', playError);
-            handleAudioEnd();
-          }
-        } else if (audioBuffer.status === 'rejected') {
-          console.error('Error during TTS:', audioBuffer.reason);
+        // Use text directly for speech synthesis
+        const audioResult = await textToSpeech(text);
+        if (audioResult) {
+          await playAudio(audioResult.audioBuffer);
         }
       }
     } catch (error) {
       console.error('Error processing message:', error);
-    } finally {
       useChatStore.setState({ isSpeaking: false });
     }
   };
@@ -522,14 +366,10 @@ const ChatInterface = (): JSX.Element => {
     console.log('🛑 [handleStopSpeaking] Stop speaking button clicked');
     console.log('🛑 [handleStopSpeaking] Current isSpeaking state:', isSpeaking);
 
-    // Use new stopAudio function instead of window.speechSynthesis
-    stopAudio();
-
-    // Also cancel window.speechSynthesis as a fallback (for native speech API)
-    if (window.speechSynthesis) {
-      console.log('🛑 [handleStopSpeaking] Canceling window.speechSynthesis');
-      window.speechSynthesis.cancel();
-    }
+    // Reset animation and speaking state
+    useChatStore.getState().setCurrentAnimation(null);
+    useChatStore.getState().setAnimationQueue([]);
+    useChatStore.setState({ isSpeaking: false });
   };
 
   const handleMicToggle = async () => {

@@ -1,9 +1,8 @@
 import { useChatStore } from '../store/chatStore';
 import { getAIResponse } from './aiService';
 import { textToSpeech, playAudio } from './speechSynthesisService';
-import { preprocessingPipeline } from './textPreprocessing';
 import { judgeAnimations, processAnimationQueue } from './animationJudgeService';
-import { SpeechResponse, PreprocessedText, Emotion, AnimationJudgment } from '../types';
+import { SpeechResponse } from '../types';
 import { ServiceError } from '../errors/AppError';
 
 // Add browser native speech synthesis
@@ -71,7 +70,7 @@ export async function initSpeechRecognition(): Promise<void> {
 async function checkMicrophonePermission(): Promise<void> {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    // Clean up the stream after permission check
+    // Clean up stream after permission check
     stream.getTracks().forEach(track => track.stop());
   } catch (error) {
     throw new ServiceError(
@@ -101,47 +100,18 @@ function setupRecognitionHandlers(): void {
       if (response) {
         const text = typeof response === 'string' ? response : response.content;
         
-        // Run preprocessing and animation judgment in parallel
-        const [processed, animationJudgment] = await Promise.all([
-          Promise.resolve(preprocessingPipeline.process(text)),
-          judgeAnimations(speechResult, text)
-        ]);
+        // Get animation judgment
+        const animationJudgment = await judgeAnimations(speechResult, text);
         
-        // Log preprocessing results for debugging
-        console.group('📝 Text Preprocessing (Speech Recognition)');
-        console.log('🤖 Model Output (original):', text);
-        console.log('🎤 Speech Output (cleanText):', processed.cleanText);
-        console.log('🖥️  Display Output (displayText):', processed.displayText);
-        console.log('📊 Metadata:', processed.metadata);
-        if (processed.metadata.emphasis.length > 0) {
-          console.log('✨ Emphasis detected:', processed.metadata.emphasis);
-        }
-        if (processed.metadata.emojis.length > 0) {
-          console.log('😀 Emojis detected:', processed.metadata.emojis);
-        }
-        if (processed.metadata.links.length > 0) {
-          console.log('🔗 Links detected:', processed.metadata.links);
-        }
-        console.groupEnd();
-
         // Log animation judgment
         console.log('%c🎬 ANIMATION JUDGMENT RESULT (Speech)', 'background: #4ecdc4; color: black; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
         console.log('%c🎬 Animations:', 'color: #4ecdc4; font-weight: bold;', animationJudgment.animations);
         console.log('%c🎬 Reasoning:', 'color: #4ecdc4; font-weight: bold;', animationJudgment.reasoning);
         
-        // Store the processed message
-        store.setProcessedMessage({
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: processed.displayText,
-          timestamp: Date.now(),
-          metadata: processed.metadata
-        });
-        
-        // Add to regular messages
+        // Add message directly without preprocessing
         store.addMessage({
           role: 'assistant',
-          content: processed.displayText
+          content: text
         });
         
         // Queue animations to play during speech
@@ -151,7 +121,7 @@ function setupRecognitionHandlers(): void {
 
           store.setAnimationQueue(animationJudgment.animations);
 
-          // Process the animation queue
+          // Process animation queue
           processAnimationQueue(
             animationJudgment.animations,
             (animationName) => {
@@ -171,22 +141,10 @@ function setupRecognitionHandlers(): void {
           console.log('%c⚠️ NO ANIMATIONS TO QUEUE (Speech)', 'background: #95a5a6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
         }
         
-        // Use cleanText for speech synthesis
-        const audioResult = await textToSpeech(processed.cleanText);
+        // Use text directly for speech synthesis
+        const audioResult = await textToSpeech(text);
         if (audioResult) {
           await playAudio(audioResult.audioBuffer);
-          
-          // Trigger gestures from emoji metadata
-          if (processed.metadata.emojis.length > 0) {
-            processed.metadata.emojis.forEach((emojiData) => {
-              if (emojiData.gesture) {
-                // Cast to Emotion type if it's a valid emotion
-                if (['neutral', 'happy', 'thinking', 'sad'].includes(emojiData.gesture)) {
-                  store.setEmotion(emojiData.gesture as Emotion);
-                }
-              }
-            });
-          }
         }
       }
     } catch (error) {
@@ -253,7 +211,7 @@ function tryRestartRecognition(): void {
   }
 }
 
-function handleSpeechError(error: any): void {
+function handleSpeechError(error: unknown): void {
   const store = useChatStore.getState();
   store.setListening(false);
   store.setSpeaking(false);
@@ -265,8 +223,8 @@ function handleSpeechError(error: any): void {
   throw new ServiceError(
     'speech',
     'network',
-    error?.message || 'Speech recognition error',
-    error?.code || 500
+    error instanceof Error ? error.message : 'Speech recognition error',
+    500
   );
 }
 
@@ -333,7 +291,7 @@ export async function processAudio(audioBuffer: ArrayBuffer): Promise<SpeechResp
       };
 
       interface AudioBufferSourceNodeWithError extends AudioBufferSourceNode {
-        onerror: ((this: AudioBufferSourceNode, ev: Event) => any) | null;
+        onerror: ((this: AudioBufferSourceNode, ev: Event) => unknown) | null;
       }
       (source as AudioBufferSourceNodeWithError).onerror = () => {
         store.setSpeaking(false);

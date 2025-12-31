@@ -4,18 +4,11 @@ import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { VRMUtils } from '@pixiv/three-vrm';
 import { useChatStore } from '../store/chatStore';
-import { CharacterProps, SceneProps, AVAILABLE_VRM_MODELS, AnimationLayerType } from '../types';
-import { visemeApplier } from '../services/visemeApplicationService';
-import { getCurrentViseme } from '../services/visemePreprocessor';
+import { CharacterProps, SceneProps, AVAILABLE_VRM_MODELS } from '../types';
 import vrmaAnimationService, { VRMA_ANIMATIONS } from '../services/vrmaAnimationService';
 import { useAnimationLoadingStore } from '../store/animationLoadingStore';
 import { VRMOptimizedLoader } from '../services/vrmLoaderHelper';
-import { initializeAnimationQueueService } from '../services/animationQueueService';
-import { timelineManager } from '../services/timelineManager';
-import { animationLayeringService } from '../services/animationLayeringService';
-import { getWLipSyncService } from '../services/wLipSyncService';
-import type { PhonemeWeights } from '../services/wLipSyncService';
-import { hasProfile } from '../config/vrmProfiles';
+import { simpleAnimationService } from '../services/simpleAnimationService';
 
 export interface ExtendedCharacterProps extends CharacterProps {
   selectedModel?: string;
@@ -31,7 +24,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   rotation = DEFAULT_ROTATION,
 }) => {
   const store = useChatStore();
-  const { emotion, isSpeaking, visemes, selectedModelId, currentAnimation } = store;
+  const { selectedModelId, currentAnimation } = store;
   const loadingStore = useAnimationLoadingStore();
 
   // Get model config based on the selected model ID
@@ -50,18 +43,10 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   const currentActions = useRef<Record<string, THREE.AnimationAction>>({});
   const vrmaActions = useRef<Record<string, THREE.AnimationAction>>({});
   const vrmaClips = useRef<Record<string, THREE.AnimationClip>>({});
-  const visemeStartTime = useRef<number>(0);
-  const speakingStartTime = useRef<number>(0);
-  const lastUpdate = useRef<number>(0);
-  const frameSkip = useRef<number>(1);
   const vrmRef = useRef<unknown>(null);
   const sceneRef = useRef<THREE.Group | null>(null);
   const isInitialized = useRef<boolean>(false);
   const [vrmaAnimationsLoaded, setVrmaAnimationsLoaded] = useState(false);
-  const wLipSyncEnabled = useRef<boolean>(false);
-  
-  // Track which VRMA animations have been loaded for lazy loading
-  const loadedVrmaAnimations = useRef<Set<string>>(new Set());
 
   const vrm = gltf.userData.vrm as unknown;
   const scene = gltf.scene;
@@ -70,7 +55,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
    * Load a single VRMA animation on-demand with caching
    * Only loads the animation when first triggered, not all upfront
    */
-  const loadVRMAAnimation = async (animationName: string, layer?: AnimationLayerType) => {
+  const loadVRMAAnimation = async (animationName: string) => {
     console.log(`%c📥 [loadVRMAAnimation] START: ${animationName}`, 'color: #3498db; font-weight: bold;');
     console.log(`%c📥 [loadVRMAAnimation] mixer.current:`, 'color: #3498db;', !!mixer.current);
     console.log(`%c📥 [loadVRMAAnimation] vrm:`, 'color: #3498db;', !!vrm);
@@ -107,7 +92,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         vrm,
         selectedModelId,
         animationName,
-        layer
+        undefined // No layer for simple service
       );
       console.log(`%c📥 [loadVRMAAnimation] retargetedClip created:`, 'color: #3498db;', !!retargetedClip);
       
@@ -116,10 +101,6 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       
       vrmaActions.current[animationName] = action;
       vrmaClips.current[animationName] = retargetedClip;
-      loadedVrmaAnimations.current.add(animationName);
-
-      // Register animation with AnimationLayeringService for native blending
-      animationLayeringService.registerAnimation(animationName, retargetedClip);
 
       console.log(`%c✅ [loadVRMAAnimation] COMPLETE: '${animationName}' - vrmaActions.current now has:`, 'color: #27ae60; font-weight: bold;', Object.keys(vrmaActions.current));
     } catch (error) {
@@ -134,29 +115,6 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       if (isInitialized.current && mixer.current) {
         console.log('%c⏭️ [AvatarModel] Skipping re-initialization - already initialized', 'color: #f39c12;');
         return;
-      }
-
-      // Initialize wLipSync if profile is available for this model
-      if (selectedModelId && hasProfile(selectedModelId)) {
-        wLipSyncEnabled.current = true;
-        console.log(`[AvatarModel] wLipSync profile available for model: ${selectedModelId}`);
-      }
-
-      // Reinitialize wLipSync when model changes
-      if (wLipSyncEnabled.current && selectedModelId) {
-        const wLipSync = getWLipSyncService();
-        if (wLipSync.getModelId() !== selectedModelId) {
-          // Initialize wLipSync asynchronously
-          wLipSync.initialize(selectedModelId)
-            .then(() => {
-              visemeApplier.enableWLipSync(wLipSync);
-              console.log(`[AvatarModel] wLipSync reinitialized for model: ${selectedModelId}`);
-            })
-            .catch((error) => {
-              console.warn('[AvatarModel] wLipSync reinitialization failed, falling back to text-based visemes:', error);
-              wLipSyncEnabled.current = false;
-            });
-        }
       }
 
       console.log('%c🔧 [AvatarModel] Initializing VRM...', 'background: #3498db; color: white; padding: 2px 6px; border-radius: 3px;');
@@ -239,10 +197,6 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       VRMUtils.combineSkeletons((vrmObj as any).scene);
 
-      // Register VRM with viseme applier
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      visemeApplier.setVRM(vrmObj as any);
-
       // Calculate model bounds for auto-scaling
       const box = new THREE.Box3().setFromObject(scene);
       const modelHeight = box.max.y - box.min.y;
@@ -297,11 +251,10 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // Setup animation mixer with VRM scene
       mixer.current = new THREE.AnimationMixer(scene);
 
-      // Initialize animation queue service with mixer and timeline manager
-      // This must be done after mixer is created and before animations are loaded
+      // Initialize simple animation service
       if (!isInitialized.current) {
-        console.log('%c🔧 [AvatarModel] Initializing animation queue service...', 'background: #3498db; color: white; padding: 2px 6px; border-radius: 3px;');
-        initializeAnimationQueueService(mixer.current, timelineManager, vrm, selectedModelId);
+        console.log('%c🔧 [AvatarModel] Initializing simple animation service...', 'background: #3498db; color: white; padding: 2px 6px; border-radius: 3px;');
+        simpleAnimationService.initialize(mixer.current, vrm, selectedModelId);
         isInitialized.current = true;
       }
 
@@ -340,7 +293,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 
           // Only start idle animation if no explicit animation is playing
           const store = useChatStore.getState();
-          if (!store.currentAnimation && !store.animationQueue.length) {
+          if (!store.currentAnimation) {
             if (vrmaActions.current['modelPose']) {
               try {
                 vrmaActions.current['modelPose'].reset().fadeIn(0.3).play();
@@ -368,16 +321,6 @@ const Character: React.FC<ExtendedCharacterProps> = ({
           setVrmaAnimationsLoaded(false);
         });
 
-      // Start background loading of HIGH priority animations after CRITICAL load completes
-      vrmaAnimationService.loadHighPriorityAnimations()
-        .then(() => {
-          loadingStore.setHighPriorityComplete(true);
-          console.log('%c✅ [AvatarModel] Background loading of HIGH priority animations complete', 'color: #27ae60; font-weight: bold;');
-        })
-        .catch((error) => {
-          console.warn('Failed to load HIGH priority animations:', error);
-        });
-
       console.log('VRM model loaded:', vrm);
       console.log('Available embedded animations:', animations.map(a => a.name));
       console.log('Available VRMA animations:', Object.keys(vrmaClips.current));
@@ -391,7 +334,6 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       if (mixer.current) {
         mixer.current.stopAllAction();
       }
-      visemeApplier.setVRM(null);
       isInitialized.current = false;
     };
   }, [position, scale, rotation, selectedModelId, modelConfig]);
@@ -461,13 +403,8 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     }
   };
 
-  // Handle viseme animation (simplified for GLB model - log viseme changes)
+  // Simple frame loop - just update mixer and VRM
   useFrame((_, delta) => {
-    if (frameSkip.current > 1) {
-      lastUpdate.current++;
-      if (lastUpdate.current % frameSkip.current !== 0) return;
-    }
-
     // Update animation mixer to advance animations
     if (mixer.current && delta < 0.1) {
       mixer.current.update(delta);
@@ -483,60 +420,28 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         // Some VRM models may not support update() - handle gracefully
       }
     }
-
-    // Handle viseme animation when speaking
-    if (isSpeaking && visemes.length > 0) {
-      // Track speaking time
-      if (visemeStartTime.current === 0) {
-        visemeStartTime.current = performance.now();
-        speakingStartTime.current = performance.now();
-      }
-      
-      // Calculate current time in seconds since speaking started
-      const currentTime = (performance.now() - speakingStartTime.current) / 1000;
-      
-      // Get current viseme based on accumulated time
-      const currentVisemeName = getCurrentViseme(visemes, currentTime);
-      
-      // Apply viseme with smooth transition
-      visemeApplier.applyViseme(currentVisemeName, delta);
-    } else if (!isSpeaking) {
-      // Reset to neutral when not speaking
-      if (visemeStartTime.current !== 0) {
-        visemeApplier.reset();
-        visemeStartTime.current = 0;
-      }
-    }
-    
-    // Apply wLipSync when available
-    if (wLipSyncEnabled.current) {
-      const wLipSync = getWLipSyncService();
-      if (wLipSync.isReady()) {
-        const weights: PhonemeWeights = wLipSync.getWeights();
-        visemeApplier.applyFromAudio(weights);
-      }
-    }
   });
 
-  // Helper function to play animation using AnimationLayeringService with native blending
-  const fadeToAction = (actionName: string, duration: number = 0.3, layer?: AnimationLayerType) => {
-    console.log('%c🎭 [fadeToAction] Called with:', 'color: #3498db; font-weight: bold;', actionName);
-    console.log('%c🎭 [fadeToAction] Layer:', 'color: #3498db;', layer);
-    console.log('%c🎭 [fadeToAction] vrmaAnimationsLoaded:', 'color: #3498db;', vrmaAnimationsLoaded);
-    console.log('%c🎭 [fadeToAction] Available VRMA actions:', 'color: #3498db;', Object.keys(vrmaActions.current));
-    console.log('%c🎭 [fadeToAction] Available embedded actions:', 'color: #3498db;', Object.keys(currentActions.current));
+  // Helper function to play animation using simple direct playback
+  const playAnimationDirectly = async (animationName: string) => {
+    console.log('%c🎭 [playAnimationDirectly] Called with:', 'color: #3498db; font-weight: bold;', animationName);
+    console.log('%c🎭 [playAnimationDirectly] vrmaAnimationsLoaded:', 'color: #3498db;', vrmaAnimationsLoaded);
+    console.log('%c🎭 [playAnimationDirectly] Available VRMA actions:', 'color: #3498db;', Object.keys(vrmaActions.current));
     
     if (!mixer.current) {
-      console.log('%c🎭 [fadeToAction] No mixer - aborting', 'color: #e74c3c;');
+      console.log('%c🎭 [playAnimationDirectly] No mixer - aborting', 'color: #e74c3c;');
       return;
     }
 
-    // Check if animation is registered with AnimationLayeringService
-    const isRegistered = animationLayeringService.getRegisteredAnimations().includes(actionName);
-    
-    if (!isRegistered) {
-      console.warn('%c🎭 [fadeToAction] Animation NOT REGISTERED: ' + actionName, 'background: #e74c3c; color: white; padding: 2px 6px;');
-      console.warn('%c🎭 [fadeToAction] Requested: "' + actionName + '" but available are:', 'color: #e74c3c;', animationLayeringService.getRegisteredAnimations());
+    // If animation not loaded yet, load it on-demand then play
+    if (!vrmaActions.current[animationName] && !currentActions.current[animationName]) {
+      console.log('%c📥 [AvatarModel] Animation not loaded, loading on-demand:', 'color: #f39c12; font-weight: bold;', animationName);
+      await loadVRMAAnimation(animationName);
+    }
+
+    const action = vrmaActions.current[animationName] || currentActions.current[animationName];
+    if (!action) {
+      console.warn('%c🎭 [playAnimationDirectly] Action not found: ' + animationName, 'background: #e74c3c; color: white; padding: 2px 6px;');
       // Fall back to natural pose if no animation found
       if (vrmRef.current) {
         applyNaturalPose(vrmRef.current);
@@ -544,29 +449,27 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       return;
     }
 
-    // Use AnimationLayeringService for native weight-based blending
-    // Default to 'idle' layer if no layer specified
-    const targetLayer = layer ?? 'idle';
-    
-    console.log('%c🎭 [fadeToAction] Playing with AnimationLayeringService on layer:', 'color: #3498db; font-weight: bold;', targetLayer);
-    
-    try {
-      animationLayeringService.playAnimation(actionName, targetLayer, {
-        fadeInDuration: duration,
-        fadeOutDuration: duration,
-        loop: THREE.LoopRepeat
+    // Stop current action if playing
+    if (mixer.current) {
+      const allActions = Object.values(vrmaActions.current).concat(Object.values(currentActions.current));
+      allActions.forEach(a => {
+        if (a && a !== action) {
+          a.fadeOut(0.2);
+          a.stop();
+        }
       });
-      console.log('%c✨ [fadeToAction] ANIMATION PLAYING: ' + actionName, 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;');
-    } catch (error) {
-      console.warn('%c🎭 [fadeToAction] FAILED to play: ' + actionName, 'background: #e74c3c; color: white; padding: 2px 6px;', error);
-      // Fall back to natural pose if animation fails
-      if (vrmRef.current) {
-        applyNaturalPose(vrmRef.current);
-      }
     }
+
+    // Play new animation
+    action.reset();
+    action.fadeIn(0.3);
+    action.setLoop(THREE.LoopRepeat, Infinity);
+    action.play();
+    
+    console.log('%c✨ [playAnimationDirectly] ANIMATION PLAYING: ' + animationName, 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;');
   };
 
-  // Handle explicit animation triggers from the animation judge
+  // Handle explicit animation triggers from the LLM judge
   useEffect(() => {
     console.log('%c🎯 [AvatarModel] Animation useEffect triggered', 'color: #9b59b6; font-weight: bold;');
     console.log('%c🎯 [AvatarModel] currentAnimation:', 'color: #9b59b6;', currentAnimation);
@@ -583,103 +486,13 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       console.log('%c🌟 Available VRMA actions:', 'color: #9b59b6; font-weight: bold;', Object.keys(vrmaActions.current));
       console.log('%c🌟 Action exists:', 'color: #9b59b6; font-weight: bold;', !!vrmaActions.current[currentAnimation]);
 
-      // If animation not loaded yet, load it on-demand then play
-      if (!vrmaActions.current[currentAnimation] && !currentActions.current[currentAnimation]) {
-        console.log('%c📥 [AvatarModel] Animation not loaded, loading on-demand:', 'color: #f39c12; font-weight: bold;', currentAnimation);
-        loadVRMAAnimation(currentAnimation).then(() => {
-          console.log('%c📥 [AvatarModel] On-demand load complete, playing:', 'color: #27ae60; font-weight: bold;', currentAnimation);
-          fadeToAction(currentAnimation);
-        });
-      } else {
-        fadeToAction(currentAnimation);
-      }
+      playAnimationDirectly(currentAnimation);
     }
   }, [currentAnimation, vrmaAnimationsLoaded]);
 
-  // Handle emotion-based animations
-  useEffect(() => {
-    if (!mixer.current) {
-      console.log('%c🎭 [AvatarModel] Emotion: No mixer yet', 'color: #95a5a6;');
-      return;
-    }
-
-    if (!vrmaAnimationsLoaded) {
-      console.log('%c🎭 [AvatarModel] Emotion: Animations not loaded yet, skipping', 'color: #95a5a6;');
-      return;
-    }
-
-    // Log if we're overriding an explicit animation (for debugging)
-    if (currentAnimation) {
-      console.log('%c🎬 [AvatarModel] Overriding explicit animation with emotion animation: ' + currentAnimation, 'color: #f39c12;');
-    }
-
-    console.log('%c🎭 [AvatarModel] Emotion animation check - emotion: ' + emotion + ', isSpeaking: ' + isSpeaking, 'color: #3498db;');
-
-    // Helper to play animation with on-demand loading
-    const playEmotionAnimation = async (animName: string) => {
-      if (!vrmaActions.current[animName] && !currentActions.current[animName]) {
-        await loadVRMAAnimation(animName);
-      }
-      fadeToAction(animName);
-    };
-
-    if (isSpeaking) {
-      // While speaking without explicit animation, use greeting
-      if (vrmaActions.current['greeting']) {
-        fadeToAction('greeting');
-      } else {
-        playEmotionAnimation('greeting');
-      }
-    } else {
-      switch (emotion) {
-        case 'thinking':
-          // During thinking, just use modelPose (spin is now explicit only)
-          fadeToAction('modelPose');
-          break;
-        case 'happy':
-          if (vrmaActions.current['peace']) {
-            fadeToAction('peace');
-          } else {
-            playEmotionAnimation('peace');
-          }
-          break;
-        default:
-          fadeToAction('modelPose');
-      }
-    }
-  }, [emotion, isSpeaking, vrmaAnimationsLoaded]);
-
-  // Performance monitoring
-  useEffect(() => {
-    let frameCount = 0;
-    let lastTime = performance.now();
-
-    const checkPerformance = () => {
-      const currentTime = performance.now();
-      const elapsed = currentTime - lastTime;
-      
-      if (elapsed >= 1000) {
-        const fps = frameCount / (elapsed / 1000);
-        
-        if (fps < 30) {
-          frameSkip.current = 2;
-        } else if (fps < 20) {
-          frameSkip.current = 3;
-        } else {
-          frameSkip.current = 1;
-        }
-        
-        frameCount = 0;
-        lastTime = currentTime;
-      }
-      
-      frameCount++;
-      requestAnimationFrame(checkPerformance);
-    };
-
-    const handle = requestAnimationFrame(checkPerformance);
-    return () => cancelAnimationFrame(handle);
-  }, []);
+  // Note: Emotion-based animations are now handled by the judge system
+  // The judge system determines appropriate animations based on context
+  // This component only responds to explicit animation triggers via currentAnimation
 
   return scene ? <primitive object={scene} /> : null;
 };
