@@ -330,6 +330,11 @@ export async function judgeAnimations(
     console.log('🎬 [AnimationJudge] Full API response:', response.data);
 
     // Extract tool call from response
+    if (!response.data?.choices || response.data.choices.length === 0) {
+      console.error('🎬 [AnimationJudge] No choices in API response');
+      return { animations: [], reasoning: 'No animation decision made' };
+    }
+
     const message = response.data.choices[0].message;
     console.log('🎬 [AnimationJudge] Message from response:', message);
 
