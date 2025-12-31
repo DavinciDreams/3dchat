@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ChatState, Message, Emotion, VisemeData, ProcessedMessage, AVAILABLE_VRM_MODELS, AVAILABLE_VOICES, AnimationTrigger } from '../types';
+import { ChatState, Message, Emotion, ProcessedMessage, AVAILABLE_VRM_MODELS, AVAILABLE_VOICES, AnimationTrigger } from '../types';
 
 export const MAX_MESSAGES = 10;
 
@@ -14,8 +14,6 @@ export const useChatStore = create<ChatState>()(
       isListening: false,
       isMuted: false,
       emotion: 'neutral',
-      visemes: [],
-      visemeDuration: 0,
       selectedModelId: AVAILABLE_VRM_MODELS[0].id,
       selectedVoiceId: AVAILABLE_VOICES[0].id,
       animationQueue: [],
@@ -51,8 +49,6 @@ export const useChatStore = create<ChatState>()(
       setListening: (isListening: boolean) => set({ isListening }),
       setIsMuted: (isMuted: boolean) => set({ isMuted }),
       setEmotion: (emotion: Emotion) => set({ emotion }),
-      setVisemes: (visemes: VisemeData[]) => set({ visemes }),
-      setVisemeDuration: (duration: number) => set({ visemeDuration: duration }),
       setSelectedModelId: (modelId: string) => set({ selectedModelId: modelId }),
       setSelectedVoiceId: (voiceId: string) => set({ selectedVoiceId: voiceId }),
       setAnimationQueue: (queue: AnimationTrigger[]) => set({ animationQueue: queue }),

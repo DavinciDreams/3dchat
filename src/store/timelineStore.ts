@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import {
   TimelineState,
   ScheduledAnimation,
-  VisemeData,
   Emotion
 } from '../types';
 
@@ -21,12 +20,10 @@ export const useTimelineStore = create<TimelineState>()((set) => ({
   
   // Scheduled events
   scheduledAnimations: [],
-  scheduledVisemes: [],
   scheduledEmotions: [],
   
   // Active state
   activeAnimations: new Map(),
-  currentViseme: null,
   currentEmotion: 'neutral',
   
   // Actions
@@ -49,12 +46,6 @@ export const useTimelineStore = create<TimelineState>()((set) => ({
     )
   })),
   
-  scheduleViseme: (viseme, time) => set((state) => ({
-    scheduledVisemes: [...state.scheduledVisemes, { viseme, time }].sort(
-      (a, b) => a.time - b.time
-    )
-  })),
-  
   scheduleEmotion: (emotion, time) => set((state) => ({
     scheduledEmotions: [...state.scheduledEmotions, { emotion, time }].sort(
       (a, b) => a.time - b.time
@@ -65,10 +56,8 @@ export const useTimelineStore = create<TimelineState>()((set) => ({
   
   clearTimeline: () => set({
     scheduledAnimations: [],
-    scheduledVisemes: [],
     scheduledEmotions: [],
-    activeAnimations: new Map(),
-    currentViseme: null
+    activeAnimations: new Map()
   })
 }));
 
