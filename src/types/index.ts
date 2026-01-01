@@ -129,6 +129,7 @@ export interface ChatState {
   selectedVoiceId: string;
   animationQueue: AnimationTrigger[];
   currentAnimation: string | null;
+  animationSpeed: number;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
   setProcessedMessage: (message: ProcessedMessage) => void;
   setProcessing: (isProcessing: boolean) => void;
@@ -140,6 +141,7 @@ export interface ChatState {
   setSelectedVoiceId: (voiceId: string) => void;
   setAnimationQueue: (queue: AnimationTrigger[]) => void;
   setCurrentAnimation: (animation: string | null) => void;
+  setAnimationSpeed: (speed: number) => void;
   clearMessages: () => void;
 }
 

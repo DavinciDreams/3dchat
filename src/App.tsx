@@ -1,6 +1,6 @@
 import React, { useEffect, Suspense, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Volume2, VolumeX, LogOut, User, Mic, Sparkles } from 'lucide-react';
+import { Brain, Volume2, VolumeX, LogOut, User, Mic, Sparkles, Gauge } from 'lucide-react';
 import { initSpeechRecognition } from './services/speechService';
 import { useChatStore } from './store/chatStore';
 import { supabase } from './lib/supabaseClient';
@@ -19,7 +19,7 @@ function App() {
   const [error, setError] = useState<AppError | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(true); // Temporarily set to true for debugging
   const [isModelLoading, setIsModelLoading] = useState(false);
-  const { setProcessing, isMuted, setIsMuted, selectedModelId, setSelectedModelId, selectedVoiceId, setSelectedVoiceId, setCurrentAnimation } = useChatStore();
+  const { setProcessing, isMuted, setIsMuted, selectedModelId, setSelectedModelId, selectedVoiceId, setSelectedVoiceId, setCurrentAnimation, animationSpeed, setAnimationSpeed } = useChatStore();
 
   // Track chat position and collapsed state for layout calculations
   const [chatPosition, setChatPosition] = useState<ChatPosition>(() => {
@@ -83,6 +83,16 @@ function App() {
       description: 'Play animation',
     })), []
   );
+
+  // Transform speed options to SelectOption format
+  const speedOptions: SelectOption[] = useMemo(() => [
+    { id: '0.5', label: '0.5x', description: 'Slow motion' },
+    { id: '0.75', label: '0.75x', description: 'Slower' },
+    { id: '1.0', label: '1.0x', description: 'Normal speed' },
+    { id: '1.25', label: '1.25x', description: 'Faster' },
+    { id: '1.5', label: '1.5x', description: 'Fast' },
+    { id: '2.0', label: '2.0x', description: 'Very fast' },
+  ], []);
 
   // Trigger loading state when model changes
   useEffect(() => {
@@ -242,6 +252,15 @@ function App() {
               placeholder="Play animation..."
               label="Animate"
               icon={<Sparkles className="h-4 w-4" />}
+            />
+
+            {/* Animation Speed */}
+            <TypeaheadSelect
+              options={speedOptions}
+              value={String(animationSpeed)}
+              onChange={(id) => setAnimationSpeed(parseFloat(id))}
+              label="Speed"
+              icon={<Gauge className="h-4 w-4" />}
             />
           </motion.div>
 

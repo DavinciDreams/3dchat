@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { AnimationLayerType } from '../types';
+import { getAnimationTimeScale } from '../config/animationSpeedConfig';
 
 /**
  * Animation layer configuration
@@ -145,6 +146,9 @@ export class AnimationLayeringService {
       console.warn(`Animation not found: ${name}`);
       return '';
     }
+
+    // Set animation playback speed
+    action.timeScale = getAnimationTimeScale();
 
     const config = AnimationLayeringService.LAYER_CONFIGS[layer];
     const {
