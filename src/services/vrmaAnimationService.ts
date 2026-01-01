@@ -290,7 +290,70 @@ class VRMAAnimationService {
   private readonly MAX_RETRIES = 3;
 
   constructor() {
-    this.loader = new GLTFLoader();
+    // Create a custom LoadingManager to handle VRMA texture loading errors gracefully
+    // VRMA files reference external textures (e.g., Image_0.jpg) that don't exist
+    // This prevents console spam and animation loading failures
+    const manager = new THREE.LoadingManager();
+    
+    // Override error handler to suppress texture warnings for VRMA files
+    manager.onError = (url: string) => {
+      // Only log texture errors for VRMA files (not VRM models)
+      if (url.includes('.vrma') || url.includes('Image_')) {
+        // Silently ignore - VRMA animations don't need external textures
+        return;
+      }
+      console.warn(`Failed to load resource: ${url}`);
+    };
+    
+    // Override itemError handler to catch texture loading failures
+    manager.itemError = (url: string) => {
+      // Silently ignore texture errors for VRMA files
+      if (url.includes('Image_')) {
+        return;
+      }
+      console.warn(`Failed to load item: ${url}`);
+    };
+    
+    // Create TextureLoader with custom manager
+    const textureLoader = new THREE.TextureLoader(manager);
+    const originalLoad = textureLoader.load.bind(textureLoader);
+    
+    // Override TextureLoader.load to provide fallback for missing textures
+    textureLoader.load = (
+      url: string,
+      onLoad?: (texture: THREE.Texture) => void,
+      onProgress?: (event: ProgressEvent) => void,
+      onError?: (error: unknown) => void
+    ) => {
+      // Check if this is an external texture reference from VRMA
+      if (url.includes('Image_') && !url.startsWith('data:')) {
+        // Create a fallback dummy texture to prevent errors
+        const canvas = document.createElement('canvas');
+        canvas.width = 4;
+        canvas.height = 4;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#808080'; // Neutral gray
+          ctx.fillRect(0, 0, 4, 4);
+        }
+        
+        const dummyTexture = new THREE.CanvasTexture(canvas);
+        dummyTexture.colorSpace = THREE.SRGBColorSpace;
+        dummyTexture.needsUpdate = true;
+        
+        // Call onLoad callback with dummy texture
+        if (onLoad) {
+          onLoad(dummyTexture);
+        }
+        return dummyTexture;
+      }
+      
+      // Normal loading for other textures
+      return originalLoad(url, onLoad, onProgress, onError);
+    };
+    
+    // Create GLTFLoader with custom manager
+    this.loader = new GLTFLoader(manager);
     this.loader.register((parser) => new VRMAnimationLoaderPlugin(parser));
   }
 
@@ -494,7 +557,24 @@ class VRMAAnimationService {
         keysToDelete.push(key);
       }
     }
-    keysToDelete.forEach(key => this.retargetedClipCache.delete(key));
+    // Properly dispose THREE.js AnimationClips to free GPU memory
+    keysToDelete.forEach(key => {
+      const clip = this.retargetedClipCache.get(key);
+      if (clip) {
+        // Dispose clip tracks to free memory
+        if (clip.tracks) {
+          clip.tracks.forEach(track => {
+            // Dispose keyframe track values
+            if (track.values) {
+              track.values = new Float32Array(0);
+            }
+          });
+          clip.tracks = [];
+        }
+      }
+      this.retargetedClipCache.delete(key);
+    });
+    console.log(`[VRMAAnimationService] Cleared ${keysToDelete.length} retargeted clips for model: ${modelId}`);
   }
 
   /**

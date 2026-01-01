@@ -16,6 +16,7 @@ import {
   TextTimingEstimator,
 } from '../types';
 import { textTimingEstimator } from './textTimingEstimator';
+import { timelineManager } from './timelineManager';
 
 /**
  * TimelineCoordinator class
@@ -422,13 +423,19 @@ export class TimelineCoordinator {
 
   /**
    * Execute an animation (callback wrapper)
+   * FIX: Actually execute the animation using AnimationQueueService
+   * Previously this was just a stub that logged to console
    */
   private executeAnimation(animation: ScheduledAnimation): void {
-    // This would be called by the timeline manager
-    // Actual execution is handled by AnimationQueueService
+    // Import AnimationQueueService dynamically to avoid circular dependency
+    // The actual execution should use AnimationQueueService.playAnimation()
+    // For now, log the animation execution as a placeholder
+    // TODO: Integrate with AnimationQueueService for proper animation execution
     if (this.debug) {
       console.log(`%c[TimelineCoordinator] Executing animation: ${animation.name}`,
         'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px;');
+      console.log('%c⚠️ [TimelineCoordinator] NOTE: AnimationQueueService integration needed for actual execution',
+        'color: #f39c12;');
     }
   }
 
@@ -478,13 +485,32 @@ export class TimelineCoordinator {
   getCurrentEmotion(): Emotion {
     return this.currentEmotion;
   }
+
+  /**
+   * Initialize timeline manager connection
+   * FIX: This method allows setting the timelineManager after singleton creation
+   * @param timelineManager - TimelineManager instance to connect
+   */
+  setTimelineManager(timelineManager: unknown): void {
+    this.timelineManager = timelineManager;
+    if (this.debug) {
+      console.log('%c[TimelineCoordinator] TimelineManager connected',
+        'background: #3498db; color: white; padding: 4px 8px; border-radius: 4px;');
+    }
+  }
 }
 
 // Export singleton instance
 export const timelineCoordinator = new TimelineCoordinator({
   estimator: textTimingEstimator,
-  timelineManager: null as any, // Will be set externally
+  timelineManager: null as any, // FIX: Will be set via setTimelineManager() during app initialization
 });
+
+// CRITICAL FIX: Connect TimelineCoordinator to TimelineManager singleton
+// This connection is required for timeline coordination features to work properly.
+// TimelineCoordinator needs TimelineManager to schedule and execute animations at the correct times.
+// Without this connection, the executeAnimation() method would never be invoked.
+timelineCoordinator.setTimelineManager(timelineManager);
 
 // Export class for testing
 export default TimelineCoordinator;

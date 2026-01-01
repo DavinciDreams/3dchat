@@ -20,6 +20,8 @@ export class TimelineManager {
   private lastTickTime: number = 0;
   private options: Required<TimelineOptions>;
   private eventCounter: number = 0;
+  // FIX: Store original expected time separately for drift calculation
+  private originalExpectedTime: number = 0;
 
   // Event hooks
   public onTick?: (currentTime: number) => void;
@@ -242,17 +244,22 @@ export class TimelineManager {
 
     const currentTime = performance.now() - this.audioStartTime;
     
-    // Check for significant drift (>100ms)
+    // FIX: Store original expected time separately for drift calculation
+    // Previously used circular reference (currentTime vs expectedTime) which didn't fix drift
     if (this.lastTickTime > 0) {
-      const expectedTime = this.lastTickTime + this.options.tickRate;
-      const drift = Math.abs(currentTime - expectedTime);
+      // Calculate expected time based on original baseline
+      this.originalExpectedTime += this.options.tickRate;
+      const drift = Math.abs(currentTime - this.originalExpectedTime);
       
       if (drift > 100) {
-        console.warn(`%c⚠️ [TimelineManager] Timeline drift detected: ${drift.toFixed(0)}ms`, 
+        console.warn(`%c⚠️ [TimelineManager] Timeline drift detected: ${drift.toFixed(0)}ms`,
           'color: #f39c12;');
-        // Adjust start time to compensate
-        this.audioStartTime = performance.now() - currentTime;
+        // Adjust start time to compensate for drift
+        this.audioStartTime = performance.now() - this.originalExpectedTime;
       }
+    } else {
+      // Initialize on first tick
+      this.originalExpectedTime = currentTime;
     }
     
     this.lastTickTime = currentTime;
@@ -264,19 +271,18 @@ export class TimelineManager {
     while (this.events.length > 0 && this.events[0].timestamp <= currentTime) {
       const event = this.events.shift()!;
       
-      console.log(`%c✨ [TimelineManager] Triggering event: ${event.type} at ${currentTime.toFixed(0)}ms`, 
+      console.log(`%c✨ [TimelineManager] Triggering event: ${event.type} at ${currentTime.toFixed(0)}ms`,
         'background: #27ae60; color: white; padding: 2px 6px;');
       
-      // Execute with timeout protection to prevent blocking
-      setTimeout(() => {
-        try {
-          event.callback();
-          this.onEventTriggered?.(event);
-        } catch (error) {
-          console.error(`%c❌ [TimelineManager] Event callback failed for ${event.id}:`, 
-            'color: #e74c3c;', error);
-        }
-      }, 0);
+      // FIX: Execute callbacks synchronously to prevent timing drift
+      // Previously used setTimeout(..., 0) which caused timing inconsistencies
+      try {
+        event.callback();
+        this.onEventTriggered?.(event);
+      } catch (error) {
+        console.error(`%c❌ [TimelineManager] Event callback failed for ${event.id}:`,
+          'color: #e74c3c;', error);
+      }
     }
 
     this.animationFrameId = requestAnimationFrame(() => this.tick());

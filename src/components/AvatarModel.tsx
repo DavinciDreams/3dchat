@@ -9,6 +9,7 @@ import vrmaAnimationService, { VRMA_ANIMATIONS } from '../services/vrmaAnimation
 import { useAnimationLoadingStore } from '../store/animationLoadingStore';
 import { VRMOptimizedLoader } from '../services/vrmLoaderHelper';
 import { simpleAnimationService } from '../services/simpleAnimationService';
+import { animationLayeringService } from '../services/animationLayeringService';
 
 export interface ExtendedCharacterProps extends CharacterProps {
   selectedModel?: string;
@@ -46,6 +47,9 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   const vrmRef = useRef<unknown>(null);
   const sceneRef = useRef<THREE.Group | null>(null);
   const isInitialized = useRef<boolean>(false);
+  // FIX: Track model ID separately to detect model changes for re-initialization
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const initializedModelId = useRef<string | null>(null);
   const [vrmaAnimationsLoaded, setVrmaAnimationsLoaded] = useState(false);
 
   const vrm = gltf.userData.vrm as unknown;
@@ -54,21 +58,16 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   /**
    * Load a single VRMA animation on-demand with caching
    * Only loads the animation when first triggered, not all upfront
+   * PERFORMANCE: Reduced console logging to minimize frame time impact
    */
   const loadVRMAAnimation = async (animationName: string) => {
-    console.log(`%c📥 [loadVRMAAnimation] START: ${animationName}`, 'color: #3498db; font-weight: bold;');
-    console.log(`%c📥 [loadVRMAAnimation] mixer.current:`, 'color: #3498db;', !!mixer.current);
-    console.log(`%c📥 [loadVRMAAnimation] vrm:`, 'color: #3498db;', !!vrm);
-    
     if (!mixer.current || !vrm) {
-      console.warn(`%c📥 [loadVRMAAnimation] ABORT: mixer or vrm not ready`, 'color: #e74c3c;');
       return;
     }
 
     try {
       // First, load the VRMA file if not already loaded
       const animConfig = VRMA_ANIMATIONS.find(a => a.name === animationName);
-      console.log(`%c📥 [loadVRMAAnimation] animConfig found:`, 'color: #3498db;', !!animConfig);
       
       if (!animConfig) {
         console.warn(`VRMA animation '${animationName}' not found in config`);
@@ -76,9 +75,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       }
 
       // Load the VRMA animation file
-      console.log(`%c📥 [loadVRMAAnimation] Loading VRMA file: ${animConfig.path}`, 'color: #3498db;');
       const loadedAnim = await vrmaAnimationService.loadAnimation(animConfig);
-      console.log(`%c📥 [loadVRMAAnimation] loadedAnim result:`, 'color: #3498db;', loadedAnim);
       
       if (!loadedAnim) {
         console.warn(`Failed to load VRMA animation '${animationName}'`);
@@ -86,7 +83,6 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       }
 
       // Now retarget the animation for the current model
-      console.log(`%c📥 [loadVRMAAnimation] Creating retargeted clip for model: ${selectedModelId}`, 'color: #3498db;');
       const retargetedClip = vrmaAnimationService.getOrCreateRetargetedClip(
         loadedAnim.vrmAnimation,
         vrm,
@@ -94,30 +90,32 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         animationName,
         undefined // No layer for simple service
       );
-      console.log(`%c📥 [loadVRMAAnimation] retargetedClip created:`, 'color: #3498db;', !!retargetedClip);
       
       const action = mixer.current!.clipAction(retargetedClip);
-      console.log(`%c📥 [loadVRMAAnimation] action created:`, 'color: #3498db;', !!action);
       
       vrmaActions.current[animationName] = action;
       vrmaClips.current[animationName] = retargetedClip;
-
-      console.log(`%c✅ [loadVRMAAnimation] COMPLETE: '${animationName}' - vrmaActions.current now has:`, 'color: #27ae60; font-weight: bold;', Object.keys(vrmaActions.current));
     } catch (error) {
       // Log errors but continue - some animations may not be compatible with all models
       console.warn(`Failed to load VRMA animation '${animationName}':`, error);
     }
   };
 
+  // Note: VRM T-pose violation warnings are cosmetic and don't affect animation playback
+  // These warnings appear because some VRMA animations were converted from Mixamo/FBX files
+  // The animations still work correctly despite the warnings
+
   useEffect(() => {
     if (scene && vrm) {
-      // Skip re-initialization if already done (prevents animation interruption)
+      // PERFORMANCE FIX: Use initializedModelId ref to track model changes
+      // Previously isInitialized.current was a boolean, causing TypeScript error
       if (isInitialized.current && mixer.current) {
-        console.log('%c⏭️ [AvatarModel] Skipping re-initialization - already initialized', 'color: #f39c12;');
-        return;
+        // Check if model ID has changed since last initialization
+        const lastInitializedModelId = initializedModelId.current;
+        if (lastInitializedModelId === selectedModelId) {
+          return;
+        }
       }
-
-      console.log('%c🔧 [AvatarModel] Initializing VRM...', 'background: #3498db; color: white; padding: 2px 6px; border-radius: 3px;');
 
       const vrmObj = vrm as Record<string, unknown>;
       vrmRef.current = vrm;
@@ -130,19 +128,14 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       const isVRM1 = metaVersion === '1.0' || metaVersion === '1';
       const isVRM0 = metaVersion === '0.0' || metaVersion === '0' || !metaVersion;
       
-      console.log(`%c🔍 [VRM Version] Model: ${selectedModelId}, Version: ${metaVersion || 'unknown'}, isVRM0: ${isVRM0}, isVRM1: ${isVRM1}`, 'background: #9b59b6; color: white; padding: 2px 6px; border-radius: 3px;');
-      
       // Apply VRM 0.x specific transformations
       if (isVRM0) {
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           VRMUtils.rotateVRM0(vrmObj as any);
-          console.log('%c✅ [VRM Rotation] Applied VRMUtils.rotateVRM0() (rotates VRM0.x by 180°)', 'color: #27ae60; font-weight: bold;');
         } catch (error) {
           console.warn('Failed to apply VRM 0.x rotation:', error);
         }
-      } else {
-        console.log('%c⏭️ [VRM Rotation] Skipping VRMUtils.rotateVRM0() - VRM1.0 model', 'color: #f39c12;');
       }
       
       // Apply VRM optimizations with error handling for VRM 1.0 textures
@@ -227,35 +220,21 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // If rotationY is undefined, use default behavior (no additional rotation)
       const configRotationY = modelConfig.rotationY ?? 0;
       
-      if (isVRM1 && configRotationY !== undefined) {
-        console.log('%c🔄 [Rotation] Using explicit rotationY from config:', 'color: #3498db;', configRotationY);
-      } else if (isVRM1) {
-        console.log('%c⚠️ [Rotation] VRM1.0 model with no explicit rotationY - using default orientation', 'color: #f39c12;');
-      }
-      
       const yRotation = rotation[1] + configRotationY;
       
-      console.log('%c🔄 [Rotation Debug]', 'background: #e67e22; color: white; padding: 2px 6px; border-radius: 3px;');
-      console.log(`  - Model: ${modelConfig.id}`);
-      console.log(`  - VRM Version: ${metaVersion || 'unknown'}`);
-      console.log(`  - isVRM0: ${isVRM0} (rotateVRM0 was ${isVRM0 ? 'applied' : 'skipped'})`);
-      console.log(`  - Base rotation[1]: ${rotation[1]} (${(rotation[1] * 180 / Math.PI).toFixed(1)}°)`);
-      console.log(`  - modelConfig.rotationY: ${configRotationY} (${(configRotationY * 180 / Math.PI).toFixed(1)}°)`);
-      console.log(`  - Final yRotation: ${yRotation} (${(yRotation * 180 / Math.PI).toFixed(1)}°)`);
-      console.log(`  - Expected: ${isVRM0 ? 'VRM0.x: rotateVRM0() + 0 from config' : 'VRM1.0: Math.PI from config'}`);
-      
       scene.rotation.set(rotation[0], yRotation, rotation[2]);
-
-      console.log(`📏 [AvatarModel] Model "${modelConfig.id}" - height: ${modelHeight.toFixed(2)}m, autoScale: ${autoScale.toFixed(2)}, finalScale: ${finalScale.toFixed(2)}`);
 
       // Setup animation mixer with VRM scene
       mixer.current = new THREE.AnimationMixer(scene);
 
+      // Initialize animation layering service with mixer
+      animationLayeringService.setMixer(mixer.current);
+
       // Initialize simple animation service
       if (!isInitialized.current) {
-        console.log('%c🔧 [AvatarModel] Initializing simple animation service...', 'background: #3498db; color: white; padding: 2px 6px; border-radius: 3px;');
         simpleAnimationService.initialize(mixer.current, vrm, selectedModelId);
         isInitialized.current = true;
+        initializedModelId.current = selectedModelId;
       }
 
       const animations = gltf.animations;
@@ -267,29 +246,29 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       });
 
       // Load CRITICAL animations synchronously for immediate avatar functionality
-      console.log('%c🚀 [AvatarModel] Loading CRITICAL animations...', 'color: #e74c3c; font-weight: bold;');
-
       vrmaAnimationService.loadCriticalAnimations()
         .then(async () => {
-          console.log('%c🔍 [AvatarModel] loadCriticalAnimations() completed', 'color: #9b59b6; font-weight: bold;');
-          console.log('%c🔍 [AvatarModel] vrmaActions.current BEFORE setting loaded:', 'color: #9b59b6;', Object.keys(vrmaActions.current));
-          console.log('%c🔍 [AvatarModel] vrmaClips.current BEFORE setting loaded:', 'color: #9b59b6;', Object.keys(vrmaClips.current));
-          console.log('%c🔍 [AvatarModel] vrmaAnimationService loadedAnimations:', 'color: #9b59b6;', vrmaAnimationService.getLoadedAnimationNames());
-          
           // CRITICAL FIX: Call loadVRMAAnimation for each CRITICAL animation to create THREE.js actions
           // The service only loads VRMA files, we need to create actions from them
           const { CRITICAL_ANIMATIONS } = await import('../config/animationPriorities');
-          console.log('%c🔧 [AvatarModel] Creating THREE.js actions for CRITICAL animations...', 'color: #e67e22; font-weight: bold;');
           
           for (const animName of CRITICAL_ANIMATIONS) {
             await loadVRMAAnimation(animName);
           }
           
-          console.log('%c🔧 [AvatarModel] THREE.js actions created. vrmaActions.current:', 'color: #27ae60; font-weight: bold;', Object.keys(vrmaActions.current));
-          
           loadingStore.setCriticalLoaded(true);
           setVrmaAnimationsLoaded(true);
           isInitialized.current = true;
+
+          // Prefetch commonly used animations in background to reduce loading delays
+          // These animations are frequently triggered by the animation judge system
+          const COMMON_ANIMATIONS = [
+            'greeting', 'thinking', 'happyIdle', 'talking',
+            'sneakingForward', 'sneakyWalking', 'lookAround',
+            'hipHopDancing', 'hipHopDance', 'breakdance1990', 'victory'
+          ];
+          console.log(`%c📥 [AvatarModel] Prefetching ${COMMON_ANIMATIONS.length} common animations...`, 'color: #f39c12;');
+          prefetchAnimations(COMMON_ANIMATIONS);
 
           // Only start idle animation if no explicit animation is playing
           const store = useChatStore.getState();
@@ -297,43 +276,26 @@ const Character: React.FC<ExtendedCharacterProps> = ({
             if (vrmaActions.current['modelPose']) {
               try {
                 vrmaActions.current['modelPose'].reset().fadeIn(0.3).play();
-                console.log('Playing idle animation (modelPose)');
               } catch {
                 console.warn('Failed to play modelPose animation');
               }
-            } else {
-              console.warn('%c⚠️ [AvatarModel] modelPose action NOT FOUND in vrmaActions.current', 'color: #e74c3c; font-weight: bold;');
             }
-          } else {
-            console.log('%c⏭️ [AvatarModel] Skipping idle - animation already playing: ' + store.currentAnimation, 'color: #f39c12;');
           }
-
-          console.log('VRM model loaded:', vrm);
-          console.log('Available embedded animations:', animations.map(a => a.name));
-          console.log('Available VRMA animations:', Object.keys(vrmaClips.current));
-          console.log('Total available animations:', [
-            ...animations.map(a => a.name),
-            ...Object.keys(vrmaClips.current)
-          ]);
         })
         .catch((error) => {
           console.error('Failed to load CRITICAL animations:', error);
           setVrmaAnimationsLoaded(false);
         });
-
-      console.log('VRM model loaded:', vrm);
-      console.log('Available embedded animations:', animations.map(a => a.name));
-      console.log('Available VRMA animations:', Object.keys(vrmaClips.current));
-      console.log('Total available animations:', [
-        ...animations.map(a => a.name),
-        ...Object.keys(vrmaClips.current)
-      ]);
     }
 
     return () => {
       if (mixer.current) {
         mixer.current.stopAllAction();
       }
+      // Clear animation service caches to free GPU memory when switching models
+      simpleAnimationService.clear();
+      animationLayeringService.clear();
+      vrmaAnimationService.clearRetargetedClipsForModel(selectedModelId);
       isInitialized.current = false;
     };
   }, [position, scale, rotation, selectedModelId, modelConfig]);
@@ -405,43 +367,79 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 
   // Simple frame loop - just update mixer and VRM
   useFrame((_, delta) => {
+    // PERFORMANCE FIX: Clamp delta to prevent large time jumps
+    // Large deltas (e.g., from tab switching) cause animations to jump
+    // and the mixer to process too much time at once
+    const clampedDelta = Math.min(delta, 0.1);
+    
     // Update animation mixer to advance animations
-    if (mixer.current && delta < 0.1) {
-      mixer.current.update(delta);
+    // Only update if mixer exists and delta is reasonable
+    if (mixer.current) {
+      mixer.current.update(clampedDelta);
     }
 
-    // Update VRM model to apply bone transformations from animations
-    // This is critical - without this, animations won't affect the model's bones
-    if (vrmRef.current) {
+    // PERFORMANCE FIX: Call animationLayeringService.update() to handle weight interpolation
+    // This enables smooth blending between animation layers
+    // Note: animationLayeringService.update() NO LONGER calls mixer.update() to avoid
+    // triple processing of the same time delta (the main performance bottleneck)
+    animationLayeringService.update(clampedDelta);
+
+    // PERFORMANCE FIX: Only update VRM when animations are actually playing
+    // VRM.update() is expensive as it recalculates all bone transforms
+    // Skip update when no animations are active to save CPU cycles
+    const hasActiveAnimations =
+      Object.values(vrmaActions.current).some(action => action.isRunning()) ||
+      Object.values(currentActions.current).some(action => action.isRunning());
+    
+    if (vrmRef.current && hasActiveAnimations) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (vrmRef.current as any).update(delta);
+        (vrmRef.current as any).update(clampedDelta);
       } catch {
         // Some VRM models may not support update() - handle gracefully
       }
     }
   });
 
-  // Helper function to play animation using simple direct playback
+  // Prefetch animations in background to reduce loading delays
+  // PERFORMANCE: Load commonly used animations before they're needed
+  const prefetchAnimations = async (animationNames: string[]) => {
+    if (!mixer.current || !vrm) {
+      return;
+    }
+
+    console.log(`%c📥 [AvatarModel] Prefetching ${animationNames.length} animations...`, 'color: #f39c12;');
+
+    for (const animName of animationNames) {
+      // Skip if already loaded
+      if (vrmaActions.current[animName] || vrmaClips.current[animName]) {
+        continue;
+      }
+
+      try {
+        await loadVRMAAnimation(animName);
+      } catch (error) {
+        // Silently skip prefetch errors
+        console.debug(`Prefetch failed for ${animName}:`, error);
+      }
+    }
+  };
+
+  // Helper function to play animation using animation layering service for smooth transitions
+  // PERFORMANCE: Reduced console logging to minimize frame time impact
   const playAnimationDirectly = async (animationName: string) => {
-    console.log('%c🎭 [playAnimationDirectly] Called with:', 'color: #3498db; font-weight: bold;', animationName);
-    console.log('%c🎭 [playAnimationDirectly] vrmaAnimationsLoaded:', 'color: #3498db;', vrmaAnimationsLoaded);
-    console.log('%c🎭 [playAnimationDirectly] Available VRMA actions:', 'color: #3498db;', Object.keys(vrmaActions.current));
-    
     if (!mixer.current) {
-      console.log('%c🎭 [playAnimationDirectly] No mixer - aborting', 'color: #e74c3c;');
       return;
     }
 
     // If animation not loaded yet, load it on-demand then play
     if (!vrmaActions.current[animationName] && !currentActions.current[animationName]) {
-      console.log('%c📥 [AvatarModel] Animation not loaded, loading on-demand:', 'color: #f39c12; font-weight: bold;', animationName);
       await loadVRMAAnimation(animationName);
     }
 
     const action = vrmaActions.current[animationName] || currentActions.current[animationName];
     if (!action) {
-      console.warn('%c🎭 [playAnimationDirectly] Action not found: ' + animationName, 'background: #e74c3c; color: white; padding: 2px 6px;');
+      console.warn(`Animation action not found: ${animationName}`);
       // Fall back to natural pose if no animation found
       if (vrmRef.current) {
         applyNaturalPose(vrmRef.current);
@@ -449,44 +447,45 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       return;
     }
 
-    // Stop current action if playing
-    if (mixer.current) {
-      const allActions = Object.values(vrmaActions.current).concat(Object.values(currentActions.current));
-      allActions.forEach(a => {
-        if (a && a !== action) {
-          a.fadeOut(0.2);
-          a.stop();
-        }
-      });
-    }
+    // Use animation layering service for smooth cross-fade transitions
+    // This provides proper blending between animations instead of abrupt cuts
+    try {
+      // Register animation with layering service if not already registered
+      const clip = action.getClip();
+      if (clip && !animationLayeringService.getRegisteredAnimations().includes(animationName)) {
+        animationLayeringService.registerAnimation(animationName, clip);
+      }
 
-    // Play new animation
-    action.reset();
-    action.fadeIn(0.3);
-    action.setLoop(THREE.LoopRepeat, Infinity);
-    action.play();
-    
-    console.log('%c✨ [playAnimationDirectly] ANIMATION PLAYING: ' + animationName, 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;');
+      // Play animation on full_body layer for maximum impact
+      // Using layering service provides smooth cross-fade between animations
+      animationLayeringService.playAnimation(animationName, 'full_body', {
+        fadeInDuration: 0.5, // Longer fade-in for smoother transitions
+        fadeOutDuration: 0.5, // Longer fade-out for smoother transitions
+        loop: THREE.LoopRepeat,
+        weight: 1.0
+      });
+    } catch (error) {
+      console.warn(`Failed to play animation using layering service: ${animationName}`, error);
+      // Fallback to direct playback if layering service fails
+      action.reset();
+      action.fadeIn(0.3);
+      action.setLoop(THREE.LoopRepeat, Infinity);
+      action.play();
+    }
   };
 
   // Handle explicit animation triggers from the LLM judge
+  // PERFORMANCE: Reduced console logging to minimize frame time impact
   useEffect(() => {
-    console.log('%c🎯 [AvatarModel] Animation useEffect triggered', 'color: #9b59b6; font-weight: bold;');
-    console.log('%c🎯 [AvatarModel] currentAnimation:', 'color: #9b59b6;', currentAnimation);
-    console.log('%c🎯 [AvatarModel] mixer.current:', 'color: #9b59b6;', !!mixer.current);
-    console.log('%c🎯 [AvatarModel] vrmaAnimationsLoaded:', 'color: #9b59b6;', vrmaAnimationsLoaded);
-
     if (!mixer.current || !vrmaAnimationsLoaded) {
-      console.log('%c⛔ [AvatarModel] Early return - mixer or animations not ready', 'background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px;');
       return;
     }
 
     if (currentAnimation) {
-      console.log('%c🌟 PLAYING ANIMATION: ' + currentAnimation, 'background: #9b59b6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 16px;');
-      console.log('%c🌟 Available VRMA actions:', 'color: #9b59b6; font-weight: bold;', Object.keys(vrmaActions.current));
-      console.log('%c🌟 Action exists:', 'color: #9b59b6; font-weight: bold;', !!vrmaActions.current[currentAnimation]);
-
       playAnimationDirectly(currentAnimation);
+    } else {
+      // Play idle animation when currentAnimation is null
+      playAnimationDirectly('modelPose');
     }
   }, [currentAnimation, vrmaAnimationsLoaded]);
 

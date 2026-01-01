@@ -18,6 +18,10 @@ const AnimationIndicator: React.FC<AnimationIndicatorProps> = ({
   currentAnimation,
   isSpeaking = false
 }) => {
+  // Debug: Log when props change
+  React.useEffect(() => {
+    console.log('[AnimationIndicator] Props updated:', { currentAnimation, isSpeaking });
+  }, [currentAnimation, isSpeaking]);
   // Format animation name for display (camelCase to readable text)
   const formatAnimationName = (name: string): string => {
     return name
