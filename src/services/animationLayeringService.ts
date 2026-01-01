@@ -106,7 +106,6 @@ export class AnimationLayeringService {
    */
   setMixer(mixer: THREE.AnimationMixer): void {
     this.mixer = mixer;
-    console.log('%c🎬 [AnimationLayering] Mixer set', 'color: #3498db;');
   }
 
   /**
@@ -209,11 +208,6 @@ export class AnimationLayeringService {
     // Update layer weight
     this.layerWeights.set(layer, weight);
 
-    console.log(
-      `%c▶️ [AnimationLayering] Playing: ${name} on ${layer} (weight: ${weight})`,
-      'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px;'
-    );
-
     return animationId;
   }
 
@@ -230,8 +224,6 @@ export class AnimationLayeringService {
 
     anim.isFadingOut = true;
     anim.action.fadeOut(fadeOutDuration);
-    
-    console.log(`%c⏹ [AnimationLayering] Stopping: ${animationId}`, 'color: #f39c12;');
 
     // Remove from active animations after fade out
     setTimeout(() => {
@@ -258,8 +250,6 @@ export class AnimationLayeringService {
    * @param fadeOutDuration - Duration of fade-out in seconds
    */
   stopAll(fadeOutDuration: number = 0.3): void {
-    console.log('%c🗑️ [AnimationLayering] Stopping all animations', 'color: #95a5a6;');
-    
     this.activeAnimations.forEach((anim, id) => {
       this.stopAnimation(id, fadeOutDuration);
     });
@@ -275,7 +265,6 @@ export class AnimationLayeringService {
     const anim = this.activeAnimations.get(animationId);
     if (anim) {
       anim.action.paused = true;
-      console.log(`%c⏸️ [AnimationLayering] Paused: ${animationId}`, 'color: #f39c12;');
     }
   }
 
@@ -287,7 +276,6 @@ export class AnimationLayeringService {
     const anim = this.activeAnimations.get(animationId);
     if (anim) {
       anim.action.paused = false;
-      console.log(`%c▶️ [AnimationLayering] Resumed: ${animationId}`, 'color: #27ae60;');
     }
   }
 
@@ -295,7 +283,6 @@ export class AnimationLayeringService {
    * Pause all active animations
    */
   pauseAll(): void {
-    console.log('%c⏸️ [AnimationLayering] Pausing all animations', 'color: #f39c12;');
     this.activeAnimations.forEach((anim, id) => {
       this.pauseAnimation(id);
     });
