@@ -9,6 +9,8 @@ import {
   getAnimationTier,
   type AnimationPriority,
 } from '../config/animationPriorities';
+import type { AnimationLayerType } from '../types';
+import { maskAnimationClip } from '../utils/animationMasking';
 
 /**
  * VRMA Animation Service
@@ -262,9 +264,9 @@ export const VRMA_ANIMATIONS: VRMAAnimationConfig[] = [
 // Map application animation states to VRMA animations
 export const ANIMATION_STATE_TO_VRMA: Record<string, string> = {
   'idle': 'modelPose',      // Use model pose for idle
-  'talking': 'greeting',    // Use greeting for talking
-  'thinking': 'spin',        // Use spin for thinking
-  'happy': 'peace',         // Use peace sign for happy
+  'talking': 'talking',    // Use talking for talking
+  'thinking': 'thinking',        // Use thinking for thinking
+  'happy': 'happyIdle',         // Use happyIdle sign for happy
   'agreeing': 'headNod',    // Head nod for agreeing
   'disagreeing': 'shakingHeadNo', // Shake head for disagreeing
   'acknowledging': 'acknowledging', // Acknowledging gesture
@@ -288,7 +290,70 @@ class VRMAAnimationService {
   private readonly MAX_RETRIES = 3;
 
   constructor() {
-    this.loader = new GLTFLoader();
+    // Create a custom LoadingManager to handle VRMA texture loading errors gracefully
+    // VRMA files reference external textures (e.g., Image_0.jpg) that don't exist
+    // This prevents console spam and animation loading failures
+    const manager = new THREE.LoadingManager();
+    
+    // Override error handler to suppress texture warnings for VRMA files
+    manager.onError = (url: string) => {
+      // Only log texture errors for VRMA files (not VRM models)
+      if (url.includes('.vrma') || url.includes('Image_')) {
+        // Silently ignore - VRMA animations don't need external textures
+        return;
+      }
+      console.warn(`Failed to load resource: ${url}`);
+    };
+    
+    // Override itemError handler to catch texture loading failures
+    manager.itemError = (url: string) => {
+      // Silently ignore texture errors for VRMA files
+      if (url.includes('Image_')) {
+        return;
+      }
+      console.warn(`Failed to load item: ${url}`);
+    };
+    
+    // Create TextureLoader with custom manager
+    const textureLoader = new THREE.TextureLoader(manager);
+    const originalLoad = textureLoader.load.bind(textureLoader);
+    
+    // Override TextureLoader.load to provide fallback for missing textures
+    textureLoader.load = (
+      url: string,
+      onLoad?: (texture: THREE.Texture) => void,
+      onProgress?: (event: ProgressEvent) => void,
+      onError?: (error: unknown) => void
+    ) => {
+      // Check if this is an external texture reference from VRMA
+      if (url.includes('Image_') && !url.startsWith('data:')) {
+        // Create a fallback dummy texture to prevent errors
+        const canvas = document.createElement('canvas');
+        canvas.width = 4;
+        canvas.height = 4;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#808080'; // Neutral gray
+          ctx.fillRect(0, 0, 4, 4);
+        }
+        
+        const dummyTexture = new THREE.CanvasTexture(canvas);
+        dummyTexture.colorSpace = THREE.SRGBColorSpace;
+        dummyTexture.needsUpdate = true;
+        
+        // Call onLoad callback with dummy texture
+        if (onLoad) {
+          onLoad(dummyTexture);
+        }
+        return dummyTexture;
+      }
+      
+      // Normal loading for other textures
+      return originalLoad(url, onLoad, onProgress, onError);
+    };
+    
+    // Create GLTFLoader with custom manager
+    this.loader = new GLTFLoader(manager);
     this.loader.register((parser) => new VRMAnimationLoaderPlugin(parser));
   }
 
@@ -427,15 +492,17 @@ class VRMAAnimationService {
    * @param vrm The VRM model instance
    * @param modelId The model ID for caching
    * @param animationName The animation name for caching
+   * @param layer Optional animation layer for bone masking
    * @returns The retargeted animation clip
    */
   getOrCreateRetargetedClip(
     vrmAnimation: unknown,
     vrm: unknown,
     modelId: string,
-    animationName: string
+    animationName: string,
+    layer?: AnimationLayerType
   ): THREE.AnimationClip {
-    const cacheKey = `${modelId}_${animationName}`;
+    const cacheKey = `${modelId}_${animationName}_${layer || 'full'}`;
     
     // Check cache first
     if (this.retargetedClipCache.has(cacheKey)) {
@@ -444,7 +511,12 @@ class VRMAAnimationService {
     
     // Create new retargeted clip
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const retargetedClip = createVRMAnimationClip(vrmAnimation as any, vrm as any);
+    let retargetedClip = createVRMAnimationClip(vrmAnimation as any, vrm as any);
+    
+    // Apply bone masking if layer is specified
+    if (layer) {
+      retargetedClip = maskAnimationClip(retargetedClip, layer);
+    }
     
     // Cache result
     this.retargetedClipCache.set(cacheKey, retargetedClip);
@@ -456,10 +528,11 @@ class VRMAAnimationService {
    * Check if a retargeted clip exists in cache
    * @param modelId The model ID
    * @param animationName The animation name
+   * @param layer Optional animation layer
    * @returns True if cached
    */
-  hasRetargetedClip(modelId: string, animationName: string): boolean {
-    const cacheKey = `${modelId}_${animationName}`;
+  hasRetargetedClip(modelId: string, animationName: string, layer?: AnimationLayerType): boolean {
+    const cacheKey = `${modelId}_${animationName}_${layer || 'full'}`;
     return this.retargetedClipCache.has(cacheKey);
   }
 
@@ -479,11 +552,29 @@ class VRMAAnimationService {
   clearRetargetedClipsForModel(modelId: string): void {
     const keysToDelete: string[] = [];
     for (const key of this.retargetedClipCache.keys()) {
+      // Match keys starting with modelId (handles new format: modelId_animName_layer)
       if (key.startsWith(`${modelId}_`)) {
         keysToDelete.push(key);
       }
     }
-    keysToDelete.forEach(key => this.retargetedClipCache.delete(key));
+    // Properly dispose THREE.js AnimationClips to free GPU memory
+    keysToDelete.forEach(key => {
+      const clip = this.retargetedClipCache.get(key);
+      if (clip) {
+        // Dispose clip tracks to free memory
+        if (clip.tracks) {
+          clip.tracks.forEach(track => {
+            // Dispose keyframe track values
+            if (track.values) {
+              track.values = new Float32Array(0);
+            }
+          });
+          clip.tracks = [];
+        }
+      }
+      this.retargetedClipCache.delete(key);
+    });
+    console.log(`[VRMAAnimationService] Cleared ${keysToDelete.length} retargeted clips for model: ${modelId}`);
   }
 
   /**

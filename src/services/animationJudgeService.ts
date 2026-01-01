@@ -1,11 +1,11 @@
 import axios from 'axios';
-import { AnimationJudgment, AnimationTrigger, AVAILABLE_ANIMATIONS } from '../types';
+import { AnimationJudgment, AnimationTrigger, AVAILABLE_ANIMATIONS, AnimationJudgmentWithTiming, ScheduledAnimation, AnimationLayerType } from '../types';
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
-// Use a fast, cheap model for the judge - falls back to same model if not specified
-const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openai/gpt-4.1-mini';
+// Use a fast, cheap model for the judge - falls back to free model if not specified
+const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openai/gpt-4o-mini';
 
-const SYSTEM_PROMPT = `You are an animation director for a 3D avatar. Given a conversation exchange, decide which animations the avatar should perform while speaking its response.
+const SYSTEM_PROMPT = `You are an animation director for a 3D avatar. Given a conversation exchange, decide which animations the avatar should perform to accompany speaking its response.
 
 Available animations by category:
 
@@ -154,7 +154,7 @@ SITTING & KNEELING DOWN:
 - kneeling: Kneeling down - use for kneeling
 
 Affectionate Gestures:
-- patting: Patting - use for pat on the back or shoulder
+- patting: Patting - use for pat on back or shoulder
 - kissing: Kissing - use for affection
 - blowAKiss: Blowing a kiss - use for affection
 
@@ -236,7 +236,7 @@ Rules:
 2. Can return multiple animations to be played in sequence with delays
 3. Return empty array if no animation fits the context
 4. Consider the user's request AND the AI's response
-5. Be selective - not every response needs an animation (most don't!)
+5. Be selective - not every response needs an animation
 6. If the user explicitly asks for an action (spin, wave, dance, etc), definitely include it
 7. Prefer core animations for basic interactions, extended for more specific scenarios`;
 
@@ -280,7 +280,7 @@ const TOOL_DEFINITION = {
 /**
  * Calls an LLM to judge which animations should play based on the conversation
  * @param userMessage - The user's message
- * @param aiResponse - The AI's response to the user
+ * @param aiResponse - The AI's response to user
  * @returns AnimationJudgment with list of animations and reasoning
  */
 export async function judgeAnimations(
@@ -289,8 +289,18 @@ export async function judgeAnimations(
 ): Promise<AnimationJudgment> {
   const startTime = performance.now();
 
+  console.log('%c🎬 [AnimationJudge] FUNCTION ENTRY - judgeAnimations called!', 'background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;');
+  console.log('%c🎬 [AnimationJudge] userMessage:', 'color: #e74c3c; font-weight: bold;', userMessage);
+  console.log('%c🎬 [AnimationJudge] aiResponse:', 'color: #e74c3c; font-weight: bold;', aiResponse);
+  console.log('%c🎬 [AnimationJudge] JUDGE_MODEL:', 'color: #e74c3c; font-weight: bold;', JUDGE_MODEL);
+  console.log('%c🎬 [AnimationJudge] OPENROUTER_API_KEY present:', 'color: #e74c3c; font-weight: bold;', !!OPENROUTER_API_KEY);
+
   try {
     console.log('🎬 [AnimationJudge] Analyzing conversation for animations...');
+    console.log('🎬 [AnimationJudge] Input - User message:', userMessage);
+    console.log('🎬 [AnimationJudge] Input - AI response:', aiResponse);
+    console.log('🎬 [AnimationJudge] Using model:', JUDGE_MODEL);
+    console.log('🎬 [AnimationJudge] API Key present:', !!OPENROUTER_API_KEY);
 
     const response = await axios.post(
       'https://openrouter.ai/api/v1/chat/completions',
@@ -316,9 +326,17 @@ export async function judgeAnimations(
 
     const elapsed = performance.now() - startTime;
     console.log(`🎬 [AnimationJudge] LLM call took ${elapsed.toFixed(0)}ms`);
+    console.log('🎬 [AnimationJudge] API Response status:', response.status);
+    console.log('🎬 [AnimationJudge] Full API response:', response.data);
 
     // Extract tool call from response
+    if (!response.data?.choices || response.data.choices.length === 0) {
+      console.error('🎬 [AnimationJudge] No choices in API response');
+      return { animations: [], reasoning: 'No animation decision made' };
+    }
+
     const message = response.data.choices[0].message;
+    console.log('🎬 [AnimationJudge] Message from response:', message);
 
     if (message.tool_calls && message.tool_calls.length > 0) {
       const toolCall = message.tool_calls[0];
@@ -348,9 +366,25 @@ export async function judgeAnimations(
     return { animations: [], reasoning: 'No animation decision made' };
 
   } catch (error) {
-    console.error('🎬 [AnimationJudge] Error:', error);
-    // Don't throw - animation judgment is optional, return empty
-    return { animations: [], reasoning: 'Error during animation judgment' };
+    console.error('🎬 [AnimationJudge] ERROR CAUGHT:');
+    console.error('🎬 [AnimationJudge] Error name:', error instanceof Error ? error.name : 'Unknown');
+    console.error('🎬 [AnimationJudge] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('🎬 [AnimationJudge] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+
+    // Check if it's an axios error with more details
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { data?: unknown; status?: number; headers?: unknown } };
+      console.error('🎬 [AnimationJudge] Axios error response:', axiosError.response?.data);
+      console.error('🎬 [AnimationJudge] Axios error status:', axiosError.response?.status);
+      console.error('🎬 [AnimationJudge] Axios error headers:', axiosError.response?.headers);
+    }
+
+    // Don't throw - animation judgment is optional, return empty with detailed reasoning
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return {
+      animations: [],
+      reasoning: `Error during animation judgment: ${errorMessage}`
+    };
   }
 }
 
@@ -573,11 +607,13 @@ const BUFFER_BETWEEN_ANIMATIONS = 500; // Buffer time between animations
  * @param animations - List of animations with delays
  * @param onPlay - Callback to trigger each animation
  * @param onComplete - Callback when all animations complete
+ * @param timeoutTrackingRef - Optional ref to track timeouts for cancellation (FIX #2)
  */
 export function processAnimationQueue(
   animations: AnimationTrigger[],
   onPlay: (animationName: string) => void,
-  onComplete: () => void
+  onComplete: () => void,
+  timeoutTrackingRef?: React.MutableRefObject<NodeJS.Timeout[]>
 ): void {
   if (animations.length === 0) {
     console.log('%c📭 [AnimationQueue] Empty queue, nothing to process', 'color: #95a5a6;');
@@ -589,6 +625,13 @@ export function processAnimationQueue(
   console.log('%c📋 [AnimationQueue] Animations:', 'color: #f39c12; font-weight: bold;', animations);
 
   let currentIndex = 0;
+
+  // FIX #2: Clear any previous tracked timeouts if ref provided
+  if (timeoutTrackingRef && timeoutTrackingRef.current.length > 0) {
+    console.log('%c🛑 [AnimationQueue] Clearing ' + timeoutTrackingRef.current.length + ' previous timeouts', 'background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px;');
+    timeoutTrackingRef.current.forEach(timeoutId => clearTimeout(timeoutId));
+    timeoutTrackingRef.current = [];
+  }
 
   const playNext = () => {
     if (currentIndex >= animations.length) {
@@ -607,20 +650,207 @@ export function processAnimationQueue(
 
     console.log('%c⏱️ [AnimationQueue] Scheduling "' + animation.name + '" - delay: ' + animationDelay + 'ms, duration: ' + animationDuration + 'ms', 'color: #f39c12;');
 
-    // Wait for the specified delay before playing
-    setTimeout(() => {
+    // FIX #2: Track timeout for cancellation if ref provided
+    // Wait for specified delay before playing
+    const delayTimeoutId = setTimeout(() => {
       console.log('%c▶️ [AnimationQueue] EXECUTING: ' + animation.name + ' (duration: ' + animationDuration + 'ms)', 'background: #e67e22; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;');
       onPlay(animation.name);
 
       // Wait for animation to complete, then play next
-      setTimeout(() => {
+      const durationTimeoutId = setTimeout(() => {
         console.log('%c🏁 [AnimationQueue] Animation "' + animation.name + '" finished (' + (currentIndex + 1) + '/' + animations.length + ')', 'color: #27ae60;');
         currentIndex++;
         playNext();
       }, animationDuration);
+
+      // FIX #2: Track duration timeout for cancellation if ref provided
+      if (timeoutTrackingRef) {
+        timeoutTrackingRef.current.push(durationTimeoutId);
+      }
     }, animationDelay);
+
+    // FIX #2: Track delay timeout for cancellation if ref provided
+    if (timeoutTrackingRef) {
+      timeoutTrackingRef.current.push(delayTimeoutId);
+    }
   };
 
   // Start the queue
   playNext();
+}
+
+/**
+ * Get animation duration in milliseconds
+ * @param name - Animation name
+ * @returns Duration in milliseconds
+ */
+function getAnimationDuration(name: string): number {
+  return ANIMATION_DURATIONS[name] || DEFAULT_ANIMATION_DURATION;
+}
+
+/**
+ * Distribute animations across audio timeline based on timing strategy
+ * @param animations - List of animations to schedule
+ * @param audioDuration - Total audio duration in milliseconds
+ * @param timing - Timing strategy (early, middle, late, distributed)
+ * @returns Array of scheduled animations with timestamps
+ */
+export function distributeAnimationsAcrossAudio(
+  animations: AnimationTrigger[],
+  audioDuration: number,
+  timing?: AnimationJudgmentWithTiming['suggestedTiming']
+): ScheduledAnimation[] {
+  console.log('%c⏱️ [distributeAnimationsAcrossAudio] Distributing animations',
+    'background: #3498db; color: white; padding: 4px 8px; border-radius: 4px;');
+  console.log('%c⏱️ [distributeAnimationsAcrossAudio] Audio duration:', 'color: #3498db; font-weight: bold;', audioDuration);
+  console.log('%c⏱️ [distributeAnimationsAcrossAudio] Timing strategy:', 'color: #3498db; font-weight: bold;', timing);
+
+  const scheduled: ScheduledAnimation[] = [];
+
+  if (animations.length === 0) {
+    return scheduled;
+  }
+
+  // Default timing strategy
+  const timingStrategy = timing || 'distributed';
+
+  switch (timingStrategy) {
+    case 'early': {
+      // All animations in first third
+      animations.forEach((anim, index) => {
+        const duration = getAnimationDuration(anim.name);
+        const triggerTime = (index * 500) + 500; // Start at 500ms, 500ms apart
+        scheduled.push({
+          name: anim.name,
+          triggerTime,
+          duration,
+          interruptible: true
+        });
+      });
+      break;
+    }
+
+    case 'middle': {
+      // All animations in middle third
+      const middleStart = audioDuration * 0.33;
+      animations.forEach((anim, index) => {
+        const duration = getAnimationDuration(anim.name);
+        const triggerTime = middleStart + (index * 500);
+        scheduled.push({
+          name: anim.name,
+          triggerTime,
+          duration,
+          interruptible: true
+        });
+      });
+      break;
+    }
+
+    case 'late': {
+      // All animations in last third
+      const lateStart = audioDuration * 0.66;
+      animations.forEach((anim, index) => {
+        const duration = getAnimationDuration(anim.name);
+        const triggerTime = lateStart + (index * 500);
+        scheduled.push({
+          name: anim.name,
+          triggerTime,
+          duration,
+          interruptible: true
+        });
+      });
+      break;
+    }
+
+    case 'distributed':
+    default: {
+      // Evenly distribute across entire audio
+      const availableTime = audioDuration - 1000; // Leave 1s buffer at end
+      const gap = availableTime / Math.max(animations.length, 1);
+
+      animations.forEach((anim, index) => {
+        const duration = getAnimationDuration(anim.name);
+        const triggerTime = (index * gap) + 500; // Start at 500ms
+        scheduled.push({
+          name: anim.name,
+          triggerTime,
+          duration,
+          interruptible: true
+        });
+      });
+      break;
+    }
+  }
+
+  console.log('%c⏱️ [distributeAnimationsAcrossAudio] Scheduled animations:',
+    'background: #3498db; color: white; padding: 4px 8px; border-radius: 4px;',
+    scheduled.map(a => `${a.name} at ${a.triggerTime}ms`));
+
+  return scheduled;
+}
+
+/**
+ * Enhanced animation judgment with timing and layer suggestions
+ * @param userMessage - The user's message
+ * @param aiResponse - The AI's response
+ * @returns Enhanced animation judgment with timing and layer suggestions
+ */
+export async function judgeAnimationsWithTiming(
+  userMessage: string,
+  aiResponse: string
+): Promise<AnimationJudgmentWithTiming> {
+  console.log('%c🎬 [judgeAnimationsWithTiming] FUNCTION ENTRY',
+    'background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+
+  // Get base animation judgment
+  const baseJudgment = await judgeAnimations(userMessage, aiResponse);
+
+  // Analyze response for timing and layer suggestions
+  const responseLower = aiResponse.toLowerCase();
+  let suggestedTiming: AnimationJudgmentWithTiming['suggestedTiming'] = 'distributed';
+  let suggestedLayer: AnimationLayerType = 'gesture';
+
+  // Timing analysis
+  if (responseLower.includes('hello') || responseLower.includes('hi') || responseLower.includes('hey')) {
+    suggestedTiming = 'early';
+  } else if (responseLower.includes('finally') || responseLower.includes('in conclusion') || responseLower.includes('so')) {
+    suggestedTiming = 'late';
+  } else if (responseLower.includes('meanwhile') || responseLower.includes('also') || responseLower.includes('additionally')) {
+    suggestedTiming = 'middle';
+  }
+
+  // Layer analysis based on animation type
+  const fullBodyAnimations = ['spin', 'jumping', 'backflip', 'cartwheel', 'breakdance'];
+  const upperBodyAnimations = ['peace', 'shoot', 'waving', 'pointing', 'clapping'];
+  const lowerBodyAnimations = ['squat', 'kick', 'plank', 'sitting'];
+  const idleAnimations = ['idle', 'thinking', 'waiting', 'standing'];
+  const gestureAnimations = ['headNod', 'shakingHeadNo', 'shrugging', 'beckoning'];
+
+  if (baseJudgment.animations.length > 0) {
+    const firstAnimation = baseJudgment.animations[0].name;
+
+    if (fullBodyAnimations.includes(firstAnimation)) {
+      suggestedLayer = 'full_body';
+    } else if (upperBodyAnimations.includes(firstAnimation)) {
+      suggestedLayer = 'upper_body';
+    } else if (lowerBodyAnimations.includes(firstAnimation)) {
+      suggestedLayer = 'lower_body';
+    } else if (idleAnimations.includes(firstAnimation)) {
+      suggestedLayer = 'idle';
+    } else if (gestureAnimations.includes(firstAnimation)) {
+      suggestedLayer = 'gesture';
+    }
+  }
+
+  console.log('%c🎬 [judgeAnimationsWithTiming] Suggested timing:',
+    'color: #e74c3c; font-weight: bold;', suggestedTiming);
+  console.log('%c🎬 [judgeAnimationsWithTiming] Suggested layer:',
+    'color: #e74c3c; font-weight: bold;', suggestedLayer);
+
+  return {
+    ...baseJudgment,
+    suggestedTiming,
+    suggestedLayer,
+    interruptible: true
+  };
 }

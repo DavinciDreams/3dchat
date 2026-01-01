@@ -9,4 +9,13 @@ export default defineConfig({
     host: true,
   },
   publicDir: 'public',
+  optimizeDeps: {
+    esbuildOptions: {
+      target: 'es2022',
+    },
+    include: ['wlipsync'],
+  },
+  build: {
+    target: 'es2022',
+  },
 });
