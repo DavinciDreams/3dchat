@@ -175,6 +175,60 @@ export async function speakWithNative(text: string): Promise<ArrayBuffer | null>
   });
 }
 
+// Track current streaming speech utterance
+let currentStreamingUtterance: SpeechSynthesisUtterance | null = null;
+
+/**
+ * Speak a text chunk immediately using Web Speech API for real-time streaming
+ * This function does not sanitize the text before speaking
+ * @param text - Text chunk to speak
+ */
+export function speakChunk(text: string): void {
+  if (!window.speechSynthesis) {
+    console.warn('Speech synthesis not supported');
+    return;
+  }
+
+  // Cancel any ongoing speech
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  
+  // Try to find a suitable voice
+  const voices = window.speechSynthesis.getVoices();
+  const preferredVoice = voices.find(voice =>
+    voice.name === FALLBACK_VOICE_NAME ||
+    (voice.lang === 'en-GB' && voice.default)
+  );
+  
+  if (preferredVoice) {
+    utterance.voice = preferredVoice;
+  }
+
+  // Store reference to current utterance
+  currentStreamingUtterance = utterance;
+  
+  utterance.onend = () => {
+    currentStreamingUtterance = null;
+  };
+  
+  utterance.onerror = () => {
+    currentStreamingUtterance = null;
+  };
+  
+  window.speechSynthesis.speak(utterance);
+}
+
+/**
+ * Stop currently streaming speech
+ */
+export function stopStreamingSpeech(): void {
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+    currentStreamingUtterance = null;
+  }
+}
+
 export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
   console.log('🔊 [playAudio] Starting audio playback');
   console.log('🔊 [playAudio] Current audio source:', currentAudioSource ? 'active' : 'none');

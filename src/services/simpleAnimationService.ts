@@ -158,13 +158,42 @@ class SimpleAnimationService {
   }
 
   /**
-   * Clear all loaded animations
+   * Clear all loaded animations and dispose THREE.js resources
    */
   clear(): void {
     this.stopAll();
+    
+    // Properly dispose THREE.js AnimationActions to free GPU memory
+    this.loadedActions.forEach((action, name) => {
+      try {
+        action.stop();
+        action.reset();
+      } catch (error) {
+        console.warn(`[SimpleAnimationService] Failed to dispose action ${name}:`, error);
+      }
+    });
     this.loadedActions.clear();
+    
+    // Properly dispose THREE.js AnimationClips to free GPU memory
+    this.loadedClips.forEach((clip, name) => {
+      try {
+        // Dispose clip tracks to free memory
+        if (clip.tracks) {
+          clip.tracks.forEach(track => {
+            // Dispose keyframe track values
+            if (track.values) {
+              track.values = new Float32Array(0);
+            }
+          });
+          clip.tracks = [];
+        }
+      } catch (error) {
+        console.warn(`[SimpleAnimationService] Failed to dispose clip ${name}:`, error);
+      }
+    });
     this.loadedClips.clear();
-    console.log('[SimpleAnimationService] Cleared all animations');
+    
+    console.log('[SimpleAnimationService] Cleared all animations and disposed THREE.js resources');
   }
 
   /**

@@ -154,7 +154,7 @@ SITTING & KNEELING DOWN:
 - kneeling: Kneeling down - use for kneeling
 
 Affectionate Gestures:
-- patting: Patting - use for pat on the back or shoulder
+- patting: Patting - use for pat on back or shoulder
 - kissing: Kissing - use for affection
 - blowAKiss: Blowing a kiss - use for affection
 
@@ -280,7 +280,7 @@ const TOOL_DEFINITION = {
 /**
  * Calls an LLM to judge which animations should play based on the conversation
  * @param userMessage - The user's message
- * @param aiResponse - The AI's response to the user
+ * @param aiResponse - The AI's response to user
  * @returns AnimationJudgment with list of animations and reasoning
  */
 export async function judgeAnimations(
@@ -370,14 +370,15 @@ export async function judgeAnimations(
     console.error('🎬 [AnimationJudge] Error name:', error instanceof Error ? error.name : 'Unknown');
     console.error('🎬 [AnimationJudge] Error message:', error instanceof Error ? error.message : String(error));
     console.error('🎬 [AnimationJudge] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    
+
     // Check if it's an axios error with more details
     if (error && typeof error === 'object' && 'response' in error) {
-      console.error('🎬 [AnimationJudge] Axios error response:', (error as any).response?.data);
-      console.error('🎬 [AnimationJudge] Axios error status:', (error as any).response?.status);
-      console.error('🎬 [AnimationJudge] Axios error headers:', (error as any).response?.headers);
+      const axiosError = error as { response?: { data?: unknown; status?: number; headers?: unknown } };
+      console.error('🎬 [AnimationJudge] Axios error response:', axiosError.response?.data);
+      console.error('🎬 [AnimationJudge] Axios error status:', axiosError.response?.status);
+      console.error('🎬 [AnimationJudge] Axios error headers:', axiosError.response?.headers);
     }
-    
+
     // Don't throw - animation judgment is optional, return empty with detailed reasoning
     const errorMessage = error instanceof Error ? error.message : String(error);
     return {
@@ -606,11 +607,13 @@ const BUFFER_BETWEEN_ANIMATIONS = 500; // Buffer time between animations
  * @param animations - List of animations with delays
  * @param onPlay - Callback to trigger each animation
  * @param onComplete - Callback when all animations complete
+ * @param timeoutTrackingRef - Optional ref to track timeouts for cancellation (FIX #2)
  */
 export function processAnimationQueue(
   animations: AnimationTrigger[],
   onPlay: (animationName: string) => void,
-  onComplete: () => void
+  onComplete: () => void,
+  timeoutTrackingRef?: React.MutableRefObject<NodeJS.Timeout[]>
 ): void {
   if (animations.length === 0) {
     console.log('%c📭 [AnimationQueue] Empty queue, nothing to process', 'color: #95a5a6;');
@@ -622,6 +625,13 @@ export function processAnimationQueue(
   console.log('%c📋 [AnimationQueue] Animations:', 'color: #f39c12; font-weight: bold;', animations);
 
   let currentIndex = 0;
+
+  // FIX #2: Clear any previous tracked timeouts if ref provided
+  if (timeoutTrackingRef && timeoutTrackingRef.current.length > 0) {
+    console.log('%c🛑 [AnimationQueue] Clearing ' + timeoutTrackingRef.current.length + ' previous timeouts', 'background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px;');
+    timeoutTrackingRef.current.forEach(timeoutId => clearTimeout(timeoutId));
+    timeoutTrackingRef.current = [];
+  }
 
   const playNext = () => {
     if (currentIndex >= animations.length) {
@@ -640,18 +650,29 @@ export function processAnimationQueue(
 
     console.log('%c⏱️ [AnimationQueue] Scheduling "' + animation.name + '" - delay: ' + animationDelay + 'ms, duration: ' + animationDuration + 'ms', 'color: #f39c12;');
 
-    // Wait for the specified delay before playing
-    setTimeout(() => {
+    // FIX #2: Track timeout for cancellation if ref provided
+    // Wait for specified delay before playing
+    const delayTimeoutId = setTimeout(() => {
       console.log('%c▶️ [AnimationQueue] EXECUTING: ' + animation.name + ' (duration: ' + animationDuration + 'ms)', 'background: #e67e22; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;');
       onPlay(animation.name);
 
       // Wait for animation to complete, then play next
-      setTimeout(() => {
+      const durationTimeoutId = setTimeout(() => {
         console.log('%c🏁 [AnimationQueue] Animation "' + animation.name + '" finished (' + (currentIndex + 1) + '/' + animations.length + ')', 'color: #27ae60;');
         currentIndex++;
         playNext();
       }, animationDuration);
+
+      // FIX #2: Track duration timeout for cancellation if ref provided
+      if (timeoutTrackingRef) {
+        timeoutTrackingRef.current.push(durationTimeoutId);
+      }
     }, animationDelay);
+
+    // FIX #2: Track delay timeout for cancellation if ref provided
+    if (timeoutTrackingRef) {
+      timeoutTrackingRef.current.push(delayTimeoutId);
+    }
   };
 
   // Start the queue
@@ -685,7 +706,7 @@ export function distributeAnimationsAcrossAudio(
   console.log('%c⏱️ [distributeAnimationsAcrossAudio] Timing strategy:', 'color: #3498db; font-weight: bold;', timing);
 
   const scheduled: ScheduledAnimation[] = [];
-  
+
   if (animations.length === 0) {
     return scheduled;
   }
@@ -746,7 +767,7 @@ export function distributeAnimationsAcrossAudio(
       // Evenly distribute across entire audio
       const availableTime = audioDuration - 1000; // Leave 1s buffer at end
       const gap = availableTime / Math.max(animations.length, 1);
-      
+
       animations.forEach((anim, index) => {
         const duration = getAnimationDuration(anim.name);
         const triggerTime = (index * gap) + 500; // Start at 500ms
@@ -807,7 +828,7 @@ export async function judgeAnimationsWithTiming(
 
   if (baseJudgment.animations.length > 0) {
     const firstAnimation = baseJudgment.animations[0].name;
-    
+
     if (fullBodyAnimations.includes(firstAnimation)) {
       suggestedLayer = 'full_body';
     } else if (upperBodyAnimations.includes(firstAnimation)) {

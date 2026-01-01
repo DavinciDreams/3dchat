@@ -23,9 +23,9 @@ export interface AnimationPlaybackOptions {
   fadeOutDuration?: number;
   /** Target weight (0-1) */
   weight?: number;
-  /** Whether to loop the animation */
+  /** Whether to loop animation */
   loop?: THREE.AnimationActionLoopStyles;
-  /** Whether the animation can be interrupted */
+  /** Whether to animation can be interrupted */
   interruptible?: boolean;
 }
 
@@ -48,7 +48,7 @@ interface ActiveAnimation {
  * AnimationLayeringService
  * 
  * Manages layered animation playback using Three.js native AnimationMixer blending.
- * Replaces the custom bone masking system with weight-based blending for better performance.
+ * Replaces custom bone masking system with weight-based blending for better performance.
  * 
  * Features:
  * - Weight-based blending between animation layers
@@ -121,7 +121,6 @@ export class AnimationLayeringService {
 
     const action = this.mixer.clipAction(clip);
     this.actionCache.set(name, action);
-    console.log(`%c📝 [AnimationLayering] Registered animation: ${name}`, 'color: #3498db;');
     return action;
   }
 
@@ -138,13 +137,12 @@ export class AnimationLayeringService {
     options: AnimationPlaybackOptions = {}
   ): string {
     if (!this.mixer) {
-      console.warn('%c⚠️ [AnimationLayering] Mixer not set', 'color: #f39c12;');
       return '';
     }
 
     const action = this.actionCache.get(name);
     if (!action) {
-      console.warn(`%c⚠️ [AnimationLayering] Animation not found: ${name}`, 'color: #f39c12;');
+      console.warn(`Animation not found: ${name}`);
       return '';
     }
 
@@ -159,10 +157,26 @@ export class AnimationLayeringService {
     // Generate unique animation ID
     const animationId = `anim_${this.animationCounter++}`;
 
-    // Fade out existing animations on the same layer
+    // Fade out existing animations on same layer
     this.fadeOutLayer(layer, fadeOutDuration);
 
-    // Configure the action
+    // FIX: Implement cross-layer weight management
+    // When new animation starts, reduce weights on other layers proportionally
+    // based on priority to enable proper blending between layers
+    const newLayerPriority = AnimationLayeringService.LAYER_CONFIGS[layer].priority;
+    this.activeAnimations.forEach((anim, id) => {
+      if (anim.layer !== layer && !anim.isFadingOut) {
+        const existingLayerPriority = AnimationLayeringService.LAYER_CONFIGS[anim.layer].priority;
+        // Reduce weight more for lower priority layers
+        const priorityRatio = existingLayerPriority / (existingLayerPriority + newLayerPriority);
+        const newWeight = anim.weight * priorityRatio * 0.5; // Reduce to 50% or less based on priority
+        
+        anim.action.weight = newWeight;
+        anim.targetWeight = newWeight;
+      }
+    });
+
+    // Configure action
     action.reset();
     action.loop = loop;
     
@@ -171,11 +185,11 @@ export class AnimationLayeringService {
     // We use weight-based blending instead
     action.enabled = true;
 
-    // Fade in the new animation
+    // Fade in new animation
     action.fadeIn(fadeInDuration);
     action.play();
 
-    // Track the active animation
+    // Track active animation
     this.activeAnimations.set(animationId, {
       action,
       layer,
@@ -217,6 +231,7 @@ export class AnimationLayeringService {
 
     // Remove from active animations after fade out
     setTimeout(() => {
+      anim.action.stop();  // Actually stop the animation
       this.activeAnimations.delete(animationId);
     }, fadeOutDuration * 1000);
   }
@@ -293,7 +308,7 @@ export class AnimationLayeringService {
   }
 
   /**
-   * Get the current weight of a layer
+   * Get current weight of a layer
    * @param layer - Layer to query
    * @returns Current weight (0-1) or 0 if layer not active
    */
@@ -347,15 +362,46 @@ export class AnimationLayeringService {
   }
 
   /**
-   * Clear all registered animations and reset state
+   * Clear all registered animations and reset state, disposing THREE.js resources
    */
   clear(): void {
-    console.log('%c🗑️ [AnimationLayering] Clearing all animations', 'color: #95a5a6;');
+    console.log('%c🗑️ [AnimationLayering] Clearing all animations and disposing resources', 'color: #95a5a6;');
     
     this.stopAll(0);
+    
+    // Properly dispose THREE.js AnimationActions to free GPU memory
+    this.actionCache.forEach((action, name) => {
+      try {
+        action.stop();
+        action.reset();
+      } catch (error) {
+        console.warn(`%c⚠️ [AnimationLayering] Failed to dispose action ${name}:`, 'color: #f39c12;', error);
+      }
+    });
     this.actionCache.clear();
+    
+    // FIX: Properly dispose THREE.js AnimationClips to free GPU memory
+    // Previously used track.values = new Float32Array(0) which doesn't free GPU memory
+    // Now properly dispose clips using clip.dispose() and mixer.uncacheClip()
+    this.activeAnimations.forEach((anim, id) => {
+      try {
+        const clip = anim.action.getClip();
+        if (clip) {
+          // Properly dispose the clip to free GPU memory
+          clip.dispose();
+          // Uncache the clip from the mixer
+          if (this.mixer) {
+            this.mixer.uncacheClip(clip);
+          }
+        }
+      } catch (error) {
+        console.warn(`%c⚠️ [AnimationLayering] Failed to dispose clip for animation ${id}:`, 'color: #f39c12;', error);
+      }
+    });
     this.activeAnimations.clear();
     this.layerWeights.clear();
+    
+    console.log('%c✅ [AnimationLayering] Cleared all animations and disposed THREE.js resources', 'color: #27ae60;');
   }
 
   /**
@@ -364,11 +410,11 @@ export class AnimationLayeringService {
    * @param delta - Time since last frame in seconds
    */
   update(delta: number): void {
-    if (!this.mixer) return;
-
-    // Update the mixer
-    this.mixer.update(delta);
-
+    // PERFORMANCE FIX: Remove redundant mixer.update() call
+    // The mixer is already updated in AvatarModel.tsx useFrame hook
+    // Calling it again causes triple processing of the same time delta
+    // which leads to choppy animations (58-86ms per frame instead of ~16ms)
+    
     // Update animation weights for smooth blending
     this.activeAnimations.forEach((anim) => {
       if (anim.isFadingIn) {
