@@ -261,15 +261,25 @@ const Character: React.FC<ExtendedCharacterProps> = ({
           setVrmaAnimationsLoaded(true);
           isInitialized.current = true;
 
-          // Prefetch commonly used animations in background to reduce loading delays
-          // These animations are frequently triggered by the animation judge system
-          const COMMON_ANIMATIONS = [
-            'greeting', 'thinking', 'happyIdle', 'talking',
-            'sneakingForward', 'sneakyWalking', 'lookAround',
-            'hipHopDancing', 'hipHopDance', 'breakdance1990', 'victory'
-          ];
-          console.log(`%c📥 [AvatarModel] Prefetching ${COMMON_ANIMATIONS.length} common animations...`, 'color: #f39c12;');
-          prefetchAnimations(COMMON_ANIMATIONS);
+          // OPTIMIZATION: Load HIGH priority animations in background using the tiered system
+          // This loads 22 animations instead of just 11, significantly reducing on-demand delays
+          // HIGH priority animations include emotional expressions, social gestures, and common movements
+          // that the animation judge is likely to request during conversation
+          vrmaAnimationService.loadHighPriorityAnimations()
+            .then(async () => {
+              // After HIGH priority animations are loaded, create THREE.js actions for them
+              const { HIGH_PRIORITY_ANIMATIONS } = await import('../config/animationPriorities');
+              
+              for (const animName of HIGH_PRIORITY_ANIMATIONS) {
+                // Skip if already loaded (may overlap with CRITICAL animations)
+                if (!vrmaActions.current[animName] && !vrmaClips.current[animName]) {
+                  await loadVRMAAnimation(animName);
+                }
+              }
+            })
+            .catch((error) => {
+              console.warn('Failed to load HIGH priority animations:', error);
+            });
 
           // Only start idle animation if no explicit animation is playing
           const store = useChatStore.getState();
@@ -402,30 +412,6 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     }
   });
 
-  // Prefetch animations in background to reduce loading delays
-  // PERFORMANCE: Load commonly used animations before they're needed
-  const prefetchAnimations = async (animationNames: string[]) => {
-    if (!mixer.current || !vrm) {
-      return;
-    }
-
-    console.log(`%c📥 [AvatarModel] Prefetching ${animationNames.length} animations...`, 'color: #f39c12;');
-
-    for (const animName of animationNames) {
-      // Skip if already loaded
-      if (vrmaActions.current[animName] || vrmaClips.current[animName]) {
-        continue;
-      }
-
-      try {
-        await loadVRMAAnimation(animName);
-      } catch (error) {
-        // Silently skip prefetch errors
-        console.debug(`Prefetch failed for ${animName}:`, error);
-      }
-    }
-  };
-
   // Helper function to play animation using animation layering service for smooth transitions
   // PERFORMANCE: Reduced console logging to minimize frame time impact
   const playAnimationDirectly = async (animationName: string) => {
@@ -478,9 +464,12 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   };
 
   // Handle explicit animation triggers from the LLM judge
-  // PERFORMANCE: Reduced console logging to minimize frame time impact
+  // PERFORMANCE: Removed all console logging to minimize frame time impact
   useEffect(() => {
-    if (!mixer.current || !vrmaAnimationsLoaded) {
+    // FIX: Only check mixer, not vrmaAnimationsLoaded
+    // playAnimationDirectly handles on-demand loading, so we don't need to wait
+    // for all animations to be preloaded before playing
+    if (!mixer.current) {
       return;
     }
 
@@ -488,9 +477,12 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       playAnimationDirectly(currentAnimation);
     } else {
       // Play idle animation when currentAnimation is null
-      playAnimationDirectly('modelPose');
+      // Only play idle if animations are loaded or mixer is ready
+      if (vrmaAnimationsLoaded || Object.keys(vrmaActions.current).length > 0) {
+        playAnimationDirectly('modelPose');
+      }
     }
-  }, [currentAnimation, vrmaAnimationsLoaded]);
+  }, [currentAnimation]);
 
   // Note: Emotion-based animations are now handled by the judge system
   // The judge system determines appropriate animations based on context

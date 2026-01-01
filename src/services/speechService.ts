@@ -45,14 +45,14 @@ const MAX_RETRIES = 3;
 
 export async function initSpeechRecognition(): Promise<void> {
   try {
+    console.log('🎤 [initSpeechRecognition] Initializing speech recognition (permission check deferred to user action)');
+    
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
     if (!SpeechRecognition) {
       console.warn('Speech recognition not supported');
+      return;
     }
-
-    // Check for microphone permission before initializing
-    await checkMicrophonePermission();
 
     recognition = new SpeechRecognition();
     recognition.continuous = false;
@@ -69,10 +69,13 @@ export async function initSpeechRecognition(): Promise<void> {
 
 async function checkMicrophonePermission(): Promise<void> {
   try {
+    console.log('🎤 [checkMicrophonePermission] Requesting microphone access (user-triggered)...');
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    console.log('🎤 [checkMicrophonePermission] Microphone access granted!');
     // Clean up stream after permission check
     stream.getTracks().forEach(track => track.stop());
   } catch (error) {
+    console.error('🎤 [checkMicrophonePermission] Microphone permission denied:', error);
     throw new ServiceError(
       'speech',
       'auth',
@@ -229,7 +232,9 @@ function handleSpeechError(error: unknown): void {
 }
 
 export function startListening(): void {
+  console.log('🎤 [startListening] Called - this should be user-triggered');
   if (!recognition || !isInitialized) {
+    console.log('🎤 [startListening] Not initialized, calling initSpeechRecognition');
     initSpeechRecognition().then(() => {
       tryStartListening();
     }).catch((error) => {

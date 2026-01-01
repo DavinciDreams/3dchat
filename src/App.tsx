@@ -112,28 +112,8 @@ function App() {
   }, []);
 
   // Initialize speech recognition on component mount
-  useEffect(() => {
-    const initSpeech = async () => {
-      try {
-        setProcessing(true);
-        await initSpeechRecognition();
-      } catch (err) {
-        console.error('Failed to initialize speech recognition:', err);
-        setError({
-          type: 'auth',
-          message: 'Failed to initialize speech recognition'
-        });
-      } finally {
-        setProcessing(false);
-      }
-    };
-
-    initSpeech();
-
-    return () => {
-      setProcessing(false);
-    };
-  }, [setProcessing]);
+  // Speech recognition initialization moved to user-triggered action (mic button click)
+  // to ensure permission request is within a user gesture context
 
   useEffect(() => {
     // Initialize voices

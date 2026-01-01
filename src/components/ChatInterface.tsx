@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, MicOff, Loader2, Copy, Download, StopCircle, Plus, Play, ChevronDown, ChevronRight, PanelRight, PanelBottom, MessageSquare } from 'lucide-react';
+import { Send, Mic, MicOff, Loader2, Copy, Download, StopCircle, Plus, Play, ChevronDown, ChevronRight, PanelRight, PanelBottom, MessageSquare, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChatStore, MAX_MESSAGES } from '../store/chatStore';
 import { streamAIResponse } from '../services/aiService';
 import { startListening, stopListening } from '../services/speechService';
 import { judgeAnimations, processAnimationQueue } from '../services/animationJudgeService';
-import { speakChunk, stopStreamingSpeech } from '../services/speechSynthesisService';
+import { speakChunk, stopStreamingSpeech, stopAudio, cancelSpeech } from '../services/speechSynthesisService';
 import { supabase } from '../lib/supabaseClient';
 import AnimationIndicator from './AnimationIndicator';
 import {
@@ -122,6 +122,8 @@ const ChatInterface = (): JSX.Element => {
     isProcessing,
     isSpeaking,
     isListening,
+    isMuted,
+    setIsMuted,
     addMessage,
     clearMessages,
     setCurrentAnimation,
@@ -522,16 +524,27 @@ const ChatInterface = (): JSX.Element => {
   };
 
   const handleStopSpeaking = () => {
-    console.log('🛑 [handleStopSpeaking] Stop speaking button clicked');
+    console.log('%c🛑 [handleStopSpeaking] BUTTON CLICKED', 'background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;');
     console.log('🛑 [handleStopSpeaking] Current isSpeaking state:', isSpeaking);
+    console.log('🛑 [handleStopSpeaking] Current currentAnimation:', useChatStore.getState().currentAnimation);
+    console.log('🛑 [handleStopSpeaking] Current animationQueue:', useChatStore.getState().animationQueue);
 
-    // Stop streaming speech
+    // Stop streaming speech (Web Speech API)
     stopStreamingSpeech();
+    
+    // FIX: Also stop Web Audio API playback (for EdgeTTS audio)
+    // This ensures all audio sources are stopped, not just Web Speech API
+    stopAudio();
+
+    // Cancel active animation queue timeouts
+    cancelActiveQueueTimeouts();
 
     // Reset animation and speaking state
     useChatStore.getState().setCurrentAnimation(null);
     useChatStore.getState().setAnimationQueue([]);
     useChatStore.setState({ isSpeaking: false });
+    
+    console.log('%c✅ [handleStopSpeaking] Reset states complete', 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px;');
   };
 
   const handleMicToggle = async () => {
@@ -673,6 +686,23 @@ const ChatInterface = (): JSX.Element => {
                 {position === 'right' ? <PanelBottom size={16} /> : <PanelRight size={16} />}
               </button>
             )}
+
+            <button
+              onClick={() => {
+                const newMutedState = !isMuted;
+                setIsMuted(newMutedState);
+                if (newMutedState) {
+                  // Cancel any ongoing speech when muting
+                  if (window.speechSynthesis) {
+                    window.speechSynthesis.cancel();
+                  }
+                }
+              }}
+              className="p-1.5 hover:bg-gray-700 rounded-md transition-colors"
+              title={isMuted ? "Unmute" : "Mute"}
+            >
+              {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            </button>
 
             {isSpeaking && (
               <button

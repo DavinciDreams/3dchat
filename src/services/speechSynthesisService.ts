@@ -11,7 +11,37 @@ import { AnimationTrigger } from '../types';
 
 // Default voice (will be overridden by selected voice from store)
 const DEFAULT_VOICE_NAME = 'en-GB-LibbyNeural';
-const FALLBACK_VOICE_NAME = 'Google US English';
+// Fallback voice for streaming when selected voice is not available
+const FALLBACK_VOICE_NAME = 'en-GB-LibbyNeural';
+
+// Mapping from EdgeTTS voice names to Web Speech API voice name patterns
+const WEB_SPEECH_VOICE_PATTERNS: Record<string, string[]> = {
+  'aria': ['aria', 'ariaNeural', 'aria neural'],
+  'jenny': ['jenny', 'jennyNeural', 'jenny neural'],
+  'libby': ['libby', 'libbyNeural', 'libby neural'],
+  'guy': ['guy', 'guyNeural', 'guy neural'],
+  'sonia': ['sonia', 'soniaNeural', 'sonia neural'],
+  'rachel': ['rachel', 'rachelNeural', 'rachel neural'],
+  'jason': ['jason', 'jasonNeural', 'jason neural'],
+  'sara': ['sara', 'saraNeural', 'sara neural'],
+  'tony': ['tony', 'tonyNeural', 'tony neural'],
+  'nancy': ['nancy', 'nancyNeural', 'nancy neural'],
+  'amber': ['amber', 'amberNeural', 'amber neural'],
+  'ana': ['ana', 'anaNeural', 'ana neural'],
+  'brenda': ['brenda', 'brendaNeural', 'brenda neural'],
+  'carter': ['carter', 'carterNeural', 'carter neural'],
+  'cora': ['cora', 'coraNeural', 'cora neural'],
+  'davis': ['davis', 'davisNeural', 'davis neural'],
+  'elizabeth': ['elizabeth', 'elizabethNeural', 'elizabeth neural'],
+  'eric': ['eric', 'ericNeural', 'eric neural'],
+  'eva': ['eva', 'evaNeural', 'eva neural'],
+  'josh': ['josh', 'joshNeural', 'josh neural'],
+  'maria': ['maria', 'mariaNeural', 'maria neural'],
+  'michelle': ['michelle', 'michelleNeural', 'michelle neural'],
+  'roger': ['roger', 'rogerNeural', 'roger neural'],
+  'steffan': ['steffan', 'steffanNeural', 'steffan neural'],
+  'aigenerate': ['aigenerate', 'aigenerateNeural', 'aigenerate neural'],
+};
 
 let audioContext: AudioContext | null = null;
 let currentAudioSource: AudioBufferSourceNode | null = null; // Track active audio source for cancellation
@@ -35,11 +65,15 @@ export async function textToSpeech(text: string): Promise<TTSResult | null> {
     const selectedVoice = AVAILABLE_VOICES.find(v => v.id === store.selectedVoiceId);
     const voiceName = selectedVoice?.name || DEFAULT_VOICE_NAME;
     
+    console.log('🎤 [textToSpeech] Selected voice ID from store:', store.selectedVoiceId);
+    console.log('🎤 [textToSpeech] Selected voice object:', selectedVoice);
+    console.log('🎤 [textToSpeech] Using voice name:', voiceName);
+    console.log('🎤 [textToSpeech] DEFAULT_VOICE_NAME:', DEFAULT_VOICE_NAME);
+    console.log('🎤 [textToSpeech] All available voices:', AVAILABLE_VOICES.map(v => ({id: v.id, name: v.name})));
+    
     // TTS parameters for cache key
     const rate = '+0%';
     const pitch = '+0Hz';
-
-    console.log('🎤 [textToSpeech] Using voice:', voiceName);
     
     // Check cache first
     const cached = ttsCache.get(text, voiceName, 0, 0);
@@ -152,12 +186,28 @@ export async function speakWithNative(text: string): Promise<ArrayBuffer | null>
 
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Try to find a suitable voice
+    // Get selected voice from store
+    const store = useChatStore.getState();
+    const selectedVoice = AVAILABLE_VOICES.find(v => v.id === store.selectedVoiceId);
+    const selectedVoiceName = selectedVoice?.name || DEFAULT_VOICE_NAME;
+    
+    // Try to find a suitable voice - prioritize selected voice from UI dropdown
     const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(voice => 
-      voice.name === FALLBACK_VOICE_NAME || 
-      (voice.lang === 'en-GB' && voice.default)
+    
+    // Priority order: 1) Try to match selected voice from store, 2) Fall back to Libby, 3) Any suitable voice
+    let preferredVoice = voices.find(voice =>
+      voice.name.toLowerCase().includes(selectedVoiceName.toLowerCase()) ||
+      voice.lang === selectedVoiceName.substring(0, 5) // Match by language code (e.g., 'en-GB')
     );
+    
+    // If selected voice not found, try fallback to Libby
+    if (!preferredVoice) {
+      preferredVoice = voices.find(voice =>
+        voice.name.toLowerCase().includes('libby') ||
+        voice.name.toLowerCase().includes('en-gb') ||
+        (voice.lang === 'en-GB' && voice.default)
+      );
+    }
     
     if (preferredVoice) {
       utterance.voice = preferredVoice;
@@ -178,28 +228,218 @@ export async function speakWithNative(text: string): Promise<ArrayBuffer | null>
 // Track current streaming speech utterance
 let currentStreamingUtterance: SpeechSynthesisUtterance | null = null;
 
+// Chunk buffer for accumulating streaming text
+let speechChunkBuffer: string = '';
+let speechBufferTimeout: number | null = null;
+const SPEAK_BUFFER_DELAY = 150; // ms to wait before speaking accumulated text
+
+// Queue for accumulated text segments to speak sequentially
+let speechSegmentQueue: string[] = [];
+let isSpeakingQueue = false;
+
 /**
- * Speak a text chunk immediately using Web Speech API for real-time streaming
+ * Speak a text chunk using Web Speech API for real-time streaming
+ * Chunks are accumulated in a buffer and spoken in larger segments
  * This function does not sanitize the text before speaking
  * @param text - Text chunk to speak
  */
 export function speakChunk(text: string): void {
+  console.log('🔊 [speakChunk] Called with text:', text);
+  console.log('🔊 [speakChunk] Text length:', text.length);
+  
+  // Check mute state before processing
+  const isMuted = useChatStore.getState().isMuted;
+  if (isMuted) {
+    return;
+  }
+  
   if (!window.speechSynthesis) {
     console.warn('Speech synthesis not supported');
     return;
   }
 
-  // Cancel any ongoing speech
-  window.speechSynthesis.cancel();
+  // Clear any existing timeout
+  if (speechBufferTimeout !== null) {
+    clearTimeout(speechBufferTimeout);
+    speechBufferTimeout = null;
+  }
+
+  // Append chunk to buffer
+  speechChunkBuffer += text;
+  console.log('🔊 [speakChunk] Buffer size:', speechChunkBuffer.length);
+
+  // Set timeout to speak accumulated text
+  speechBufferTimeout = window.setTimeout(() => {
+    flushSpeechBuffer();
+  }, SPEAK_BUFFER_DELAY);
+}
+
+/**
+ * Flush the accumulated speech buffer to the queue
+ * Splits text into sentence segments for smoother playback
+ */
+function flushSpeechBuffer(): void {
+  if (speechChunkBuffer.length === 0) {
+    console.log('🔊 [flushSpeechBuffer] Buffer empty, nothing to flush');
+    return;
+  }
+
+  console.log('🔊 [flushSpeechBuffer] Flushing buffer, length:', speechChunkBuffer.length);
+
+  // Split buffer into sentence segments for smoother playback
+  // Try to split on sentence boundaries first, then on phrase boundaries
+  const segments = splitIntoSegments(speechChunkBuffer);
+  
+  console.log('🔊 [flushSpeechBuffer] Created', segments.length, 'segments');
+  
+  // Add segments to queue
+  speechSegmentQueue.push(...segments);
+  
+  // Clear buffer
+  speechChunkBuffer = '';
+  
+  // Start processing queue if not already speaking
+  if (!isSpeakingQueue) {
+    processSpeechQueue();
+  }
+}
+
+/**
+ * Split text into segments for smoother speech playback
+ * Prioritizes sentence boundaries, then phrase boundaries
+ */
+function splitIntoSegments(text: string): string[] {
+  const segments: string[] = [];
+  
+  // Split on sentence boundaries first (., !, ?)
+  // Use a regex that captures the delimiter
+  let remaining = text.trim();
+  
+  while (remaining.length > 0) {
+    // Find the next sentence boundary
+    const sentenceMatch = remaining.match(/^.+?[.!?](?:\s+|$)/);
+    
+    if (sentenceMatch) {
+      segments.push(sentenceMatch[0].trim());
+      remaining = remaining.slice(sentenceMatch[0].length).trim();
+    } else {
+      // No more sentence boundaries, split on phrase boundaries (commas, semicolons)
+      const phraseMatch = remaining.match(/^.+?[;,](?:\s+|$)/);
+      
+      if (phraseMatch) {
+        segments.push(phraseMatch[0].trim());
+        remaining = remaining.slice(phraseMatch[0].length).trim();
+      } else {
+        // No more phrase boundaries, take the rest as one segment
+        // But limit segment length to avoid very long utterances
+        const MAX_SEGMENT_LENGTH = 200;
+        if (remaining.length > MAX_SEGMENT_LENGTH) {
+          // Find a word boundary near the max length
+          const splitIndex = remaining.lastIndexOf(' ', MAX_SEGMENT_LENGTH);
+          if (splitIndex > 50) {
+            segments.push(remaining.slice(0, splitIndex).trim());
+            remaining = remaining.slice(splitIndex).trim();
+          } else {
+            segments.push(remaining);
+            remaining = '';
+          }
+        } else {
+          segments.push(remaining);
+          remaining = '';
+        }
+      }
+    }
+  }
+  
+  // Filter out empty segments
+  return segments.filter(s => s.length > 0);
+}
+
+/**
+ * Process the speech segment queue sequentially
+ */
+function processSpeechQueue(): void {
+  if (speechSegmentQueue.length === 0) {
+    console.log('🔊 [processSpeechQueue] Queue empty, stopping');
+    isSpeakingQueue = false;
+    return;
+  }
+
+  // Check mute state before speaking each utterance
+  const isMuted = useChatStore.getState().isMuted;
+  if (isMuted) {
+    speechSegmentQueue.length = 0; // Clear the queue
+    return;
+  }
+
+  isSpeakingQueue = true;
+  const text = speechSegmentQueue.shift()!;
+  console.log('🔊 [processSpeechQueue] Speaking segment:', text);
+  console.log('🔊 [processSpeechQueue] Remaining in queue:', speechSegmentQueue.length);
 
   const utterance = new SpeechSynthesisUtterance(text);
   
-  // Try to find a suitable voice
+  const store = useChatStore.getState();
+  const selectedVoice = AVAILABLE_VOICES.find(v => v.id === store.selectedVoiceId);
+  const selectedVoiceName = selectedVoice?.name || DEFAULT_VOICE_NAME;
+
   const voices = window.speechSynthesis.getVoices();
-  const preferredVoice = voices.find(voice =>
-    voice.name === FALLBACK_VOICE_NAME ||
-    (voice.lang === 'en-GB' && voice.default)
+
+  // Extract voice ID from EdgeTTS name (e.g., 'en-US-JennyNeural' -> 'jenny')
+  const voiceId = selectedVoice?.id || 'libby';
+  const patterns = WEB_SPEECH_VOICE_PATTERNS[voiceId] || [voiceId];
+
+  // Try to match using the voice ID patterns
+  let preferredVoice = voices.find(voice =>
+    patterns.some(pattern =>
+      voice.name.toLowerCase().includes(pattern.toLowerCase())
+    )
   );
+
+  // Fallback: try matching by language code
+  if (!preferredVoice && selectedVoice) {
+    const langCode = selectedVoice.language; // e.g., 'en-US', 'en-GB'
+    preferredVoice = voices.find(voice =>
+      voice.lang === langCode && voice.name.toLowerCase().includes('natural')
+    );
+  }
+
+  // Final fallback: use the first voice with matching language
+  if (!preferredVoice && selectedVoice) {
+    const langCode = selectedVoice.language;
+    preferredVoice = voices.find(voice => voice.lang === langCode);
+  }
+
+  // Gender-aware fallback: if selected voice is female and no match found, prefer female voices
+  if (!preferredVoice && selectedVoice && selectedVoice.gender === 'female') {
+    // List of known female voice name patterns
+    const femaleVoicePatterns = ['zira', 'jenny', 'aria', 'sara', 'michelle', 'eva', 'ana', 'brenda', 'cora', 'elizabeth', 'nancy', 'amber'];
+    
+    preferredVoice = voices.find(voice =>
+      femaleVoicePatterns.some(pattern =>
+        voice.name.toLowerCase().includes(pattern.toLowerCase())
+      )
+    );
+    
+    if (preferredVoice) {
+      console.log('🎤 [speechSynthesisService] Using female voice fallback for female selection:', {
+        selectedVoice: selectedVoice.name,
+        fallbackVoice: preferredVoice.name
+      });
+    }
+  }
+
+  if (!preferredVoice) {
+    console.warn(`[speechSynthesisService] Voice not found for ${selectedVoiceName}, using default`);
+    preferredVoice = voices[0];
+  }
+
+  console.log('🎤 [speechSynthesisService] Selected voice:', {
+    requested: selectedVoiceName,
+    voiceId,
+    matched: preferredVoice?.name,
+    lang: preferredVoice?.lang
+  });
   
   if (preferredVoice) {
     utterance.voice = preferredVoice;
@@ -209,25 +449,67 @@ export function speakChunk(text: string): void {
   currentStreamingUtterance = utterance;
   
   utterance.onend = () => {
+    console.log('🔊 [processSpeechQueue] Utterance ended for text:', text);
     currentStreamingUtterance = null;
+    // Process next segment in queue
+    processSpeechQueue();
   };
   
-  utterance.onerror = () => {
+  utterance.onerror = (error) => {
+    console.error('🔊 [processSpeechQueue] Utterance error:', error);
     currentStreamingUtterance = null;
+    // Continue to next segment even on error
+    processSpeechQueue();
   };
   
   window.speechSynthesis.speak(utterance);
+  console.log('🔊 [processSpeechQueue] Utterance queued for speech');
 }
 
 /**
- * Stop currently streaming speech
+ * Stop currently streaming speech and clear all buffers
  */
 export function stopStreamingSpeech(): void {
+  console.log('%c🛑 [stopStreamingSpeech] FUNCTION ENTRY', 'background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+  console.log('🛑 [stopStreamingSpeech] window.speechSynthesis available:', !!window.speechSynthesis);
+  console.log('🛑 [stopStreamingSpeech] currentStreamingUtterance:', currentStreamingUtterance);
+  console.log('🛑 [stopStreamingSpeech] speechChunkBuffer length:', speechChunkBuffer.length);
+  console.log('🛑 [stopStreamingSpeech] speechSegmentQueue length:', speechSegmentQueue.length);
+  console.log('🛑 [stopStreamingSpeech] isSpeakingQueue:', isSpeakingQueue);
+  
   if (window.speechSynthesis) {
+    console.log('🛑 [stopStreamingSpeech] Calling window.speechSynthesis.cancel()');
     window.speechSynthesis.cancel();
     currentStreamingUtterance = null;
   }
+  
+  // Clear the buffer
+  speechChunkBuffer = '';
+  
+  // Clear any pending timeout
+  if (speechBufferTimeout !== null) {
+    console.log('🛑 [stopStreamingSpeech] Clearing speechBufferTimeout');
+    clearTimeout(speechBufferTimeout);
+    speechBufferTimeout = null;
+  }
+  
+  // Clear the segment queue
+  speechSegmentQueue = [];
+  
+  // Reset speaking flag
+  isSpeakingQueue = false;
+  
+  console.log('%c✅ [stopStreamingSpeech] Web Speech API stopped, buffers cleared', 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px;');
 }
+
+/**
+ * Cancel any ongoing speech
+ */
+export const cancelSpeech = () => {
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+};
 
 export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
   console.log('🔊 [playAudio] Starting audio playback');

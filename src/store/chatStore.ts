@@ -15,7 +15,7 @@ export const useChatStore = create<ChatState>()(
       isMuted: false,
       emotion: 'neutral',
       selectedModelId: AVAILABLE_VRM_MODELS[0].id,
-      selectedVoiceId: AVAILABLE_VOICES[0].id,
+      selectedVoiceId: 'libby',
       animationQueue: [],
       currentAnimation: null,
       animationSpeed: 2.0,
@@ -68,3 +68,10 @@ export const useChatStore = create<ChatState>()(
     }
   )
 );
+
+// Migration: Clear old selectedVoiceId to use new default
+const storedState = JSON.parse(localStorage.getItem('chat-preferences') || '{}');
+if (storedState.state?.selectedVoiceId && storedState.state.selectedVoiceId !== 'libby') {
+  delete storedState.state.selectedVoiceId;
+  localStorage.setItem('chat-preferences', JSON.stringify(storedState));
+}

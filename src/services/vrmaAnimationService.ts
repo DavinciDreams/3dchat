@@ -574,7 +574,6 @@ class VRMAAnimationService {
       }
       this.retargetedClipCache.delete(key);
     });
-    console.log(`[VRMAAnimationService] Cleared ${keysToDelete.length} retargeted clips for model: ${modelId}`);
   }
 
   /**
@@ -618,7 +617,6 @@ class VRMAAnimationService {
    * @returns Promise resolving when all critical animations are loaded
    */
   async loadCriticalAnimations(): Promise<void> {
-    console.log(`%c🚀 [VRMAAnimationService] Loading ${CRITICAL_ANIMATIONS.length} CRITICAL animations...`, 'color: #e74c3c; font-weight: bold;');
 
     const results = await Promise.allSettled(
       CRITICAL_ANIMATIONS.map(name => {
@@ -646,7 +644,6 @@ class VRMAAnimationService {
       }
     });
 
-    console.log(`%c✅ [VRMAAnimationService] Loaded ${loadedCount}/${CRITICAL_ANIMATIONS.length} CRITICAL animations (${failedCount} failed)`, 'color: #27ae60; font-weight: bold;');
   }
 
   /**
@@ -655,7 +652,6 @@ class VRMAAnimationService {
    * @returns Promise resolving when all high priority animations are loaded
    */
   async loadHighPriorityAnimations(): Promise<void> {
-    console.log(`%c🔄 [VRMAAnimationService] Starting background load of ${HIGH_PRIORITY_ANIMATIONS.length} HIGH priority animations...`, 'color: #f39c12; font-weight: bold;');
 
     const batchSize = 5;
     const batches: string[][] = [];
