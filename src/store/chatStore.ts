@@ -18,6 +18,7 @@ export const useChatStore = create<ChatState>()(
       selectedVoiceId: AVAILABLE_VOICES[0].id,
       animationQueue: [],
       currentAnimation: null,
+      animationSpeed: 2.0,
 
       addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => set((state) => {
         if (!message.content || !message.role) {
@@ -53,6 +54,7 @@ export const useChatStore = create<ChatState>()(
       setSelectedVoiceId: (voiceId: string) => set({ selectedVoiceId: voiceId }),
       setAnimationQueue: (queue: AnimationTrigger[]) => set({ animationQueue: queue }),
       setCurrentAnimation: (animation: string | null) => set({ currentAnimation: animation }),
+      setAnimationSpeed: (speed: number) => set({ animationSpeed: speed }),
       clearMessages: () => set({ messages: [] }),
     }),
     {
@@ -61,6 +63,7 @@ export const useChatStore = create<ChatState>()(
         selectedModelId: state.selectedModelId,
         selectedVoiceId: state.selectedVoiceId,
         isMuted: state.isMuted,
+        animationSpeed: state.animationSpeed,
       }),
     }
   )

@@ -10,6 +10,7 @@ import { useAnimationLoadingStore } from '../store/animationLoadingStore';
 import { VRMOptimizedLoader } from '../services/vrmLoaderHelper';
 import { simpleAnimationService } from '../services/simpleAnimationService';
 import { animationLayeringService } from '../services/animationLayeringService';
+import { getAnimationTimeScale } from '../config/animationSpeedConfig';
 
 export interface ExtendedCharacterProps extends CharacterProps {
   selectedModel?: string;
@@ -468,6 +469,8 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       console.warn(`Failed to play animation using layering service: ${animationName}`, error);
       // Fallback to direct playback if layering service fails
       action.reset();
+      // Set animation playback speed
+      action.timeScale = getAnimationTimeScale();
       action.fadeIn(0.3);
       action.setLoop(THREE.LoopRepeat, Infinity);
       action.play();

@@ -16,6 +16,7 @@
 
 import * as THREE from 'three';
 import vrmaAnimationService, { VRMA_ANIMATIONS } from './vrmaAnimationService';
+import { getAnimationTimeScale } from '../config/animationSpeedConfig';
 
 // Default idle animation
 const DEFAULT_IDLE_ANIMATION = 'modelPose';
@@ -108,6 +109,9 @@ class SimpleAnimationService {
       console.warn(`[SimpleAnimationService] Action not found: ${animationName}`);
       return;
     }
+
+    // Set animation playback speed
+    action.timeScale = getAnimationTimeScale();
 
     // Stop current action if playing
     if (this.currentAction && this.currentAction !== action) {
