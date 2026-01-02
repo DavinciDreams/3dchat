@@ -219,8 +219,8 @@ describe('AnimationQueue', () => {
       queue.setActiveLayer('full_body', animation1);
       queue.setActiveLayer('upper_body', animation2);
 
-      expect(queue.getActiveLayer('full_body')).toEqual(animation2);
-      expect(queue.getActiveLayer('upper_body')).toEqual(animation1);
+      expect(queue.getActiveLayer('full_body')).toEqual(animation1);
+      expect(queue.getActiveLayer('upper_body')).toEqual(animation2);
     });
   });
 

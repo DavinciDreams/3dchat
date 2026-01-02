@@ -5,7 +5,7 @@
 import { describe, it, beforeEach, expect, vi } from 'vitest';
 import { AnimationScheduler } from './AnimationScheduler';
 import { AnimationQueue } from './AnimationQueue';
-import type { QueuedAnimation } from '../../types';
+import type { QueuedAnimation, TimelineEvent } from '../../types';
 
 describe('AnimationScheduler', () => {
   let scheduler: AnimationScheduler;
@@ -17,8 +17,18 @@ describe('AnimationScheduler', () => {
   let animationQueue: AnimationQueue;
 
   beforeEach(() => {
+    // Track all scheduled callbacks for triggering
+    const scheduledCallbacks: Array<() => void> = [];
+    
     mockTimelineManager = {
-      schedule: vi.fn().mockReturnValue({ callback: vi.fn() }),
+      schedule: vi.fn((event: TimelineEvent) => {
+        // Call the callback synchronously for tests
+        if (event.callback) {
+          scheduledCallbacks.push(event.callback);
+          event.callback();
+        }
+        return { callback: event.callback };
+      }),
       cancelEvent: vi.fn(),
       cancelEventsByType: vi.fn(),
     };
@@ -31,6 +41,10 @@ describe('AnimationScheduler', () => {
       defaultBlendDuration: 300,
       debug: false,
     });
+    
+    // Trigger all scheduled callbacks after scheduler is created
+    scheduledCallbacks.forEach(cb => cb());
+    scheduledCallbacks.length = 0;
   });
 
   describe('schedule', () => {
@@ -212,6 +226,15 @@ describe('AnimationScheduler', () => {
       ];
 
       scheduler.scheduleBatch(animations, 0);
+      
+      // Manually trigger timeline callbacks to set active layers
+      const calls = mockTimelineManager.schedule.mock.calls;
+      calls.forEach((call) => {
+        const event = call[0];
+        if (event.callback && event.id?.includes('_start')) {
+          event.callback();
+        }
+      });
     });
 
     it('should interrupt animations except on specified layers', () => {
@@ -339,6 +362,15 @@ describe('AnimationScheduler', () => {
       ];
 
       scheduler.scheduleBatch(animations, 0);
+      
+      // Manually trigger timeline callbacks to set active layers
+      const calls = mockTimelineManager.schedule.mock.calls;
+      calls.forEach((call) => {
+        const event = call[0];
+        if (event.callback && event.id?.includes('_start')) {
+          event.callback();
+        }
+      });
     });
 
     it('should return all active layers', () => {

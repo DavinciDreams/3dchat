@@ -115,7 +115,7 @@ describe('TextStreamHandler', () => {
       const text2 = handler.getAccumulatedText();
 
       expect(text1).toBe(text2);
-      expect(text1).not.toBe(text2); // Should be a copy
+      // Strings are primitives in JavaScript, compared by value not reference
     });
   });
 
