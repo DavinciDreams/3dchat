@@ -11,6 +11,7 @@ import { VRMOptimizedLoader } from '../services/vrmLoaderHelper';
 import { simpleAnimationService } from '../services/simpleAnimationService';
 import { animationLayeringService } from '../services/animationLayeringService';
 import { getAnimationTimeScale } from '../config/animationSpeedConfig';
+import { CRITICAL_ANIMATIONS, HIGH_PRIORITY_ANIMATIONS } from '../services/animation/AnimationPriorityService';
 
 export interface ExtendedCharacterProps extends CharacterProps {
   selectedModel?: string;
@@ -247,11 +248,10 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       });
 
       // Load CRITICAL animations synchronously for immediate avatar functionality
-      vrmaAnimationService.loadCriticalAnimations()
+      vrmaAnimationService.loadCoreAnimations()
         .then(async () => {
           // CRITICAL FIX: Call loadVRMAAnimation for each CRITICAL animation to create THREE.js actions
           // The service only loads VRMA files, we need to create actions from them
-          const { CRITICAL_ANIMATIONS } = await import('../config/animationPriorities');
           
           for (const animName of CRITICAL_ANIMATIONS) {
             await loadVRMAAnimation(animName);
@@ -265,10 +265,9 @@ const Character: React.FC<ExtendedCharacterProps> = ({
           // This loads 22 animations instead of just 11, significantly reducing on-demand delays
           // HIGH priority animations include emotional expressions, social gestures, and common movements
           // that the animation judge is likely to request during conversation
-          vrmaAnimationService.loadHighPriorityAnimations()
+          vrmaAnimationService.loadAllAnimations(false)
             .then(async () => {
               // After HIGH priority animations are loaded, create THREE.js actions for them
-              const { HIGH_PRIORITY_ANIMATIONS } = await import('../config/animationPriorities');
               
               for (const animName of HIGH_PRIORITY_ANIMATIONS) {
                 // Skip if already loaded (may overlap with CRITICAL animations)
@@ -277,7 +276,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
                 }
               }
             })
-            .catch((error) => {
+            .catch((error: unknown) => {
               console.warn('Failed to load HIGH priority animations:', error);
             });
 
@@ -293,7 +292,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
             }
           }
         })
-        .catch((error) => {
+        .catch((error: unknown) => {
           console.error('Failed to load CRITICAL animations:', error);
           setVrmaAnimationsLoaded(false);
         });
