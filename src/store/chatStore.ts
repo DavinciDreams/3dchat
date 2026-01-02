@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ChatState, Message, Emotion, ProcessedMessage, AVAILABLE_VRM_MODELS, AVAILABLE_VOICES, AnimationTrigger } from '../types';
+import { animationStateService } from '../services/state/AnimationStateService';
 
 export const MAX_MESSAGES = 10;
 
@@ -52,9 +53,9 @@ export const useChatStore = create<ChatState>()(
       setEmotion: (emotion: Emotion) => set({ emotion }),
       setSelectedModelId: (modelId: string) => set({ selectedModelId: modelId }),
       setSelectedVoiceId: (voiceId: string) => set({ selectedVoiceId: voiceId }),
-      setAnimationQueue: (queue: AnimationTrigger[]) => set({ animationQueue: queue }),
-      setCurrentAnimation: (animation: string | null) => set({ currentAnimation: animation }),
-      setAnimationSpeed: (speed: number) => set({ animationSpeed: speed }),
+      setAnimationQueue: (queue: AnimationTrigger[]) => animationStateService.setAnimationQueue(queue),
+      setCurrentAnimation: (animation: string | null) => animationStateService.setCurrentAnimation(animation),
+      setAnimationSpeed: (speed: number) => animationStateService.setAnimationSpeed(speed),
       clearMessages: () => set({ messages: [] }),
     }),
     {
@@ -63,7 +64,7 @@ export const useChatStore = create<ChatState>()(
         selectedModelId: state.selectedModelId,
         selectedVoiceId: state.selectedVoiceId,
         isMuted: state.isMuted,
-        animationSpeed: state.animationSpeed,
+        animationSpeed: animationStateService.getAnimationSpeed(),
       }),
     }
   )

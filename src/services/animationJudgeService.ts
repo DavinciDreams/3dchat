@@ -1,11 +1,12 @@
-import axios from 'axios';
 import { AnimationJudgment, AnimationTrigger, AVAILABLE_ANIMATIONS, AnimationJudgmentWithTiming, ScheduledAnimation, AnimationLayerType } from '../types';
+import { getContainer } from '../di';
+import type { ILLMClientService, IAnimationSelectionService, IAnimationQueueProcessorService } from '../di/ServiceInterfaces';
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
-// Use a fast, cheap model for the judge - falls back to free model if not specified
+// Use a fast, cheap model for judge - falls back to free model if not specified
 const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openai/gpt-4o-mini';
 
-const SYSTEM_PROMPT = `You are an animation director for a 3D avatar. Given a conversation exchange, decide which animations the avatar should perform to accompany speaking its response.
+const SYSTEM_PROMPT = `You are an animation director for a 3D avatar. Given a conversation exchange, decide which animations avatar should perform to accompany speaking its response.
 
 Available animations by category:
 
@@ -21,7 +22,6 @@ GREETINGS:
 - waving: Waving - use for greeting or farewell
 - greeting: Waving hello gesture - use for hellos, goodbyes, friendly acknowledgment
 - shakingHands1: Shaking hands - use for greeting or agreement
-- entry: Entry - use for entering scene
 
 IDLE & SOCIAL:
 - idle: Default standing pose
@@ -65,14 +65,13 @@ BREAKDANCE:
 - breakdanceFreezeVar4: Freeze variation 4
 - breakdanceReady: Breakdance ready stance
 - breakdanceReady_2: Alternative ready stance
-- breakdanceReady_3: Another ready stance
 - breakdanceSwipes: Breakdance swipes
 - breakdanceUprock: Breakdance uprock
 - breakdanceUprock_2: Alternative uprock
 - breakdanceUprockToGround: Uprock to ground transition
-- breakdanceUprockToGround_2: Alternative ground transition
 - breakdanceUprockVar1: Uprock variation 1
 - breakdanceUprockVar1End: Uprock variation 1 ending
+- breakdanceUprockVar2: Uprock variation 2
 - breakdanceUprockVar1Start: Uprock variation 1 start
 - breakdanceUprockVar2: Uprock variation 2
 - brooklynUprock: Brooklyn uprock style
@@ -99,26 +98,6 @@ COMBAT:
 - aimingGun: Aiming gun - use for shooting context
 - salute: Military-style salute - use for playful formality
 
-Locomotion & MOVEMENT:
-- walking: Walking in place - use when discussing travel
-- jogBackwards: Jog backwards - use for retreating
-- jumping: Jump in place - use for excitement or jumping
-- climbing: Climbing up - use for climbing context
-- turnLeft: Turn left 90 degrees - use for turning
-- turnRight: Turn right with briefcase - use for turning
-- standardRun: Standard running - use for running
-- runningUpStairs: Running up stairs - use for climbing stairs
-
-SPORTS:
-- golfBadShot: Golf bad shot reaction - use for golf or frustration
-- golfPrePutt: Golf pre-putt stance - use for golf
-- golfDrive: Golf drive swing - use for golf
-- golfPuttVictory: Golf putt victory celebration - use for golf success
-- skateboarding: Skateboarding - use for skating
-- defeatIdle: Defeat idle - use for losing/failure
-- victoryIdle: Victory idle - use for winning/success
-- victory: Victory pose - use for celebration
-
 Exercise & Fitness:
 - plank: Plank exercise - use for exercise
 - throwing: Throwing - use for throwing objects
@@ -129,7 +108,7 @@ Exercise & Fitness:
 - backflip: Backflip - use for acrobatics
 - standingJump: Standing jump - use for jumping
 
-MUSIC & PERFORMANCE:
+Music & PERFORMANCE:
 - guitarPlaying: Playing guitar - use for music performance
 - pianoPlaying: Playing piano - use for music performance
 - playingDrums: Playing drums - use for music performance
@@ -232,7 +211,7 @@ HAND GESTURES:
 - pointing: Pointing - use for indicating direction
 
 Rules:
-1. Only trigger animations that naturally match what the avatar is saying
+1. Only trigger animations that naturally match what is avatar is saying
 2. Can return multiple animations to be played in sequence with delays
 3. Return empty array if no animation fits the context
 4. Consider the user's request AND the AI's response
@@ -278,7 +257,7 @@ const TOOL_DEFINITION = {
 };
 
 /**
- * Calls an LLM to judge which animations should play based on the conversation
+ * Calls an LLM to judge which animations should play based on conversation
  * @param userMessage - The user's message
  * @param aiResponse - The AI's response to user
  * @returns AnimationJudgment with list of animations and reasoning
@@ -300,28 +279,10 @@ export async function judgeAnimations(
     console.log('🎬 [AnimationJudge] Input - User message:', userMessage);
     console.log('🎬 [AnimationJudge] Input - AI response:', aiResponse);
     console.log('🎬 [AnimationJudge] Using model:', JUDGE_MODEL);
-    console.log('🎬 [AnimationJudge] API Key present:', !!OPENROUTER_API_KEY);
 
-    const response = await axios.post(
-      'https://openrouter.ai/api/v1/chat/completions',
-      {
-        model: JUDGE_MODEL,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          {
-            role: 'user',
-            content: `User said: "${userMessage}"\n\nAI responded: "${aiResponse}"\n\nWhat animations should the avatar perform?`
-          }
-        ],
-        tools: [TOOL_DEFINITION],
-        tool_choice: { type: 'function', function: { name: 'trigger_animations' } }
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
+    const llmClientService = getContainer().resolve<ILLMClientService>('LLM_CLIENT_SERVICE');
+    const response = await llmClientService.chat(
+      `User said: "${userMessage}"\n\nAI responded: "${aiResponse}"\n\nWhat animations should avatar perform?`
     );
 
     const elapsed = performance.now() - startTime;
@@ -330,54 +291,36 @@ export async function judgeAnimations(
     console.log('🎬 [AnimationJudge] Full API response:', response.data);
 
     // Extract tool call from response
-    if (!response.data?.choices || response.data.choices.length === 0) {
-      console.error('🎬 [AnimationJudge] No choices in API response');
+    const toolCall = response.data.choices[0].message.tool_calls[0];
+    if (!toolCall) {
+      console.error('🎬 [AnimationJudge] No tool call in response');
       return { animations: [], reasoning: 'No animation decision made' };
     }
 
-    const message = response.data.choices[0].message;
-    console.log('🎬 [AnimationJudge] Message from response:', message);
+    const args = JSON.parse(toolCall.function.arguments);
 
-    if (message.tool_calls && message.tool_calls.length > 0) {
-      const toolCall = message.tool_calls[0];
-      const args = JSON.parse(toolCall.function.arguments);
+    console.log('%c🎬 [AnimationJudge] Tool call received!', 'background: #ff6b6b; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+    console.log('%c🎬 [AnimationJudge] Raw args:', 'color: #ff6b6b; font-weight: bold;', args);
 
-      console.log('%c🎬 [AnimationJudge] Tool call received!', 'background: #ff6b6b; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
-      console.log('%c🎬 [AnimationJudge] Raw args:', 'color: #ff6b6b; font-weight: bold;', args);
+    // Validate animations are in our allowed list
+    const validAnimations: AnimationTrigger[] = args.animations
+      .filter((a: AnimationTrigger) => AVAILABLE_ANIMATIONS.includes(a.name as typeof AVAILABLE_ANIMATIONS[number]))
+      .map((a: AnimationTrigger) => ({
+        name: a.name,
+        delay: a.delay || 0
+      }));
 
-      // Validate animations are in our allowed list
-      const validAnimations: AnimationTrigger[] = args.animations
-        .filter((a: AnimationTrigger) => AVAILABLE_ANIMATIONS.includes(a.name as typeof AVAILABLE_ANIMATIONS[number]))
-        .map((a: AnimationTrigger) => ({
-          name: a.name,
-          delay: a.delay || 0
-        }));
+    console.log('%c🎬 [AnimationJudge] Valid animations:', 'color: #ff6b6b; font-weight: bold;', validAnimations);
 
-      console.log('%c🎬 [AnimationJudge] Valid animations:', 'color: #ff6b6b; font-weight: bold;', validAnimations);
-
-      return {
-        animations: validAnimations,
-        reasoning: args.reasoning || 'No reasoning provided'
-      };
-    }
-
-    // No tool call in response
-    console.log('🎬 [AnimationJudge] No tool call in response');
-    return { animations: [], reasoning: 'No animation decision made' };
-
+    return {
+      animations: validAnimations,
+      reasoning: args.reasoning || 'No reasoning provided'
+    };
   } catch (error) {
     console.error('🎬 [AnimationJudge] ERROR CAUGHT:');
     console.error('🎬 [AnimationJudge] Error name:', error instanceof Error ? error.name : 'Unknown');
     console.error('🎬 [AnimationJudge] Error message:', error instanceof Error ? error.message : String(error));
     console.error('🎬 [AnimationJudge] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-
-    // Check if it's an axios error with more details
-    if (error && typeof error === 'object' && 'response' in error) {
-      const axiosError = error as { response?: { data?: unknown; status?: number; headers?: unknown } };
-      console.error('🎬 [AnimationJudge] Axios error response:', axiosError.response?.data);
-      console.error('🎬 [AnimationJudge] Axios error status:', axiosError.response?.status);
-      console.error('🎬 [AnimationJudge] Axios error headers:', axiosError.response?.headers);
-    }
 
     // Don't throw - animation judgment is optional, return empty with detailed reasoning
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -388,219 +331,7 @@ export async function judgeAnimations(
   }
 }
 
-// Animation durations in milliseconds (approximate based on VRMA clips)
-const ANIMATION_DURATIONS: Record<string, number> = {
-  // Core animations
-  'greeting': 3000,
-  'peace': 2500,
-  'shoot': 2500,
-  'spin': 4000,
-  'modelPose': 2000,
-  'squat': 3000,
-
-  // Idle & Social
-  'idle': 3000,
-  'talkingOnPhone': 5000,
-  'bowing': 3500,
-  'salute': 2500,
-  'singing': 5000,
-
-  // Dance & Celebration
-  'hipHopDance': 5000,
-  'swinging': 4000,
-  'catwalk': 4000,
-
-  // Combat & Action
-  'punch': 1500,
-  'dropKick': 2500,
-  'flyingKnee': 3000,
-  'daggerStab': 2000,
-  'bodyBlock': 2000,
-  'centerBlock': 2000,
-  'catch': 1500,
-  'snatch': 1500,
-  'reloading': 3000,
-  'magicCast': 3500,
-
-  // Movement
-  'walking': 3000,
-  'jogBackwards': 3000,
-  'jumping': 2000,
-  'climbing': 4000,
-  'takeCover': 2500,
-  'zombieStandUp': 3500,
-  'plank': 3000,
-  'openDoor': 3000,
-  'turnLeft': 2000,
-  'turnRight': 2500,
-
-  // Sports
-  'golfBadShot': 4000,
-  'golfPrePutt': 3500,
-
-  // Gesture animations
-  'weightShift': 3000,
-  'headNod': 2000,
-  'hardHeadNod': 1500,
-  'lengthyHeadNod': 3000,
-  'sarcasticHeadNod': 2500,
-  'shakingHeadNo': 2000,
-  'annoyedHeadShake': 2000,
-  'thoughtfulHeadShake': 2500,
-  'happyHandGesture': 2000,
-  'dismissingGesture': 2000,
-  'acknowledging': 2000,
-  'angryGesture': 2000,
-  'beingCocky': 3000,
-  'relievedSigh': 2500,
-  'lookAwayGesture': 3000,
-
-  // Breakdance animations
-  'breakdance1990': 4000,
-  'breakdance1990_2': 4000,
-  'breakdance1990_2_alt': 4000,
-  'breakdance1990_3': 4000,
-  'breakdanceEnding1': 3000,
-  'breakdanceEnding2': 3000,
-  'breakdanceEnding3': 3000,
-  'breakdanceFootwork1': 4000,
-  'breakdanceFootwork2': 4000,
-  'breakdanceFootwork3': 4000,
-  'breakdanceFootworkToFreeze': 4000,
-  'breakdanceFreezes': 3000,
-  'breakdanceFreezeVar1': 3000,
-  'breakdanceFreezeVar2': 3000,
-  'breakdanceFreezeVar3': 3000,
-  'breakdanceFreezeVar4': 3000,
-  'breakdanceReady': 3000,
-  'breakdanceReady_2': 3000,
-  'breakdanceReady_3': 3000,
-  'breakdanceSwipes': 4000,
-  'breakdanceUprock': 4000,
-  'breakdanceUprock_2': 4000,
-  'breakdanceUprockToGround': 4000,
-  'breakdanceUprockToGround_2': 4000,
-  'breakdanceUprockVar1': 4000,
-  'breakdanceUprockVar1End': 3000,
-  'breakdanceUprockVar1Start': 3000,
-  'breakdanceUprockVar2': 4000,
-  'brooklynUprock': 4000,
-  'crosslegFreeze': 3000,
-  'flair': 4000,
-  'flair_2': 4000,
-  'flair_3': 4000,
-
-  // New animations from Meshy AI
-  // Music & Performance
-  'guitarPlaying': 4000,
-  'pianoPlaying': 4000,
-  'playingDrums': 4000,
-  'playingTheViolin': 4000,
-  'singing_1': 5000,
-
-  // Movement variations
-  'standardRun': 3000,
-  'runningUpStairs': 4000,
-  'startWalking': 2000,
-  'jumpingDown': 2500,
-  'jumpingJacks': 3000,
-  'vaultOverBox': 3000,
-  'skateboarding': 4000,
-  'swimming': 4000,
-  'paddling': 4000,
-  'lowCrawl': 3000,
-  'sneakingForward': 3000,
-  'sneakyWalking': 3000,
-
-  // Sitting & Lying
-  'sitting': 3000,
-  'sitToStand': 2500,
-  'standToSit': 2500,
-  'sittingClap': 2000,
-  'sittingTalking': 5000,
-  'sittingDisapproval': 2000,
-  'layingIdle': 3000,
-  'lyingDown': 3000,
-  'kneeling': 3000,
-  'crouchToStand': 2500,
-  'gettingUp': 2000,
-
-  // Social & Interaction
-  'waving': 2500,
-  'shakingHands1': 3000,
-  'beckoning': 2000,
-  'pointing': 2000,
-  'patting': 2000,
-  'petting': 2000,
-  'pettingAnimal': 2000,
-  'kiss': 2500,
-  'blowAKiss': 2500,
-  'shrugging': 2000,
-
-  // Emotional states
-  'happyIdle': 3000,
-  'sadIdle': 3000,
-  'defeatIdle': 3000,
-  'victoryIdle': 3000,
-  'victory': 3000,
-  'disappointed': 2500,
-  'bashful': 2000,
-  'angryGesture_1': 2000,
-  'thinking': 3000,
-  'nervouslyLookAround': 4000,
-  'lookAround': 3000,
-  'lookOverShoulder': 2500,
-
-  // Action & Activity
-  'aimingGun': 2000,
-  'buttonPushing': 1500,
-  'cartwheel': 3000,
-  'backflip': 3000,
-  'kipUp': 2500,
-  'throwing': 2000,
-  'textingAndWalking': 4000,
-  'typing': 3000,
-  'talking': 4000,
-  'pacingAndTalkingOnAPhone': 5000,
-  'fishingCast': 3000,
-  'plotting': 3000,
-  'startClimbingLadder': 3000,
-  'cockyHeadTurn': 2000,
-  'strongGesture': 2000,
-
-  // Dance variations
-  'rumbaDancing': 5000,
-  'sambaDancing': 5000,
-  'sillyDancing': 5000,
-  'hipHopDancing': 5000,
-  'dancingTwerk': 4000,
-  'twistDance': 4000,
-
-  // Combat & Aggressive
-  'roar': 2000,
-  'push': 2000,
-  'pushStart': 2000,
-
-  // Other
-  'floating': 4000,
-  'ninjaIdle': 3000,
-  'militarySignaling': 3000,
-  'rummaging': 3000,
-  'searchingPockets': 3000,
-  'entry': 3000,
-  'sadWalk': 4000,
-  'standingArguing': 3000,
-  'standingClap': 2000,
-  'standingGreeting': 3000,
-  'standingJump': 2500,
-  'situps': 3000,
-  'smoking': 4000,
-  'yawn': 3000,
-  'yelling': 2000,
-};
-
-const DEFAULT_ANIMATION_DURATION = 3000;
-const BUFFER_BETWEEN_ANIMATIONS = 500; // Buffer time between animations
+const BUFFER_BETWEEN_ANIMATIONS = 500; // Buffer time between animations (ms)
 
 /**
  * Process animation queue - schedules animations with their delays
@@ -635,7 +366,7 @@ export function processAnimationQueue(
 
   const playNext = () => {
     if (currentIndex >= animations.length) {
-      // Add buffer before completing to let the last animation finish smoothly
+      // Add buffer before completing to let last animation finish smoothly
       console.log('%c⏳ [AnimationQueue] Adding buffer before completion...', 'color: #f39c12;');
       setTimeout(() => {
         console.log('%c🎉 [AnimationQueue] ALL ANIMATIONS COMPLETE', 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
@@ -646,11 +377,10 @@ export function processAnimationQueue(
 
     const animation = animations[currentIndex];
     const animationDelay = (animation.delay || 0) * 1000;
-    const animationDuration = ANIMATION_DURATIONS[animation.name] || DEFAULT_ANIMATION_DURATION;
+    const animationDuration = getContainer().resolve<IAnimationQueueProcessorService>('ANIMATION_QUEUE_PROCESSOR_SERVICE').getDuration(animation.name);
 
     console.log('%c⏱️ [AnimationQueue] Scheduling "' + animation.name + '" - delay: ' + animationDelay + 'ms, duration: ' + animationDuration + 'ms', 'color: #f39c12;');
 
-    // FIX #2: Track timeout for cancellation if ref provided
     // Wait for specified delay before playing
     const delayTimeoutId = setTimeout(() => {
       console.log('%c▶️ [AnimationQueue] EXECUTING: ' + animation.name + ' (duration: ' + animationDuration + 'ms)', 'background: #e67e22; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;');
@@ -677,15 +407,6 @@ export function processAnimationQueue(
 
   // Start the queue
   playNext();
-}
-
-/**
- * Get animation duration in milliseconds
- * @param name - Animation name
- * @returns Duration in milliseconds
- */
-function getAnimationDuration(name: string): number {
-  return ANIMATION_DURATIONS[name] || DEFAULT_ANIMATION_DURATION;
 }
 
 /**
@@ -718,7 +439,7 @@ export function distributeAnimationsAcrossAudio(
     case 'early': {
       // All animations in first third
       animations.forEach((anim, index) => {
-        const duration = getAnimationDuration(anim.name);
+        const duration = getContainer().resolve<IAnimationQueueProcessorService>('ANIMATION_QUEUE_PROCESSOR_SERVICE').getDuration(anim.name);
         const triggerTime = (index * 500) + 500; // Start at 500ms, 500ms apart
         scheduled.push({
           name: anim.name,
@@ -734,7 +455,7 @@ export function distributeAnimationsAcrossAudio(
       // All animations in middle third
       const middleStart = audioDuration * 0.33;
       animations.forEach((anim, index) => {
-        const duration = getAnimationDuration(anim.name);
+        const duration = getContainer().resolve<IAnimationQueueProcessorService>('ANIMATION_QUEUE_PROCESSOR_SERVICE').getDuration(anim.name);
         const triggerTime = middleStart + (index * 500);
         scheduled.push({
           name: anim.name,
@@ -750,7 +471,7 @@ export function distributeAnimationsAcrossAudio(
       // All animations in last third
       const lateStart = audioDuration * 0.66;
       animations.forEach((anim, index) => {
-        const duration = getAnimationDuration(anim.name);
+        const duration = getContainer().resolve<IAnimationQueueProcessorService>('ANIMATION_QUEUE_PROCESSOR_SERVICE').getDuration(anim.name);
         const triggerTime = lateStart + (index * 500);
         scheduled.push({
           name: anim.name,
@@ -769,7 +490,7 @@ export function distributeAnimationsAcrossAudio(
       const gap = availableTime / Math.max(animations.length, 1);
 
       animations.forEach((anim, index) => {
-        const duration = getAnimationDuration(anim.name);
+        const duration = getContainer().resolve<IAnimationQueueProcessorService>('ANIMATION_QUEUE_PROCESSOR_SERVICE').getDuration(anim.name);
         const triggerTime = (index * gap) + 500; // Start at 500ms
         scheduled.push({
           name: anim.name,
@@ -810,36 +531,11 @@ export async function judgeAnimationsWithTiming(
   let suggestedTiming: AnimationJudgmentWithTiming['suggestedTiming'] = 'distributed';
   let suggestedLayer: AnimationLayerType = 'gesture';
 
-  // Timing analysis
-  if (responseLower.includes('hello') || responseLower.includes('hi') || responseLower.includes('hey')) {
-    suggestedTiming = 'early';
-  } else if (responseLower.includes('finally') || responseLower.includes('in conclusion') || responseLower.includes('so')) {
-    suggestedTiming = 'late';
-  } else if (responseLower.includes('meanwhile') || responseLower.includes('also') || responseLower.includes('additionally')) {
-    suggestedTiming = 'middle';
-  }
-
-  // Layer analysis based on animation type
-  const fullBodyAnimations = ['spin', 'jumping', 'backflip', 'cartwheel', 'breakdance'];
-  const upperBodyAnimations = ['peace', 'shoot', 'waving', 'pointing', 'clapping'];
-  const lowerBodyAnimations = ['squat', 'kick', 'plank', 'sitting'];
-  const idleAnimations = ['idle', 'thinking', 'waiting', 'standing'];
-  const gestureAnimations = ['headNod', 'shakingHeadNo', 'shrugging', 'beckoning'];
-
+  // Timing analysis - delegate to AnimationSelectionService
+  const animationSelectionService = getContainer().resolve<IAnimationSelectionService>('ANIMATION_SELECTION_SERVICE');
   if (baseJudgment.animations.length > 0) {
-    const firstAnimation = baseJudgment.animations[0].name;
-
-    if (fullBodyAnimations.includes(firstAnimation)) {
-      suggestedLayer = 'full_body';
-    } else if (upperBodyAnimations.includes(firstAnimation)) {
-      suggestedLayer = 'upper_body';
-    } else if (lowerBodyAnimations.includes(firstAnimation)) {
-      suggestedLayer = 'lower_body';
-    } else if (idleAnimations.includes(firstAnimation)) {
-      suggestedLayer = 'idle';
-    } else if (gestureAnimations.includes(firstAnimation)) {
-      suggestedLayer = 'gesture';
-    }
+    suggestedTiming = animationSelectionService.suggestTiming(aiResponse);
+    suggestedLayer;
   }
 
   console.log('%c🎬 [judgeAnimationsWithTiming] Suggested timing:',
@@ -853,4 +549,12 @@ export async function judgeAnimationsWithTiming(
     suggestedLayer,
     interruptible: true
   };
+}
+
+/**
+ * Get buffer time between animations
+ * @returns Buffer time in milliseconds
+ */
+export function getBufferTime(): number {
+  return BUFFER_BETWEEN_ANIMATIONS;
 }
