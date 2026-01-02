@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ChatState, Message, Emotion, ProcessedMessage, AVAILABLE_VRM_MODELS, AVAILABLE_VOICES, AnimationTrigger } from '../types';
+import type { ChatMessage } from '../di/ServiceInterfaces';
 import { animationStateService } from '../services/state/AnimationStateService';
+import { aiService } from '../services/aiService';
 
 export const MAX_MESSAGES = 10;
 
@@ -57,6 +59,71 @@ export const useChatStore = create<ChatState>()(
       setCurrentAnimation: (animation: string | null) => animationStateService.setCurrentAnimation(animation),
       setAnimationSpeed: (speed: number) => animationStateService.setAnimationSpeed(speed),
       clearMessages: () => set({ messages: [] }),
+
+      /**
+       * Phase 6: AI service integration
+       * Methods that handle AI responses with state updates
+       */
+      getAIResponse: async (input: string) => {
+        const state = useChatStore.getState();
+        const messages: ChatMessage[] = state.messages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+
+        // Set processing state before calling AI
+        set({ isProcessing: true, emotion: 'thinking' });
+
+        try {
+          const result = await aiService.getResponse(input, messages);
+          
+          // Update store based on AI response state changes
+          if (result.stateChanges.isProcessing !== undefined) {
+            set({ isProcessing: result.stateChanges.isProcessing });
+          }
+          if (result.stateChanges.emotion !== undefined) {
+            set({ emotion: result.stateChanges.emotion });
+          }
+
+          return result.content;
+        } catch (error) {
+          // Handle error - reset to neutral state
+          set({ isProcessing: false, emotion: 'neutral' });
+          throw error;
+        }
+      },
+
+      streamAIResponse: async (
+        input: string,
+        options: Parameters<typeof import('../services/aiService').streamAIResponse>[1]
+      ) => {
+        const state = useChatStore.getState();
+        const messages: ChatMessage[] = state.messages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+
+        // Set processing state before calling AI
+        set({ isProcessing: true, emotion: 'thinking' });
+
+        try {
+          const result = await aiService.streamResponse(input, messages, options);
+          
+          // Update store based on AI response state changes
+          if (result.stateChanges.isProcessing !== undefined) {
+            set({ isProcessing: result.stateChanges.isProcessing });
+          }
+          if (result.stateChanges.emotion !== undefined) {
+            set({ emotion: result.stateChanges.emotion });
+          }
+
+          return result.stateChanges;
+        } catch (error) {
+          // Handle error - reset to neutral state
+          set({ isProcessing: false, emotion: 'neutral' });
+          throw error;
+        }
+      },
     }),
     {
       name: 'chat-preferences',

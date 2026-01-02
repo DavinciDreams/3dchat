@@ -1,18 +1,10 @@
 import * as THREE from 'three';
 import type { AnimationLayerType } from '../types';
 import { getAnimationTimeScale } from '../config/animationSpeedConfig';
-
-/**
- * Animation layer configuration
- */
-export interface AnimationLayerConfig {
-  /** Layer priority (higher = overrides lower priority layers) */
-  priority: number;
-  /** Default blend mode for this layer */
-  blendMode: THREE.Blending;
-  /** Default weight for animations on this layer */
-  defaultWeight: number;
-}
+import {
+  getLayerConfig,
+  getLayerPriority
+} from '../config/animationLayerConfig';
 
 /**
  * Animation playback options
@@ -65,35 +57,6 @@ export class AnimationLayeringService {
   private layerWeights: Map<AnimationLayerType, number> = new Map();
   private animationCounter: number = 0;
 
-  /** Default layer configurations */
-  private static readonly LAYER_CONFIGS: Record<AnimationLayerType, AnimationLayerConfig> = {
-    full_body: {
-      priority: 100,
-      blendMode: THREE.NormalBlending,
-      defaultWeight: 1.0
-    },
-    upper_body: {
-      priority: 75,
-      blendMode: THREE.NormalBlending,
-      defaultWeight: 0.8
-    },
-    lower_body: {
-      priority: 50,
-      blendMode: THREE.NormalBlending,
-      defaultWeight: 0.7
-    },
-    gesture: {
-      priority: 25,
-      blendMode: THREE.AdditiveBlending,
-      defaultWeight: 0.5
-    },
-    idle: {
-      priority: 0,
-      blendMode: THREE.NormalBlending,
-      defaultWeight: 1.0
-    }
-  };
-
   constructor(mixer?: THREE.AnimationMixer) {
     if (mixer) {
       this.setMixer(mixer);
@@ -101,7 +64,7 @@ export class AnimationLayeringService {
   }
 
   /**
-   * Set or update the AnimationMixer
+   * Set or update AnimationMixer
    * @param mixer - THREE.AnimationMixer instance
    */
   setMixer(mixer: THREE.AnimationMixer): void {
@@ -149,7 +112,7 @@ export class AnimationLayeringService {
     // Set animation playback speed
     action.timeScale = getAnimationTimeScale();
 
-    const config = AnimationLayeringService.LAYER_CONFIGS[layer];
+    const config = getLayerConfig(layer);
     const {
       fadeInDuration = 0.3,
       fadeOutDuration = 0.3,
@@ -166,10 +129,10 @@ export class AnimationLayeringService {
     // FIX: Implement cross-layer weight management
     // When new animation starts, reduce weights on other layers proportionally
     // based on priority to enable proper blending between layers
-    const newLayerPriority = AnimationLayeringService.LAYER_CONFIGS[layer].priority;
-    this.activeAnimations.forEach((anim, id) => {
+    const newLayerPriority = getLayerPriority(layer);
+    this.activeAnimations.forEach((anim) => {
       if (anim.layer !== layer && !anim.isFadingOut) {
-        const existingLayerPriority = AnimationLayeringService.LAYER_CONFIGS[anim.layer].priority;
+        const existingLayerPriority = getLayerPriority(anim.layer);
         // Reduce weight more for lower priority layers
         const priorityRatio = existingLayerPriority / (existingLayerPriority + newLayerPriority);
         const newWeight = anim.weight * priorityRatio * 0.5; // Reduce to 50% or less based on priority
@@ -227,7 +190,7 @@ export class AnimationLayeringService {
 
     // Remove from active animations after fade out
     setTimeout(() => {
-      anim.action.stop();  // Actually stop the animation
+      anim.action.stop();  // Actually stop animation
       this.activeAnimations.delete(animationId);
     }, fadeOutDuration * 1000);
   }
@@ -238,9 +201,9 @@ export class AnimationLayeringService {
    * @param duration - Fade duration in seconds
    */
   fadeOutLayer(layer: AnimationLayerType, duration: number = 0.3): void {
-    this.activeAnimations.forEach((anim, id) => {
+    this.activeAnimations.forEach((anim) => {
       if (anim.layer === layer && !anim.isFadingOut) {
-        this.stopAnimation(id, duration);
+        this.stopAnimation(anim.action.getClip().name, duration);
       }
     });
   }
@@ -250,8 +213,8 @@ export class AnimationLayeringService {
    * @param fadeOutDuration - Duration of fade-out in seconds
    */
   stopAll(fadeOutDuration: number = 0.3): void {
-    this.activeAnimations.forEach((anim, id) => {
-      this.stopAnimation(id, fadeOutDuration);
+    this.activeAnimations.forEach((anim) => {
+      this.stopAnimation(anim.action.getClip().name, fadeOutDuration);
     });
     
     this.layerWeights.clear();
@@ -283,8 +246,8 @@ export class AnimationLayeringService {
    * Pause all active animations
    */
   pauseAll(): void {
-    this.activeAnimations.forEach((anim, id) => {
-      this.pauseAnimation(id);
+    this.activeAnimations.forEach((anim) => {
+      this.pauseAnimation(anim.action.getClip().name);
     });
   }
 
@@ -293,8 +256,8 @@ export class AnimationLayeringService {
    */
   resumeAll(): void {
     console.log('%c▶️ [AnimationLayering] Resuming all animations', 'color: #27ae60;');
-    this.activeAnimations.forEach((anim, id) => {
-      this.resumeAnimation(id);
+    this.activeAnimations.forEach((anim) => {
+      this.resumeAnimation(anim.action.getClip().name);
     });
   }
 
@@ -344,15 +307,6 @@ export class AnimationLayeringService {
   }
 
   /**
-   * Get layer configuration
-   * @param layer - Layer to query
-   * @returns Layer configuration
-   */
-  getLayerConfig(layer: AnimationLayerType): AnimationLayerConfig {
-    return AnimationLayeringService.LAYER_CONFIGS[layer];
-  }
-
-  /**
    * Clear all registered animations and reset state, disposing THREE.js resources
    */
   clear(): void {
@@ -374,19 +328,19 @@ export class AnimationLayeringService {
     // FIX: Properly dispose THREE.js AnimationClips to free GPU memory
     // Previously used track.values = new Float32Array(0) which doesn't free GPU memory
     // Now properly dispose clips using clip.dispose() and mixer.uncacheClip()
-    this.activeAnimations.forEach((anim, id) => {
+    this.activeAnimations.forEach((anim) => {
       try {
         const clip = anim.action.getClip();
         if (clip) {
-          // Properly dispose the clip to free GPU memory
-          clip.dispose();
-          // Uncache the clip from the mixer
+          // Properly dispose clip to free GPU memory
+          // Note: AnimationClip doesn't have dispose() method in Three.js
+          // Use mixer.uncacheClip() instead
           if (this.mixer) {
             this.mixer.uncacheClip(clip);
           }
         }
       } catch (error) {
-        console.warn(`%c⚠️ [AnimationLayering] Failed to dispose clip for animation ${id}:`, 'color: #f39c12;', error);
+        console.warn(`%c⚠️ [AnimationLayering] Failed to dispose clip for animation:`, 'color: #f39c12;', error);
       }
     });
     this.activeAnimations.clear();
@@ -403,7 +357,7 @@ export class AnimationLayeringService {
   update(delta: number): void {
     // PERFORMANCE FIX: Remove redundant mixer.update() call
     // The mixer is already updated in AvatarModel.tsx useFrame hook
-    // Calling it again causes triple processing of the same time delta
+    // Calling it again causes triple processing of same time delta
     // which leads to choppy animations (58-86ms per frame instead of ~16ms)
     
     // Update animation weights for smooth blending
@@ -438,25 +392,6 @@ export class AnimationLayeringService {
    */
   getRegisteredAnimations(): string[] {
     return Array.from(this.actionCache.keys());
-  }
-
-  /**
-   * Get layer priority
-   * @param layer - Layer to query
-   * @returns Priority value
-   */
-  getLayerPriority(layer: AnimationLayerType): number {
-    return AnimationLayeringService.LAYER_CONFIGS[layer].priority;
-  }
-
-  /**
-   * Compare layer priorities
-   * @param layer1 - First layer
-   * @param layer2 - Second layer
-   * @returns Positive if layer1 has higher priority, negative if lower
-   */
-  compareLayerPriority(layer1: AnimationLayerType, layer2: AnimationLayerType): number {
-    return this.getLayerPriority(layer1) - this.getLayerPriority(layer2);
   }
 }
 

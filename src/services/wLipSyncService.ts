@@ -9,7 +9,7 @@
  */
 
 import { createWLipSyncNode, WLipSyncAudioNode } from 'wlipsync';
-import { getProfilePath, hasProfile } from '../config/vrmProfiles';
+import { vrmProfileService } from './vrmProfileService';
 
 /**
  * Phoneme weights from wLipSync
@@ -78,15 +78,16 @@ export class WLipSyncService {
    */
   async initialize(modelId: string): Promise<void> {
     // Check if profile exists for this model
-    if (!hasProfile(modelId)) {
+    if (!vrmProfileService.hasProfile(modelId)) {
       console.warn(`[wLipSyncService] No profile available for model: ${modelId}`);
       throw new Error(`No wLipSync profile available for model: ${modelId}`);
     }
 
-    const profilePath = getProfilePath(modelId);
-    if (!profilePath) {
+    const profile = vrmProfileService.getProfile(modelId);
+    if (!profile || !profile.isAvailable) {
       throw new Error(`Could not get profile path for model: ${modelId}`);
     }
+    const profilePath = profile.profilePath;
 
     // Check secure context requirement (HTTPS or localhost)
     if (typeof window !== 'undefined' && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {

@@ -2,6 +2,10 @@ import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
+import { initializePhase5Services } from './di/initializeServices';
+
+// Initialize DI container services
+initializePhase5Services();
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;

@@ -3,19 +3,21 @@
  *
  * Handles retargeting VRMA animations to specific VRM models.
  * Uses createVRMAnimationClip from @pixiv/three-vrm-animation.
+ * 
+ * Note: Bone masking has been removed. AnimationLayeringService now handles
+ * layering through Three.js native AnimationMixer blending.
  */
 
 import { createVRMAnimationClip } from '@pixiv/three-vrm-animation';
 import type { IVMARetargetingService } from '../../di/ServiceInterfaces';
 import type { IVMACacheService } from '../../di/ServiceInterfaces';
-import type { AnimationLayerType } from '../../types';
-import { maskAnimationClip } from '../../utils/animationMasking';
 
 /**
  * VRMA Retargeting Service
  *
- * Retargets VRMA animations to VRM models and caches the results.
- * Supports optional bone masking via animation layers.
+ * Retargets VRMA animations to VRM models and caches results.
+ * Note: Bone masking has been removed. AnimationLayeringService handles
+ * layering through Three.js native AnimationMixer blending.
  */
 export class VRMARetargetingService implements IVMARetargetingService {
   constructor(
@@ -28,7 +30,7 @@ export class VRMARetargetingService implements IVMARetargetingService {
    * @param vrm The VRM model instance
    * @param modelId The model ID for caching
    * @param animationName The animation name for caching
-   * @param layer Optional animation layer for bone masking
+   * @param layer Optional animation layer for caching
    * @returns The retargeted animation clip
    */
   createRetargetedClip(
@@ -45,17 +47,13 @@ export class VRMARetargetingService implements IVMARetargetingService {
     
     // Create new retargeted clip
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let retargetedClip = createVRMAnimationClip(vrmAnimation as any, vrm as any);
+    const retargetedClip = createVRMAnimationClip(vrmAnimation as any, vrm as any);
     
-    // Apply bone masking if layer is specified
-    // Note: maskAnimationClip is deprecated but kept for backward compatibility
-    // This will be replaced by AnimationLayeringService in Phase 8
-    if (layer) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      retargetedClip = maskAnimationClip(retargetedClip as any, layer as AnimationLayerType);
-    }
+    // Note: Bone masking has been removed. AnimationLayeringService handles
+    // layering through Three.js native AnimationMixer blending.
+    // The layer parameter is now only used for caching purposes.
     
-    // Cache the result
+    // Cache result
     this.cache.setRetargetedClip(modelId, animationName, layer, retargetedClip);
     
     return retargetedClip;
@@ -82,7 +80,6 @@ export class VRMARetargetingService implements IVMARetargetingService {
 }
 
 // Export singleton instance for backward compatibility
-// Note: This will be replaced with DI in refactored VRMAAnimationService
 let vrmaRetargetingServiceInstance: VRMARetargetingService | null = null;
 
 export function getVRMARetargetingService(): VRMARetargetingService {

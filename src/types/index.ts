@@ -105,6 +105,12 @@ export interface Message {
   timestamp: number;
 }
 
+// ChatMessage type for AI services
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
 // Chat Interface types
 export interface ChatMessageProps {
   message: Message;

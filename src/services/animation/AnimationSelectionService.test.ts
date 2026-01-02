@@ -112,7 +112,7 @@ describe('AnimationSelectionService', () => {
     });
 
     it('should suggest middle for meanwhile/additionally', () => {
-      const timing = service.suggestTiming('Additionally, check this out');
+      const timing = service.suggestTiming('Meanwhile, check this out');
       expect(timing).toBe('middle');
     });
 

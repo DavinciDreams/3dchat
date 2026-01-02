@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Mic, MicOff, Loader2, Copy, Download, StopCircle, Plus, Play, ChevronDown, ChevronRight, PanelRight, PanelBottom, MessageSquare, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChatStore, MAX_MESSAGES } from '../store/chatStore';
+import type { ChatMessage } from '../types';
 import { streamAIResponse } from '../services/aiService';
 import { startListening, stopListening } from '../services/speechService';
 import { judgeAnimations, processAnimationQueue } from '../services/animationJudgeService';
