@@ -1,6 +1,6 @@
 import { AnimationJudgment, AnimationTrigger, AVAILABLE_ANIMATIONS, AnimationJudgmentWithTiming, ScheduledAnimation, AnimationLayerType } from '../types';
-import { getContainer } from '../di';
-import type { ILLMClientService, IAnimationSelectionService, IAnimationQueueProcessorService } from '../di/ServiceInterfaces';
+import { getContainer, SERVICE_TOKENS } from '../di';
+import type { ILLMClient, IAnimationSelectionService, IAnimationQueueProcessorService } from '../di/ServiceInterfaces';
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 // Use a fast, cheap model for judge - falls back to free model if not specified
@@ -280,18 +280,17 @@ export async function judgeAnimations(
     console.log('🎬 [AnimationJudge] Input - AI response:', aiResponse);
     console.log('🎬 [AnimationJudge] Using model:', JUDGE_MODEL);
 
-    const llmClientService = getContainer().resolve<ILLMClientService>('LLM_CLIENT_SERVICE');
-    const response = await llmClientService.chat(
-      `User said: "${userMessage}"\n\nAI responded: "${aiResponse}"\n\nWhat animations should avatar perform?`
-    );
+    const llmClientService = getContainer().resolve<ILLMClient>(SERVICE_TOKENS.LLM_CLIENT);
+    const response = await llmClientService.chat([
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: `User said: "${userMessage}"\n\nAI responded: "${aiResponse}"\n\nWhat animations should avatar perform?` }
+    ]);
 
     const elapsed = performance.now() - startTime;
     console.log(`🎬 [AnimationJudge] LLM call took ${elapsed.toFixed(0)}ms`);
-    console.log('🎬 [AnimationJudge] API Response status:', response.status);
-    console.log('🎬 [AnimationJudge] Full API response:', response.data);
 
     // Extract tool call from response
-    const toolCall = response.data.choices[0].message.tool_calls[0];
+    const toolCall = response.tool_calls?.[0];
     if (!toolCall) {
       console.error('🎬 [AnimationJudge] No tool call in response');
       return { animations: [], reasoning: 'No animation decision made' };
