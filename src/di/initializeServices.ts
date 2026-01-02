@@ -23,6 +23,7 @@ import { timelineManager } from '../services/timelineManager';
 
 // Phase 6: AI Service
 import { aiService } from '../services/aiService';
+import { LLMClientService } from '../services/ai/LLMClientService';
 
 /**
  * Initialize Phase 5 services in DI container
@@ -121,6 +122,15 @@ export function initializePhase6Services(): void {
   // ============================================
   // Phase 6: AI Service
   // ============================================
+
+  // LLM Client Service (Phase 6)
+  if (!container.has(SERVICE_TOKENS.LLM_CLIENT)) {
+    container.register({
+      token: SERVICE_TOKENS.LLM_CLIENT,
+      factory: () => new LLMClientService(),
+      lifetime: ServiceLifetime.Singleton,
+    });
+  }
 
   // AI Service (Phase 6)
   if (!container.has(SERVICE_TOKENS.AI_SERVICE)) {
