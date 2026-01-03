@@ -20,6 +20,10 @@ export interface AnimationPlaybackOptions {
   loop?: THREE.AnimationActionLoopStyles;
   /** Whether to animation can be interrupted */
   interruptible?: boolean;
+  /** Duration of animation in seconds (0 for infinite loop) */
+  duration?: number;
+  /** Callback when animation completes */
+  onComplete?: () => void;
 }
 
 /**
@@ -35,6 +39,9 @@ interface ActiveAnimation {
   startTime: number;
   isFadingIn: boolean;
   isFadingOut: boolean;
+  duration: number;
+  onComplete?: () => void;
+  hasCompleted: boolean;
 }
 
 /**
@@ -56,6 +63,7 @@ export class AnimationLayeringService {
   private activeAnimations: Map<string, ActiveAnimation> = new Map();
   private layerWeights: Map<AnimationLayerType, number> = new Map();
   private animationCounter: number = 0;
+  private completionCallbacks: Map<string, () => void> = new Map();
 
   constructor(mixer?: THREE.AnimationMixer) {
     if (mixer) {
@@ -117,7 +125,9 @@ export class AnimationLayeringService {
       fadeInDuration = 0.3,
       fadeOutDuration = 0.3,
       weight = config.defaultWeight,
-      loop = THREE.LoopRepeat
+      loop = THREE.LoopRepeat,
+      duration = 0,
+      onComplete
     } = options;
 
     // Generate unique animation ID
@@ -165,8 +175,16 @@ export class AnimationLayeringService {
       fadeOutDuration,
       startTime: performance.now(),
       isFadingIn: true,
-      isFadingOut: false
+      isFadingOut: false,
+      duration,
+      onComplete,
+      hasCompleted: false
     });
+
+    // Store completion callback
+    if (onComplete) {
+      this.completionCallbacks.set(animationId, onComplete);
+    }
 
     // Update layer weight
     this.layerWeights.set(layer, weight);
@@ -191,6 +209,14 @@ export class AnimationLayeringService {
     // Remove from active animations after fade out
     setTimeout(() => {
       anim.action.stop();  // Actually stop animation
+      
+      // Call completion callback
+      if (anim.onComplete) {
+        anim.onComplete();
+      }
+      
+      // Remove completion callback
+      this.completionCallbacks.delete(animationId);
       this.activeAnimations.delete(animationId);
     }, fadeOutDuration * 1000);
   }
@@ -201,9 +227,9 @@ export class AnimationLayeringService {
    * @param duration - Fade duration in seconds
    */
   fadeOutLayer(layer: AnimationLayerType, duration: number = 0.3): void {
-    this.activeAnimations.forEach((anim) => {
+    this.activeAnimations.forEach((anim, animationId) => {
       if (anim.layer === layer && !anim.isFadingOut) {
-        this.stopAnimation(anim.action.getClip().name, duration);
+        this.stopAnimation(animationId, duration);
       }
     });
   }
@@ -314,6 +340,9 @@ export class AnimationLayeringService {
     
     this.stopAll(0);
     
+    // Clear completion callbacks
+    this.completionCallbacks.clear();
+    
     // Properly dispose THREE.js AnimationActions to free GPU memory
     this.actionCache.forEach((action, name) => {
       try {
@@ -360,10 +389,12 @@ export class AnimationLayeringService {
     // Calling it again causes triple processing of same time delta
     // which leads to choppy animations (58-86ms per frame instead of ~16ms)
     
+    const now = performance.now();
+    
     // Update animation weights for smooth blending
-    this.activeAnimations.forEach((anim) => {
+    this.activeAnimations.forEach((anim, animationId) => {
       if (anim.isFadingIn) {
-        // Interpolate weight towards target
+        // Interpolate weight towards target for fade-in
         const fadeSpeed = 1 / anim.fadeInDuration;
         anim.weight = Math.min(anim.weight + fadeSpeed * delta, anim.targetWeight);
         
@@ -373,6 +404,24 @@ export class AnimationLayeringService {
         
         // Apply weight to action
         anim.action.weight = anim.weight;
+      } else if (anim.isFadingOut) {
+        // Interpolate weight towards 0 for fade-out
+        const fadeSpeed = 1 / anim.fadeOutDuration;
+        anim.weight = Math.max(anim.weight - fadeSpeed * delta, 0);
+        
+        // Apply weight to action during fade-out
+        anim.action.weight = anim.weight;
+      }
+      
+      // Check if animation with duration has completed
+      if (anim.duration > 0 && !anim.hasCompleted && !anim.isFadingOut) {
+        const elapsed = (now - anim.startTime) / 1000; // Convert to seconds
+        
+        if (elapsed >= anim.duration) {
+          // Animation has completed, trigger fade out
+          anim.hasCompleted = true;
+          this.stopAnimation(animationId, anim.fadeOutDuration);
+        }
       }
     });
   }

@@ -55,8 +55,14 @@ export const useChatStore = create<ChatState>()(
       setEmotion: (emotion: Emotion) => set({ emotion }),
       setSelectedModelId: (modelId: string) => set({ selectedModelId: modelId }),
       setSelectedVoiceId: (voiceId: string) => set({ selectedVoiceId: voiceId }),
-      setAnimationQueue: (queue: AnimationTrigger[]) => animationStateService.setAnimationQueue(queue),
-      setCurrentAnimation: (animation: string | null) => animationStateService.setCurrentAnimation(animation),
+      setAnimationQueue: (queue: AnimationTrigger[]) => {
+        animationStateService.setAnimationQueue(queue);
+        set({ animationQueue: queue });
+      },
+      setCurrentAnimation: (animation: string | null) => {
+        animationStateService.setCurrentAnimation(animation);
+        set({ currentAnimation: animation });
+      },
       setAnimationSpeed: (speed: number) => animationStateService.setAnimationSpeed(speed),
       clearMessages: () => set({ messages: [] }),
 

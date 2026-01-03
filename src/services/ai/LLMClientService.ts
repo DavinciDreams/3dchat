@@ -309,6 +309,7 @@ export class LLMClientService {
           tool_choice: { type: 'function', function: { name: 'trigger_animations' } }
         },
         {
+          timeout: 30000, // 30 second timeout to prevent indefinite hanging
           headers: {
             'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
             'Content-Type': 'application/json'

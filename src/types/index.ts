@@ -288,19 +288,19 @@ export const CORE_ANIMATIONS = [
 // Extended animations (converted from Mixamo FBX files)
 export const EXTENDED_ANIMATIONS = [
   // Idle & Standing
-  'idle', 'weightShift', 'talkingOnPhone',
+  'idle', 'weightShift', 'talkingOnPhone', 'sadIdle', 'acknowledging',
   // Greetings & Social
-  'bowing', 'salute', 'singing',
+  'bowing', 'salute', 'singing', 'shakingHands1', 'standingClap', 'standingGreeting', 'waving', 'yelling',
   // Dance & Celebration
-  'hipHopDance', 'swinging', 'catwalk',
+  'hipHopDance', 'swinging', 'catwalk', 'rumbaDancing', 'sambaDancing',
   // Combat & Action
-  'punch', 'dropKick', 'flyingKnee', 'daggerStab', 'bodyBlock', 'centerBlock', 'catch', 'snatch', 'reloading', 'magicCast',
+  'punch', 'dropKick', 'flyingKnee', 'daggerStab', 'bodyBlock', 'catch', 'snatch', 'reloading', 'magicCast',
   // Movement
-  'walking', 'jogBackwards', 'jumping', 'climbing', 'takeCover', 'zombieStandUp', 'plank', 'openDoor', 'turnLeft', 'turnRight',
+  'walking', 'jogBackwards', 'jumping', 'climbing', 'zombieStandUp', 'turnRight', 'catwalkWalkStopTwistR', 'kipUp', 'paddling', 'sadWalk', 'skateboarding', 'standingArguing', 'standingJump', 'startWalking', 'strongGesture', 'swimming', 'throwing', 'twistDance', 'typing',
   // Sports & Activities
-  'golfBadShot', 'golfPrePutt',
+  'golfBadShot', 'golfPrePutt', 'golfDrive', 'golfPuttVictory',
   // New animations from Meshy AI
-  'aimingGun', 'angryGesture_1', 'backflip', 'bashful', 'beckoning', 'blowAKiss', 'boredmelancholyIdle_1', 'buttonPushing', 'cartwheel', 'catwalkTwistLToWalk180', 'catwalkWalkStopTwistR', 'catwalkWalking', 'cockyHeadTurn', 'crouchToStand', 'dancingTwerk', 'defeatIdle', 'disappointed', 'entry', 'fishingCast', 'floating', 'gettingUp', 'golfDrive', 'golfPuttVictory', 'guitarPlaying', 'happyIdle', 'hipHopDancing', 'jumpingDown', 'jumpingJacks', 'kipUp', 'kiss', 'kneeling', 'layingIdle', 'lookAround', 'lookOverShoulder', 'lowCrawl', 'lyingDown', 'militarySignaling', 'nervouslyLookAround', 'ninjaIdle', 'pacingAndTalkingOnAPhone', 'paddling', 'patting', 'pettingAnimal', 'petting', 'pianoPlaying', 'playingDrums', 'playingTheViolin', 'plotting', 'pointing', 'praying', 'pushStart', 'push', 'roar', 'rumbaDancing', 'rummaging', 'runningUpStairs', 'sadIdle', 'sadWalk', 'sambaDancing', 'searchingPockets', 'sexyauton2.temp2169616280', 'shakingHands1', 'shrugging', 'sillyDancing', 'singing_1', 'sitToStand', 'sittingClap', 'sittingDisapproval', 'sittingTalking', 'sitting', 'situps', 'skateboarding', 'smoking', 'sneakingForward', 'sneakyWalking', 'standToSit', 'standardRun', 'standingArguing', 'standingClap', 'standingGreeting', 'standingJump', 'startClimbingLadder', 'startWalking', 'strongGesture', 'swimming', 'talking', 'textingAndWalking', 'thinking', 'throwing', 'twistDance', 'typing', 'vaultOverBox', 'victoryIdle', 'victory', 'waving', 'yawn', 'yelling',
+  'aimingGun', 'angryGesture_1', 'backflip', 'bashful', 'beckoning', 'blowAKiss', 'boredmelancholyIdle_1', 'buttonPushing', 'cartwheel', 'catwalkTwistLToWalk180', 'catwalkWalking', 'cockyHeadTurn', 'crouchToStand', 'dancingTwerk', 'defeatIdle', 'disappointed', 'entry', 'fishingCast', 'floating', 'gettingUp', 'guitarPlaying', 'happyIdle', 'hipHopDancing', 'jumpingDown', 'jumpingJacks', 'kiss', 'kneeling', 'layingIdle', 'lookAround', 'lookOverShoulder', 'lowCrawl', 'lyingDown', 'militarySignaling', 'nervouslyLookAround', 'pacingAndTalkingOnAPhone', 'patting', 'pettingAnimal', 'petting', 'pianoPlaying', 'playingDrums', 'playingTheViolin', 'plotting', 'praying', 'roar', 'rummaging', 'runningUpStairs', 'searchingPockets', 'shrugging', 'sillyDancing', 'singing_1', 'sitToStand', 'sittingDisapproval', 'sittingTalking', 'sitting', 'situps', 'smoking', 'sneakingForward', 'sneakyWalking', 'standToSit', 'standardRun', 'startClimbingLadder', 'talking', 'textingAndWalking', 'thinking', 'vaultOverBox', 'victoryIdle', 'yawn',
 ] as const;
 
 // Gesture animations (subtle emotional expressions)
@@ -309,7 +309,7 @@ export const GESTURE_ANIMATIONS = [
   'headNod', 'hardHeadNod', 'lengthyHeadNod', 'sarcasticHeadNod',
   'shakingHeadNo', 'annoyedHeadShake', 'thoughtfulHeadShake',
   // Hand gestures
-  'happyHandGesture', 'dismissingGesture', 'acknowledging',
+  'happyHandGesture', 'dismissingGesture', 'pointing', 'thumbsUp', 'thumbsDown',
   // Emotional expressions
   'angryGesture', 'beingCocky', 'relievedSigh', 'lookAwayGesture',
 ] as const;

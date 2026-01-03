@@ -25,6 +25,14 @@ import { timelineManager } from '../services/timelineManager';
 import { aiService } from '../services/aiService';
 import { LLMClientService } from '../services/ai/LLMClientService';
 
+// VRMA Services
+import { VRMALoaderService, vrmaLoaderService } from '../services/animation/VRMALoaderService';
+import { VRMACacheService } from '../services/animation/VRMACacheService';
+import { VRMARetargetingService } from '../services/animation/VRMARetargetingService';
+
+// Animation Queue Processor Service
+import { AnimationQueueProcessorService } from '../services/animation/AnimationQueueProcessorService';
+
 /**
  * Initialize Phase 5 services in DI container
  * This should be called once at application startup
@@ -105,6 +113,42 @@ export function initializePhase5Services(): void {
         estimator: container.resolve(SERVICE_TOKENS.TEXT_TIMING_ESTIMATOR) as any,
         debug: false,
       }),
+      lifetime: ServiceLifetime.Singleton,
+    });
+  }
+
+  // ============================================
+  // VRMA Services
+  // ============================================
+
+  // VRMA Loader
+  if (!container.has(SERVICE_TOKENS.VRMA_LOADER)) {
+    container.registerInstance(SERVICE_TOKENS.VRMA_LOADER, vrmaLoaderService);
+  }
+
+  // VRMA Cache
+  if (!container.has(SERVICE_TOKENS.VRMA_CACHE)) {
+    container.register({
+      token: SERVICE_TOKENS.VRMA_CACHE,
+      factory: () => new VRMACacheService(),
+      lifetime: ServiceLifetime.Singleton,
+    });
+  }
+
+  // VRMA Retargeting
+  if (!container.has(SERVICE_TOKENS.VRMA_RETARGETING)) {
+    container.register({
+      token: SERVICE_TOKENS.VRMA_RETARGETING,
+      factory: () => new VRMARetargetingService(container.resolve(SERVICE_TOKENS.VRMA_CACHE) as any),
+      lifetime: ServiceLifetime.Singleton,
+    });
+  }
+
+  // Animation Queue Processor
+  if (!container.has(SERVICE_TOKENS.ANIMATION_QUEUE_PROCESSOR_SERVICE)) {
+    container.register({
+      token: SERVICE_TOKENS.ANIMATION_QUEUE_PROCESSOR_SERVICE,
+      factory: () => new AnimationQueueProcessorService(),
       lifetime: ServiceLifetime.Singleton,
     });
   }
