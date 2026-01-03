@@ -136,7 +136,7 @@ function setupRecognitionHandlers(): void {
             () => {
               // Reset to idle when all animations complete
               console.log('%c✅ ANIMATION QUEUE COMPLETE (Speech)', 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
-              store.setCurrentAnimation(null);
+              store.setCurrentAnimation('modelPose'); // Set to idle animation instead of null to avoid T-pose
               store.setAnimationQueue([]);
             }
           );

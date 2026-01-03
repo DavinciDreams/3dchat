@@ -3,22 +3,25 @@ import {
   QueuedAnimation,
   AnimationLayerType,
   AnimationQueueOptions,
-  TimelineEvent
 } from '../types';
 import { TimelineManager } from './timelineManager';
 import { animationLayeringService } from './animationLayeringService';
 import vrmaAnimationService, { VRMA_ANIMATIONS } from './vrmaAnimationService';
+import { AnimationQueue } from './animation/AnimationQueue';
+import { AnimationScheduler } from './animation/AnimationScheduler';
 
 /**
  * AnimationQueueService
  * 
  * Manages queued animation playback with interruptibility support.
+ * Uses AnimationScheduler for queue management and scheduling.
  * Uses AnimationLayeringService for weight-based blending and layer management.
  * Animations can play simultaneously on different body layers.
+ * 
+ * DEPRECATED: This service is being refactored. Use AnimationScheduler directly.
+ * Kept for backward compatibility.
  */
 export class AnimationQueueService {
-  private queue: QueuedAnimation[] = [];
-  private activeLayers: Map<AnimationLayerType, QueuedAnimation> = new Map();
   private timelineManager: TimelineManager;
   private options: Required<AnimationQueueOptions>;
   private animationCounter: number = 0;
@@ -30,7 +33,11 @@ export class AnimationQueueService {
   
   // Track which animations are currently being loaded to prevent duplicate loads
   private loadingAnimations: Map<string, Promise<void>> = new Map();
-
+  
+  // New services from Phase 5 refactoring
+  private animationQueue: AnimationQueue;
+  private animationScheduler: AnimationScheduler;
+  
   constructor(options: AnimationQueueOptions) {
     this.timelineManager = options.timelineManager;
     this.options = {
@@ -42,8 +49,17 @@ export class AnimationQueueService {
     // Initialize AnimationLayeringService with mixer
     animationLayeringService.setMixer(options.mixer);
     this.mixer = options.mixer;
+    
+    // Initialize new services from Phase 5
+    this.animationQueue = new AnimationQueue();
+    this.animationScheduler = new AnimationScheduler({
+      timelineManager: options.timelineManager,
+      animationQueue: this.animationQueue,
+      defaultBlendDuration: options.defaultBlendDuration ?? 300,
+      debug: false,
+    });
   }
-
+  
   /**
    * Load and register an animation on-demand
    * This is called when an animation is requested but not yet registered
@@ -93,7 +109,7 @@ export class AnimationQueueService {
           this.selectedModelId,
           animationName,
           layer
-        );
+        ) as THREE.AnimationClip;
 
         // Register animation with AnimationLayeringService
         animationLayeringService.registerAnimation(animationName, retargetedClip);
@@ -115,179 +131,137 @@ export class AnimationQueueService {
       this.loadingAnimations.delete(animationName);
     }
   }
-
+  
   /**
    * Schedule animation on timeline
    * @param animation - Animation to schedule
    * @param audioOffset - Audio offset in milliseconds
+   * 
+   * DEPRECATED: Use AnimationScheduler.schedule() directly
    */
   scheduleAnimation(
     animation: QueuedAnimation,
     audioOffset: number = 0
   ): void {
-    if (!animation.id) {
-      animation.id = `anim_${this.animationCounter++}`;
-    }
-    
-    // Set default blend durations
-    if (!animation.blendIn) {
-      animation.blendIn = this.options.defaultBlendDuration;
-    }
-    if (!animation.blendOut) {
-      animation.blendOut = this.options.defaultBlendDuration;
-    }
-    
-    // Add to queue
-    this.queue.push(animation);
-    
-    // Create timeline event for animation start
-    const event: TimelineEvent = {
-      id: `${animation.id}_start`,
-      timestamp: animation.startTime + audioOffset,
-      type: 'animation',
-      data: animation,
-      callback: () => this.playAnimation(animation)
-    };
-    
-    this.timelineManager.schedule(event);
-    
-    // Schedule fade out if duration is set
-    if (animation.duration > 0) {
-      const fadeOutEvent: TimelineEvent = {
-        id: `${animation.id}_fadeOut`,
-        timestamp: animation.startTime + animation.duration + audioOffset,
-        type: 'animation',
-        data: animation,
-        callback: () => this.fadeOutAnimation(animation, animation.blendOut)
-      };
-      this.timelineManager.schedule(fadeOutEvent);
-    }
-    
-    console.log(`%c📋 [AnimationQueue] Scheduled: ${animation.name} on ${animation.layer} at ${animation.startTime}ms`, 
-      'color: #3498db;');
+    console.warn('[AnimationQueueService] scheduleAnimation is deprecated. Use AnimationScheduler.schedule() directly.');
+    this.animationScheduler.schedule(animation, audioOffset);
   }
-
+  
   /**
    * Schedule multiple animations at once
    * @param animations - Array of animations to schedule
    * @param audioOffset - Audio offset in milliseconds
+   * 
+   * DEPRECATED: Use AnimationScheduler.scheduleBatch() directly
    */
   scheduleBatch(animations: QueuedAnimation[], audioOffset: number = 0): void {
-    animations.forEach(anim => this.scheduleAnimation(anim, audioOffset));
+    console.warn('[AnimationQueueService] scheduleBatch is deprecated. Use AnimationScheduler.scheduleBatch() directly.');
+    this.animationScheduler.scheduleBatch(animations, audioOffset);
   }
-
+  
   /**
    * Cancel a specific animation by ID
    * @param id - Animation ID to cancel
+   * 
+   * DEPRECATED: Use AnimationScheduler.cancel() directly
    */
   cancel(id: string): void {
-    // Cancel timeline events
-    this.timelineManager.cancelEvent(`${id}_start`);
-    this.timelineManager.cancelEvent(`${id}_fadeOut`);
-    
-    // Remove from queue
-    this.queue = this.queue.filter(a => a.id !== id);
-    
-    // Stop if currently playing
-    const active = this.getActiveAnimationById(id);
-    if (active) {
-      this.fadeOutAnimation(active, 0.2); // Quick fade out
-      this.activeLayers.delete(active.layer);
-    }
-    
-    console.log(`%c❌ [AnimationQueue] Cancelled: ${id}`, 'color: #e74c3c;');
+    console.warn('[AnimationQueueService] cancel is deprecated. Use AnimationScheduler.cancel() directly.');
+    this.animationScheduler.cancel(id);
   }
-
+  
   /**
    * Cancel all animations
+   * 
+   * DEPRECATED: Use AnimationScheduler.cancelAll() directly
    */
   cancelAll(): void {
-    console.log('%c🗑️ [AnimationQueue] Cancelling all animations', 'color: #95a5a6;');
-    
-    // Cancel all timeline events
-    this.timelineManager.cancelEventsByType('animation');
-    
-    // Fade out all active animations
-    this.activeLayers.forEach(anim => {
-      this.fadeOutAnimation(anim, 0.2);
-    });
-    
-    // Clear state
-    this.queue = [];
-    this.activeLayers.clear();
+    console.warn('[AnimationQueueService] cancelAll is deprecated. Use AnimationScheduler.cancelAll() directly.');
+    this.animationScheduler.cancelAll();
   }
-
+  
   /**
    * Interrupt current animations
    * @param exceptLayers - Layers to keep playing
+   * 
+   * DEPRECATED: Use AnimationScheduler.interrupt() directly
    */
   interrupt(exceptLayers: AnimationLayerType[] = []): void {
-    console.log('%c⏹ [AnimationQueue] Interrupting animations', 'color: #f39c12;');
-    
-    this.activeLayers.forEach((anim, layer) => {
-      if (!exceptLayers.includes(layer) && anim.interruptible) {
-        this.fadeOutAnimation(anim, 0.2); // Quick fade out
-        this.activeLayers.delete(layer);
-        console.log(`%c⏹ [AnimationQueue] Interrupted: ${anim.name} on ${layer}`, 
-          'color: #f39c12;');
-      }
-    });
+    console.warn('[AnimationQueueService] interrupt is deprecated. Use AnimationScheduler.interrupt() directly.');
+    this.animationScheduler.interrupt(exceptLayers);
   }
-
+  
   /**
    * Pause all animations
+   * 
+   * DEPRECATED: Use AnimationScheduler.pause() directly
    */
   pause(): void {
-    console.log('%c⏸️ [AnimationQueue] Pausing all animations', 'color: #f39c12;');
-    animationLayeringService.pauseAll();
+    console.warn('[AnimationQueueService] pause is deprecated. Use AnimationScheduler.pause() directly.');
+    this.animationScheduler.pause();
   }
-
+  
   /**
    * Resume all animations
+   * 
+   * DEPRECATED: Use AnimationScheduler.resume() directly
    */
   resume(): void {
-    console.log('%c▶️ [AnimationQueue] Resuming all animations', 'color: #27ae60;');
-    animationLayeringService.resumeAll();
+    console.warn('[AnimationQueueService] resume is deprecated. Use AnimationScheduler.resume() directly.');
+    this.animationScheduler.resume();
   }
-
+  
   /**
    * Get active animation for a specific layer
    * @param layerType - Layer type to query
    * @returns Active animation or null
+   * 
+   * DEPRECATED: Use AnimationScheduler.getActiveLayer() directly
    */
   getActiveLayer(layerType: AnimationLayerType): QueuedAnimation | null {
-    return this.activeLayers.get(layerType) || null;
+    console.warn('[AnimationQueueService] getActiveLayer is deprecated. Use AnimationScheduler.getActiveLayer() directly.');
+    return this.animationScheduler.getActiveLayer(layerType);
   }
-
+  
   /**
    * Get all active layers
    * @returns Map of layer type to active animation
+   * 
+   * DEPRECATED: Use AnimationScheduler.getAllActiveLayers() directly
    */
   getAllActiveLayers(): Map<AnimationLayerType, QueuedAnimation> {
-    return new Map(this.activeLayers);
+    console.warn('[AnimationQueueService] getAllActiveLayers is deprecated. Use AnimationScheduler.getAllActiveLayers() directly.');
+    return this.animationScheduler.getAllActiveLayers();
   }
-
+  
   /**
    * Get current queue
    * @returns Array of queued animations
+   * 
+   * DEPRECATED: Use AnimationScheduler.getQueue() directly
    */
   getQueue(): QueuedAnimation[] {
-    return [...this.queue];
+    console.warn('[AnimationQueueService] getQueue is deprecated. Use AnimationScheduler.getQueue() directly.');
+    return this.animationScheduler.getQueue();
   }
-
+  
   /**
    * Get queue length
    * @returns Number of queued animations
+   * 
+   * DEPRECATED: Use AnimationScheduler.getQueueLength() directly
    */
   getQueueLength(): number {
-    return this.queue.length;
+    console.warn('[AnimationQueueService] getQueueLength is deprecated. Use AnimationScheduler.getQueueLength() directly.');
+    return this.animationScheduler.getQueueLength();
   }
-
+  
   /**
    * Play animation with layering support using AnimationLayeringService
    * @param animation - Animation to play
+   * @returns Promise resolving to animation ID
    */
-  private async playAnimation(animation: QueuedAnimation): Promise<void> {
+  private async playAnimation(animation: QueuedAnimation): Promise<string> {
     const layerType = animation.layer;
     
     console.log(`%c▶️ [AnimationQueue] Playing: ${animation.name} on ${layerType}`, 
@@ -319,12 +293,9 @@ export class AnimationQueueService {
       }
     );
     
-    // Track animation ID for later cancellation
-    if (animation.id) {
-      this.activeLayers.set(layerType, { ...animation, id: animationId });
-    }
+    return animationId;
   }
-
+  
   /**
    * Fade out animation using AnimationLayeringService
    * @param animation - Animation to fade out
@@ -336,33 +307,51 @@ export class AnimationQueueService {
       animationLayeringService.stopAnimation(animation.id, duration / 1000); // Convert ms to seconds
     }
   }
-
+  
   /**
    * Get active animation by ID
    * @param id - Animation ID
    * @returns Active animation or null
    */
   private getActiveAnimationById(id: string): QueuedAnimation | null {
-    for (const anim of this.activeLayers.values()) {
+    // Use AnimationScheduler to get active animations
+    const activeLayers = this.animationScheduler.getAllActiveLayers();
+    for (const anim of activeLayers.values()) {
       if (anim.id === id) {
         return anim;
       }
     }
     return null;
   }
-
+  
   /**
    * Clear action cache
    */
   clearActionCache(): void {
     animationLayeringService.clear();
   }
+  
+  /**
+   * Get animation queue for backward compatibility
+   * @returns The AnimationQueue instance
+   */
+  getAnimationQueue(): AnimationQueue {
+    return this.animationQueue;
+  }
+  
+  /**
+   * Get animation scheduler for backward compatibility
+   * @returns The AnimationScheduler instance
+   */
+  getAnimationScheduler(): AnimationScheduler {
+    return this.animationScheduler;
+  }
 }
 
 // Export singleton instance with placeholder values (will be initialized by AvatarModel)
 export const animationQueueService = new AnimationQueueService({
   mixer: null as unknown as THREE.AnimationMixer, // Will be set by AvatarModel
-  timelineManager: null as unknown as TimelineManager // Will be set by ChatInterface
+  timelineManager: null as unknown as TimelineManager, // Will be set by ChatInterface
 });
 
 /**
@@ -379,7 +368,6 @@ export function initializeAnimationQueueService(
   selectedModelId?: string
 ): void {
   // Update the singleton's dependencies
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const service = animationQueueService as any;
   service.timelineManager = timelineManager;
   service.mixer = mixer;
@@ -394,6 +382,14 @@ export function initializeAnimationQueueService(
   
   // AnimationLayeringService is already initialized with mixer in constructor
   animationLayeringService.setMixer(mixer);
+  
+  // Initialize AnimationScheduler with timelineManager
+  service.animationScheduler = new AnimationScheduler({
+    timelineManager,
+    animationQueue: service.animationQueue,
+    defaultBlendDuration: 300,
+    debug: false,
+  });
   
   console.log('%c🔧 [AnimationQueueService] Initialized with:', 
     'color: #3498db; font-weight: bold;', 

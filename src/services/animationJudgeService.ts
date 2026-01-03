@@ -1,6 +1,7 @@
 import { AnimationJudgment, AnimationTrigger, AVAILABLE_ANIMATIONS, AnimationJudgmentWithTiming, ScheduledAnimation, AnimationLayerType } from '../types';
-import { getContainer } from '../di';
-import type { ILLMClientService, IAnimationSelectionService, IAnimationQueueProcessorService } from '../di/ServiceInterfaces';
+import { getContainer, SERVICE_TOKENS } from '../di';
+import type { ILLMClient, IAnimationSelectionService } from '../di/ServiceInterfaces';
+import { animationDurationService } from './animation/AnimationDurationService';
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 // Use a fast, cheap model for judge - falls back to free model if not specified
@@ -43,7 +44,7 @@ TRANSITIONAL POSES:
 - jumpingDown: Jumping down - use for dropping/jumping down
 
 DANCE & CELEBRATION:
-- swinging: Swinging motion - use for playful swinging
+- swinging: Swinging motion - use for rope swinging
 - catwalk: Catwalk strut - use for showing off or fashion
 
 BREAKDANCE:
@@ -280,18 +281,17 @@ export async function judgeAnimations(
     console.log('🎬 [AnimationJudge] Input - AI response:', aiResponse);
     console.log('🎬 [AnimationJudge] Using model:', JUDGE_MODEL);
 
-    const llmClientService = getContainer().resolve<ILLMClientService>('LLM_CLIENT_SERVICE');
-    const response = await llmClientService.chat(
-      `User said: "${userMessage}"\n\nAI responded: "${aiResponse}"\n\nWhat animations should avatar perform?`
-    );
+    const llmClientService = getContainer().resolve<ILLMClient>(SERVICE_TOKENS.LLM_CLIENT);
+    const response = await llmClientService.chat([
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: `User said: "${userMessage}"\n\nAI responded: "${aiResponse}"\n\nWhat animations should avatar perform?` }
+    ]);
 
     const elapsed = performance.now() - startTime;
     console.log(`🎬 [AnimationJudge] LLM call took ${elapsed.toFixed(0)}ms`);
-    console.log('🎬 [AnimationJudge] API Response status:', response.status);
-    console.log('🎬 [AnimationJudge] Full API response:', response.data);
 
     // Extract tool call from response
-    const toolCall = response.data.choices[0].message.tool_calls[0];
+    const toolCall = response.tool_calls?.[0];
     if (!toolCall) {
       console.error('🎬 [AnimationJudge] No tool call in response');
       return { animations: [], reasoning: 'No animation decision made' };
@@ -377,7 +377,7 @@ export function processAnimationQueue(
 
     const animation = animations[currentIndex];
     const animationDelay = (animation.delay || 0) * 1000;
-    const animationDuration = getContainer().resolve<IAnimationQueueProcessorService>('ANIMATION_QUEUE_PROCESSOR_SERVICE').getDuration(animation.name);
+    const animationDuration = animationDurationService.getDuration(animation.name);
 
     console.log('%c⏱️ [AnimationQueue] Scheduling "' + animation.name + '" - delay: ' + animationDelay + 'ms, duration: ' + animationDuration + 'ms', 'color: #f39c12;');
 
@@ -439,7 +439,7 @@ export function distributeAnimationsAcrossAudio(
     case 'early': {
       // All animations in first third
       animations.forEach((anim, index) => {
-        const duration = getContainer().resolve<IAnimationQueueProcessorService>('ANIMATION_QUEUE_PROCESSOR_SERVICE').getDuration(anim.name);
+        const duration = animationDurationService.getDuration(anim.name);
         const triggerTime = (index * 500) + 500; // Start at 500ms, 500ms apart
         scheduled.push({
           name: anim.name,
@@ -455,7 +455,7 @@ export function distributeAnimationsAcrossAudio(
       // All animations in middle third
       const middleStart = audioDuration * 0.33;
       animations.forEach((anim, index) => {
-        const duration = getContainer().resolve<IAnimationQueueProcessorService>('ANIMATION_QUEUE_PROCESSOR_SERVICE').getDuration(anim.name);
+        const duration = animationDurationService.getDuration(anim.name);
         const triggerTime = middleStart + (index * 500);
         scheduled.push({
           name: anim.name,
@@ -471,7 +471,7 @@ export function distributeAnimationsAcrossAudio(
       // All animations in last third
       const lateStart = audioDuration * 0.66;
       animations.forEach((anim, index) => {
-        const duration = getContainer().resolve<IAnimationQueueProcessorService>('ANIMATION_QUEUE_PROCESSOR_SERVICE').getDuration(anim.name);
+        const duration = animationDurationService.getDuration(anim.name);
         const triggerTime = lateStart + (index * 500);
         scheduled.push({
           name: anim.name,
@@ -490,7 +490,7 @@ export function distributeAnimationsAcrossAudio(
       const gap = availableTime / Math.max(animations.length, 1);
 
       animations.forEach((anim, index) => {
-        const duration = getContainer().resolve<IAnimationQueueProcessorService>('ANIMATION_QUEUE_PROCESSOR_SERVICE').getDuration(anim.name);
+        const duration = animationDurationService.getDuration(anim.name);
         const triggerTime = (index * gap) + 500; // Start at 500ms
         scheduled.push({
           name: anim.name,

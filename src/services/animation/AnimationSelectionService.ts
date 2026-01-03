@@ -111,20 +111,20 @@ export class AnimationSelectionService {
   suggestTiming(aiResponse: string): 'early' | 'middle' | 'late' | 'distributed' {
     const responseLower = aiResponse.toLowerCase();
 
-    // Early timing indicators
-    if (responseLower.includes('hello') || responseLower.includes('hi') || responseLower.includes('hey')) {
+    // Early timing indicators (use word boundaries)
+    if (/\bhello\b/i.test(responseLower) || /\bhi\b/i.test(responseLower) || /\bhey\b/i.test(responseLower)) {
       console.log('%c🎯 [AnimationSelection] Timing: early', 'color: #9b59b6;');
       return 'early';
     }
 
-    // Late timing indicators
-    if (responseLower.includes('finally') || responseLower.includes('in conclusion') || responseLower.includes('so')) {
+    // Late timing indicators (use word boundaries)
+    if (/\bfinally\b/i.test(responseLower) || /\bin conclusion\b/i.test(responseLower) || /\bso\b/i.test(responseLower)) {
       console.log('%c🎯 [AnimationSelection] Timing: late', 'color: #9b59b6;');
       return 'late';
     }
 
-    // Middle timing indicators
-    if (responseLower.includes('meanwhile') || responseLower.includes('also') || responseLower.includes('additionally')) {
+    // Middle timing indicators (use word boundaries)
+    if (/\bmeanwhile\b/i.test(responseLower) || /\balso\b/i.test(responseLower) || /\badditionally\b/i.test(responseLower)) {
       console.log('%c🎯 [AnimationSelection] Timing: middle', 'color: #9b59b6;');
       return 'middle';
     }
