@@ -114,25 +114,6 @@ export type TextTimingConfig = {
 };
 
 /**
- * Get default text timing configuration
- */
-export function getDefaultTextTimingConfig(): TextTimingConfig {
-  return { ...DEFAULT_TEXT_TIMING_OPTIONS };
-}
-
-/**
- * Create custom text timing configuration by merging with defaults
- */
-export function createTextTimingConfig(
-  overrides: Partial<TextTimingConfig>
-): TextTimingConfig {
-  return {
-    ...DEFAULT_TEXT_TIMING_OPTIONS,
-    ...overrides,
-  };
-}
-
-/**
  * Preset configurations for different speaking styles
  */
 export const SPEAKING_STYLE_PRESETS: Record<string, Partial<TextTimingConfig>> = {
@@ -173,11 +154,3 @@ export const SPEAKING_STYLE_PRESETS: Record<string, Partial<TextTimingConfig>> =
     pauseBetweenSentences: 400,
   },
 };
-
-/**
- * Get preset configuration by speaking style
- */
-export function getPresetConfig(style: string): TextTimingConfig {
-  const preset = SPEAKING_STYLE_PRESETS[style] || SPEAKING_STYLE_PRESETS.normal;
-  return createTextTimingConfig(preset);
-}

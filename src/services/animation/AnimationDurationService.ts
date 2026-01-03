@@ -15,7 +15,7 @@ const ANIMATION_DURATIONS: Record<string, number> = {
   'peace': 2500,
   'shoot': 2500,
   'spin': 4000,
-  'modelPose': 2000,
+  'modelPose': 3000,  // Loop indefinitely
   'squat': 3000,
 
   // Idle & Social

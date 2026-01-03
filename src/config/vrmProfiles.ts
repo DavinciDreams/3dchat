@@ -20,7 +20,7 @@
 export interface VRMProfileConfig {
   /** Model ID matching AVAILABLE_VRM_MODELS */
   modelId: string;
-  /** Path to the wLipSync profile JSON file */
+  /** Path to wLipSync profile JSON file */
   profilePath: string;
   /** Whether the profile has been created and is available */
   isAvailable: boolean;
@@ -100,59 +100,3 @@ export const VRM_PROFILES: VRMProfileConfig[] = [
     isAvailable: false,
   },
 ];
-
-/**
- * Get profile configuration for a specific model ID
- * 
- * @param modelId - The model ID to get the profile for
- * @returns Profile configuration or null if not found
- */
-export function getVRMProfile(modelId: string): VRMProfileConfig | null {
-  return VRM_PROFILES.find(p => p.modelId === modelId) || null;
-}
-
-/**
- * Check if a model has an available wLipSync profile
- * 
- * @param modelId - The model ID to check
- * @returns True if profile is available
- */
-export function hasProfile(modelId: string): boolean {
-  const profile = getVRMProfile(modelId);
-  return profile?.isAvailable ?? false;
-}
-
-/**
- * Get profile path for a model ID
- * 
- * @param modelId - The model ID to get the profile path for
- * @returns Profile path or null if not found or not available
- */
-export function getProfilePath(modelId: string): string | null {
-  const profile = getVRMProfile(modelId);
-  return profile?.isAvailable ? profile.profilePath : null;
-}
-
-/**
- * Mark a profile as available (after creating Unity profile)
- * 
- * @param modelId - The model ID to mark as available
- */
-export function markProfileAvailable(modelId: string): void {
-  const profile = getVRMProfile(modelId);
-  if (profile) {
-    profile.isAvailable = true;
-    console.log(`[vrmProfiles] Marked profile as available for model: ${modelId}`);
-  }
-}
-
-/**
- * Get all available profile paths for preloading
- * 
- * @returns Array of available profile paths
- */
-export function getAvailableProfiles(): string[] {
-  return VRM_PROFILES
-    .filter(p => p.isAvailable)
-    .map(p => p.profilePath);
-}

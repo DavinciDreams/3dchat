@@ -25,6 +25,8 @@ export const SERVICE_TOKENS = {
   ANIMATION_LAYERING: 'services.animation.layering',
   ANIMATION_SELECTION_SERVICE: 'services.animation.selection',
   ANIMATION_QUEUE_PROCESSOR_SERVICE: 'services.animation.queueProcessor',
+  ANIMATION_QUEUE: 'services.animation.queue',
+  ANIMATION_SCHEDULER_SERVICE: 'services.animation.scheduler',
   
   // VRMA Services
   VRMA_LOADER: 'services.vrma.loader',
@@ -37,6 +39,7 @@ export const SERVICE_TOKENS = {
   TIMELINE_MANAGER: 'services.timeline.manager',
   STREAMING_TEXT_HANDLER: 'services.timeline.streamingHandler',
   EMOTION_TRACKER: 'services.timeline.emotionTracker',
+  TIMELINE_SCHEDULER: 'services.timeline.scheduler',
 
   // Text Services
   TEXT_TIMING_ESTIMATOR: 'services.textTiming',

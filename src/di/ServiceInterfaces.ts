@@ -17,12 +17,79 @@ import type {
   AnimationJudgmentWithTiming,
   ScheduledAnimation,
   QueuedAnimation,
+  TextTimeline,
 } from '../types';
 
 // ChatMessage type for LLM services
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
+}
+
+// ============================================================================
+// AI Services
+// ============================================================================
+
+/**
+ * Stream chunk from AI response
+ */
+export interface AIStreamChunk {
+  content: string;
+  isComplete: boolean;
+}
+
+/**
+ * Stream options for AI response
+ */
+export interface AIStreamOptions {
+  onChunk: (chunk: AIStreamChunk) => void;
+  onError?: (error: Error) => void;
+}
+
+/**
+ * State changes that AI service suggests
+ * Returned to caller who decides how to update the store
+ */
+export interface AIStateChanges {
+  isProcessing?: boolean;
+  emotion?: Emotion;
+}
+
+/**
+ * AI Service interface for getting AI responses
+ *
+ * Phase 6: This service returns data instead of manipulating the store directly.
+ * The caller is responsible for updating store state based on returned data.
+ */
+export interface IAIService {
+  /**
+   * Get a complete AI response
+   * @param input - User input message
+   * @param messages - Conversation history messages
+   * @returns AI response with suggested state changes
+   */
+  getResponse(
+    input: string,
+    messages: ChatMessage[]
+  ): Promise<{
+    content: string;
+    stateChanges: AIStateChanges;
+  }>;
+
+  /**
+   * Stream an AI response with chunk callbacks
+   * @param input - User input message
+   * @param messages - Conversation history messages
+   * @param options - Stream options with callbacks
+   * @returns Promise that resolves when streaming completes
+   */
+  streamResponse(
+    input: string,
+    messages: ChatMessage[],
+    options: AIStreamOptions
+  ): Promise<{
+    stateChanges: AIStateChanges;
+  }>;
 }
 
 // ============================================================================
@@ -395,6 +462,76 @@ export interface IAnimationScheduler {
 }
 
 /**
+ * Animation Queue interface for queue management
+ */
+export interface IAnimationQueue {
+  /**
+   * Add animation to queue
+   */
+  add(animation: QueuedAnimation): void;
+
+  /**
+   * Remove animation from queue
+   */
+  remove(id: string): void;
+
+  /**
+   * Get all queued animations
+   */
+  getQueue(): QueuedAnimation[];
+
+  /**
+   * Get queue length
+   */
+  getQueueLength(): number;
+
+  /**
+   * Clear all queued animations
+   */
+  clearQueue(): void;
+
+  /**
+   * Set active animation for a layer
+   */
+  setActiveLayer(layer: AnimationLayerType, animation: QueuedAnimation): void;
+
+  /**
+   * Get active animation for a layer
+   */
+  getActiveLayer(layer: AnimationLayerType): QueuedAnimation | null;
+
+  /**
+   * Get all active layers
+   */
+  getAllActiveLayers(): Map<AnimationLayerType, QueuedAnimation>;
+
+  /**
+   * Remove active layer
+   */
+  removeActiveLayer(layer: AnimationLayerType): void;
+
+  /**
+   * Clear all active layers
+   */
+  clearActiveLayers(): void;
+
+  /**
+   * Find active animation by ID
+   */
+  findActiveById(id: string): QueuedAnimation | null;
+
+  /**
+   * Get animation counter for generating unique IDs
+   */
+  getNextId(): string;
+
+  /**
+   * Reset queue state
+   */
+  reset(): void;
+}
+
+/**
  * Animation Player interface for playing animations
  */
 export interface IAnimationPlayer {
@@ -680,14 +817,108 @@ export interface ITimelineStateManager {
   setCurrentTime(time: number): void;
 
   /**
-   * Set duration
+   * Set total duration
    */
-  setDuration(duration: number): void;
+  setTotalDuration(duration: number): void;
+
+  /**
+   * Set timeline
+   */
+  setTimeline(timeline: TextTimeline | null): void;
+
+  /**
+   * Get timeline
+   */
+  getTimeline(): TextTimeline | null;
+
+  /**
+   * Set has audio flag
+   */
+  setHasAudio(hasAudio: boolean): void;
+
+  /**
+   * Set audio duration
+   */
+  setAudioDuration(audioDuration: number | null): void;
+
+  /**
+   * Set synced flag
+   */
+  setIsSynced(isSynced: boolean): void;
+
+  /**
+   * Set sync ratio
+   */
+  setSyncRatio(ratio: number): void;
+
+  /**
+   * Set error
+   */
+  setError(error: string | null): void;
 
   /**
    * Reset state
    */
   reset(): void;
+
+  /**
+   * Get current emotion
+   */
+  getCurrentEmotion(): Emotion;
+
+  /**
+   * Set current emotion
+   */
+  setCurrentEmotion(emotion: Emotion): void;
+
+  /**
+   * Get scheduled animations
+   */
+  getScheduledAnimations(): unknown[];
+
+  /**
+   * Set scheduled animations
+   */
+  setScheduledAnimations(animations: unknown[]): void;
+
+  /**
+   * Clear scheduled animations
+   */
+  clearScheduledAnimations(): void;
+}
+
+/**
+ * Timeline Scheduler interface for scheduling animations on timeline
+ */
+export interface ITimelineScheduler {
+  /**
+   * Schedule animations on timeline
+   */
+  scheduleAnimations(
+    animations: ScheduledAnimation[],
+    timeline: TextTimeline
+  ): void;
+
+  /**
+   * Calculate trigger time for an animation
+   */
+  calculateTriggerTime(
+    animation: ScheduledAnimation,
+    timeline: TextTimeline
+  ): number;
+
+  /**
+   * Adjust timeline duration to match audio
+   */
+  adjustTimelineDuration(
+    timeline: TextTimeline,
+    audioDuration: number
+  ): TextTimeline;
+
+  /**
+   * Execute an animation
+   */
+  executeAnimation(animation: ScheduledAnimation): void;
 }
 
 /**
@@ -705,9 +936,19 @@ export interface IStreamingTextHandler {
   getAccumulatedText(): string;
 
   /**
+   * Get accumulated timeline
+   */
+  getAccumulatedTimeline(): TextTimeline | null;
+
+  /**
    * Reset handler
    */
   reset(): void;
+
+  /**
+   * Get accumulated text length
+   */
+  getAccumulatedTextLength(): number;
 }
 
 /**
