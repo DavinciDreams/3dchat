@@ -183,7 +183,7 @@ const ChatInterface = (): JSX.Element => {
 
     setTimeout(() => {
       console.log('%c🧪 [TEST] Animation complete, resetting', 'background: #4caf50; color: white; padding: 4px 8px; border-radius: 4px;');
-      setCurrentAnimation(null);
+      setCurrentAnimation('modelPose'); // Set to idle animation instead of null to avoid T-pose
       setAnimationQueue([]);
     }, duration + 500);
 
@@ -307,7 +307,7 @@ const ChatInterface = (): JSX.Element => {
                   () => {
                     // Reset to idle when all animations complete
                     console.log('%c✅ ANIMATION QUEUE COMPLETE (Final)', 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
-                    setCurrentAnimation(null);
+                    setCurrentAnimation('modelPose'); // Set to idle animation instead of null to avoid T-pose
                     setAnimationQueue([]);
                     useChatStore.setState({ isSpeaking: false });
                   },
@@ -417,7 +417,7 @@ const ChatInterface = (): JSX.Element => {
                     () => {
                       // Reset to idle when all animations complete
                       console.log('%c✅ ANIMATION QUEUE COMPLETE (Streaming)', 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
-                      setCurrentAnimation(null);
+                      setCurrentAnimation('modelPose'); // Set to idle animation instead of null to avoid T-pose
                       setAnimationQueue([]);
                       useChatStore.setState({ isSpeaking: false });
                     },
@@ -541,7 +541,7 @@ const ChatInterface = (): JSX.Element => {
     cancelActiveQueueTimeouts();
 
     // Reset animation and speaking state
-    useChatStore.getState().setCurrentAnimation(null);
+    useChatStore.getState().setCurrentAnimation('modelPose'); // Set to idle animation instead of null to avoid T-pose
     useChatStore.getState().setAnimationQueue([]);
     useChatStore.setState({ isSpeaking: false });
     

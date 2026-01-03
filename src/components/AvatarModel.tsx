@@ -11,8 +11,9 @@ import { VRMOptimizedLoader } from '../services/vrmLoaderHelper';
 import { simpleAnimationService } from '../services/simpleAnimationService';
 import { animationLayeringService } from '../services/animationLayeringService';
 import { getAnimationTimeScale } from '../config/animationSpeedConfig';
-import { CRITICAL_ANIMATIONS, HIGH_PRIORITY_ANIMATIONS } from '../services/animation/AnimationPriorityService';
+import { CRITICAL_ANIMATIONS, HIGH_PRIORITY_ANIMATIONS, animationPriorityService } from '../services/animation/AnimationPriorityService';
 import { getVRMARetargetingService } from '../services/animation/VRMARetargetingService';
+import { animationDurationService } from '../services/animation/AnimationDurationService';
 
 export interface ExtendedCharacterProps extends CharacterProps {
   selectedModel?: string;
@@ -99,10 +100,10 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         undefined // No layer for simple service
       );
       
-      const action = mixer.current!.clipAction(retargetedClip);
+      const action = mixer.current!.clipAction(retargetedClip as THREE.AnimationClip);
       
       vrmaActions.current[animationName] = action;
-      vrmaClips.current[animationName] = retargetedClip;
+      vrmaClips.current[animationName] = retargetedClip as THREE.AnimationClip;
     } catch (error) {
       // Log errors but continue - some animations may not be compatible with all models
       console.warn(`Failed to load VRMA animation '${animationName}':`, error);
@@ -272,17 +273,19 @@ const Character: React.FC<ExtendedCharacterProps> = ({
           // PERFORMANCE FIX: Pre-cache commonly used animations to reduce on-demand delays
           // This reduces animation startup delay by 100-300ms for commonly used animations
           const retargetingService = getVRMARetargetingService();
-          const COMMON_ANIMATIONS = [
-            { name: 'idle', layer: 'base' },
-            { name: 'modelPose', layer: 'base' },
-            { name: 'talkingOnPhone', layer: 'base' },
-            { name: 'headNod', layer: 'base' },
-            { name: 'shakingHeadNo', layer: 'base' },
-          ];
-          retargetingService.preCacheRetargetedClips(vrm, COMMON_ANIMATIONS)
-            .catch((error: unknown) => {
-              console.warn('Failed to pre-cache common animations:', error);
-            });
+          if (retargetingService) {
+            const COMMON_ANIMATIONS = [
+              { name: 'idle', layer: 'base' },
+              { name: 'modelPose', layer: 'base' },
+              { name: 'talkingOnPhone', layer: 'base' },
+              { name: 'headNod', layer: 'base' },
+              { name: 'shakingHeadNo', layer: 'base' },
+            ];
+            retargetingService.preCacheRetargetedClips(vrm, COMMON_ANIMATIONS)
+              .catch((error: unknown) => {
+                console.warn('Failed to pre-cache common animations:', error);
+              });
+          }
 
           // OPTIMIZATION: Load HIGH priority animations in background using the tiered system
           // This loads 22 animations instead of just 11, significantly reducing on-demand delays
@@ -312,6 +315,14 @@ const Character: React.FC<ExtendedCharacterProps> = ({
               } catch {
                 console.warn('Failed to play modelPose animation');
               }
+            }
+          }
+
+          // Register 'modelPose' with the layering service for use as fallback
+          if (vrmaActions.current['modelPose']) {
+            const clip = vrmaClips.current['modelPose'];
+            if (clip) {
+              animationLayeringService.registerAnimation('modelPose', clip);
             }
           }
         })
@@ -473,16 +484,16 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         // Once loaded, play the requested animation
         playAnimationDirectly(animationName);
       });
-      return;
     }
 
     const action = vrmaActions.current[animationName] || currentActions.current[animationName];
     if (!action) {
       console.warn(`Animation action not found: ${animationName}`);
-      // Fall back to natural pose if no animation found
-      if (vrmRef.current) {
-        applyNaturalPose(vrmRef.current);
-      }
+      // Get fallback animation from AnimationPriorityService
+      const fallbackAnimation = animationPriorityService.getFallbackAnimation(animationName);
+      console.log(`Falling back from ${animationName} to ${fallbackAnimation}`);
+      // Recursively play the fallback animation
+      playAnimationDirectly(fallbackAnimation);
       return;
     }
 
@@ -495,13 +506,27 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         animationLayeringService.registerAnimation(animationName, clip);
       }
 
+      // Get animation duration for auto-transition to idle
+      const durationMs = animationDurationService.getDuration(animationName);
+      const durationSec = durationMs / 1000; // Convert to seconds
+
       // Play animation on full_body layer for maximum impact
       // Using layering service provides smooth cross-fade between animations
       animationLayeringService.playAnimation(animationName, 'full_body', {
         fadeInDuration: 0.5, // Longer fade-in for smoother transitions
         fadeOutDuration: 0.5, // Longer fade-out for smoother transitions
         loop: THREE.LoopRepeat,
-        weight: 1.0
+        weight: 1.0,
+        duration: durationSec, // Set duration for auto-transition
+        onComplete: () => {
+          // When animation completes, transition back to idle
+          // This fixes the issue of animations not returning to idle
+          const store = useChatStore.getState();
+          if (!store.currentAnimation || store.currentAnimation === animationName) {
+            // Only transition to idle if no new animation has been triggered
+            store.setCurrentAnimation('modelPose'); // Set to idle animation instead of null to avoid T-pose
+          }
+        }
       });
     } catch (error) {
       console.warn(`Failed to play animation using layering service: ${animationName}`, error);

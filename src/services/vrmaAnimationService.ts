@@ -75,7 +75,6 @@ export const VRMA_EXTENDED_ANIMATIONS: VRMAAnimationConfig[] = [
   { path: '/animations/vrma/slowJogBackwards.vrma', name: 'jogBackwards', description: 'Jog backwards' },
   { path: '/animations/vrma/jumping.vrma', name: 'jumping', description: 'Jump in place' },
   { path: '/animations/vrma/climbingToTop.vrma', name: 'climbing', description: 'Climbing up' },
-  { path: '/animations/vrma/turnLeft90.vrma', name: 'turnLeft', description: 'Turn left 90 degrees' },
   { path: '/animations/vrma/rightTurnWBriefcase.vrma', name: 'turnRight', description: 'Turn right with briefcase' },
   { path: '/animations/vrma/standardRun.vrma', name: 'standardRun', description: 'Standard running' },
   { path: '/animations/vrma/runningUpStairs.vrma', name: 'runningUpStairs', description: 'Running up stairs' },
@@ -126,22 +125,46 @@ export const VRMA_EXTENDED_ANIMATIONS: VRMAAnimationConfig[] = [
   { path: '/animations/vrma/pacingAndTalkingOnAPhone.vrma', name: 'pacingAndTalkingOnAPhone', description: 'Pacing and talking on phone' },
   { path: '/animations/vrma/rummaging.vrma', name: 'rummaging', description: 'Rummaging' },
   { path: '/animations/vrma/searchingPockets.vrma', name: 'searchingPockets', description: 'Searching pockets' },
-  { path: '/animations/vrma/buttonPushing.vrma', name: 'buttonPushing', description: 'Button pushing' },
-  { path: '/animations/vrma/openDoor.vrma', name: 'openDoor', description: 'Open door' },
   { path: '/animations/vrma/startClimbingLadder.vrma', name: 'startClimbingLadder', description: 'Start climbing ladder' },
   { path: '/animations/vrma/vaultOverBox.vrma', name: 'vaultOverBox', description: 'Vault over box' },
-  { path: '/animations/vrma/rummaging.vrma', name: 'rummaging', description: 'Rummaging' },
   { path: '/animations/vrma/patting.vrma', name: 'patting', description: 'Patting' },
   { path: '/animations/vrma/petting.vrma', name: 'petting', description: 'Petting' },
   { path: '/animations/vrma/pettingAnimal.vrma', name: 'pettingAnimal', description: 'Petting animal' },
-  { path: '/animations/vrma/kiss.vrma', name: 'kiss', description: 'Kiss' },
-  { path: '/animations/vrma/blowAKiss.vrma', name: 'blowAKiss', description: 'Blow a kiss' },
   { path: '/animations/vrma/praying.vrma', name: 'praying', description: 'Praying' },
   { path: '/animations/vrma/yawn.vrma', name: 'yawn', description: 'Yawn' },
   { path: '/animations/vrma/smoking.vrma', name: 'smoking', description: 'Smoking' },
   { path: '/animations/vrma/lyingDown.vrma', name: 'lyingDown', description: 'Lying down' },
   { path: '/animations/vrma/shrugging.vrma', name: 'shrugging', description: 'Shrugging' },
   { path: '/animations/vrma/zombieStandUp.vrma', name: 'zombieStandUp', description: 'Zombie stand up' },
+  // Additional animations from animation-list.json
+  { path: '/animations/vrma/sadIdle.vrma', name: 'sadIdle', description: 'Sad standing pose' },
+  { path: '/animations/vrma/catwalkWalkStopTwistR.vrma', name: 'catwalkWalkStopTwistR', description: 'Catwalk walk stop twist right' },
+  { path: '/animations/vrma/paddling.vrma', name: 'paddling', description: 'Paddling motion' },
+  { path: '/animations/vrma/roar.vrma', name: 'roar', description: 'Roaring gesture' },
+  { path: '/animations/vrma/rumbaDancing.vrma', name: 'rumbaDancing', description: 'Rumba dance moves' },
+  { path: '/animations/vrma/sadWalk.vrma', name: 'sadWalk', description: 'Sad walking animation' },
+  { path: '/animations/vrma/sambaDancing.vrma', name: 'sambaDancing', description: 'Samba dance moves' },
+  { path: '/animations/vrma/shakingHands1.vrma', name: 'shakingHands1', description: 'Shaking hands gesture' },
+  { path: '/animations/vrma/skateboarding.vrma', name: 'skateboarding', description: 'Skateboarding animation' },
+  { path: '/animations/vrma/standingArguing.vrma', name: 'standingArguing', description: 'Arguing while standing' },
+  { path: '/animations/vrma/standingClap.vrma', name: 'standingClap', description: 'Clapping while standing' },
+  { path: '/animations/vrma/standingGreeting.vrma', name: 'standingGreeting', description: 'Greeting while standing' },
+  { path: '/animations/vrma/standingJump.vrma', name: 'standingJump', description: 'Standing jump' },
+  { path: '/animations/vrma/startWalking.vrma', name: 'startWalking', description: 'Start walking' },
+  { path: '/animations/vrma/strongGesture.vrma', name: 'strongGesture', description: 'Strong emphatic gesture' },
+  { path: '/animations/vrma/swimming.vrma', name: 'swimming', description: 'Swimming animation' },
+  { path: '/animations/vrma/talking.vrma', name: 'talking', description: 'Talking gesture' },
+  { path: '/animations/vrma/throwing.vrma', name: 'throwing', description: 'Throwing something' },
+  { path: '/animations/vrma/twistDance.vrma', name: 'twistDance', description: 'Twist dance moves' },
+  { path: '/animations/vrma/typing.vrma', name: 'typing', description: 'Typing animation' },
+  { path: '/animations/vrma/victoryIdle.vrma', name: 'victoryIdle', description: 'Victory idle pose' },
+  { path: '/animations/vrma/waving.vrma', name: 'waving', description: 'Wave hello/goodbye' },
+  { path: '/animations/vrma/yelling.vrma', name: 'yelling', description: 'Yelling gesture' },
+  { path: '/animations/vrma/pointing.vrma', name: 'pointing', description: 'Point at something' },
+  { path: '/animations/vrma/acknowledging.vrma', name: 'acknowledging', description: 'Acknowledging gesture' },
+  // Add thinking and sitting animations that exist in directory
+  { path: '/animations/vrma/thinking.vrma', name: 'thinking', description: 'Thinking pose' },
+  { path: '/animations/vrma/sitting.vrma', name: 'sitting', description: 'Sitting pose' },
 ];
 
 // Gesture & Expression animations
@@ -158,7 +181,6 @@ export const VRMA_GESTURE_ANIMATIONS: VRMAAnimationConfig[] = [
   // Hand gestures
   { path: '/animations/vrma/happyHandGesture.vrma', name: 'happyHandGesture', description: 'Happy hand gesture' },
   { path: '/animations/vrma/dismissingGesture.vrma', name: 'dismissingGesture', description: 'Dismissing wave' },
-  { path: '/animations/vrma/acknowledging.vrma', name: 'acknowledging', description: 'Acknowledging gesture' },
   { path: '/animations/vrma/beckoning.vrma', name: 'beckoning', description: 'Beckoning gesture' },
   { path: '/animations/vrma/pointing.vrma', name: 'pointing', description: 'Pointing' },
 
@@ -231,11 +253,11 @@ export const ANIMATION_STATE_TO_VRMA: Record<string, string> = {
   'happy': 'happyIdle',         // Use happyIdle sign for happy
   'agreeing': 'headNod',    // Head nod for agreeing
   'disagreeing': 'shakingHeadNo', // Shake head for disagreeing
-  'acknowledging': 'acknowledging', // Acknowledging gesture
   'angry': 'angryGesture',  // Angry gesture
   'cocky': 'beingCocky',    // Cocky pose
   'relieved': 'relievedSigh', // Relieved sigh
   'annoyed': 'annoyedHeadShake', // Annoyed head shake
+  'sitting': 'sitting',        // Use sitting for sitting
 };
 
 /**
@@ -280,7 +302,7 @@ class VRMAAnimationService {
     // Load via loader service
     const animation = await this.loader.loadAnimation(config);
     
-    // Cache the result
+    // Cache result
     this.cache.setAnimation(config.name, animation);
     
     return animation;

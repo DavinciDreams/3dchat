@@ -4,9 +4,12 @@ import {
   TimelineEventType
 } from '../types';
 
+// Maximum number of events to process per frame to prevent browser freeze
+const MAX_EVENTS_PER_FRAME = 5;
+
 /**
  * TimelineManager
- * 
+ *
  * Central coordination service for all time-based events.
  * Manages scheduling and execution of animations, visemes, and emotions
  * synchronized with audio playback.
@@ -267,8 +270,14 @@ export class TimelineManager {
     // Call tick hook
     this.onTick?.(currentTime);
     
-    // Execute all events whose time has passed
-    while (this.events.length > 0 && this.events[0].timestamp <= currentTime) {
+    // Execute events whose time has passed, but limit to MAX_EVENTS_PER_FRAME per frame
+    // to prevent browser freeze when many events are queued at same timestamp
+    let eventsProcessed = 0;
+    while (
+      this.events.length > 0 &&
+      this.events[0].timestamp <= currentTime &&
+      eventsProcessed < MAX_EVENTS_PER_FRAME
+    ) {
       const event = this.events.shift()!;
       
       console.log(`%c✨ [TimelineManager] Triggering event: ${event.type} at ${currentTime.toFixed(0)}ms`,
@@ -283,6 +292,8 @@ export class TimelineManager {
         console.error(`%c❌ [TimelineManager] Event callback failed for ${event.id}:`,
           'color: #e74c3c;', error);
       }
+      
+      eventsProcessed++;
     }
 
     this.animationFrameId = requestAnimationFrame(() => this.tick());

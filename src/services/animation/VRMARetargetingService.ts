@@ -138,15 +138,21 @@ export class VRMARetargetingService implements IVMARetargetingService {
 
 // Export singleton instance for backward compatibility
 let vrmaRetargetingServiceInstance: VRMARetargetingService | null = null;
+let initializationPromise: Promise<VRMARetargetingService> | null = null;
 
-export function getVRMARetargetingService(): VRMARetargetingService {
+export function getVRMARetargetingService(): VRMARetargetingService | null {
   if (!vrmaRetargetingServiceInstance) {
-    // Dynamic import to avoid circular dependency
-    import('./VRMACacheService').then(({ vrmaCacheService }) => {
-      vrmaRetargetingServiceInstance = new VRMARetargetingService(vrmaCacheService);
-    });
+    if (!initializationPromise) {
+      // Dynamic import to avoid circular dependency
+      initializationPromise = import('./VRMACacheService').then(({ vrmaCacheService }) => {
+        vrmaRetargetingServiceInstance = new VRMARetargetingService(vrmaCacheService);
+        return vrmaRetargetingServiceInstance;
+      });
+    }
+    // Return null while initializing
+    return null;
   }
-  return vrmaRetargetingServiceInstance!;
+  return vrmaRetargetingServiceInstance;
 }
 
 export default getVRMARetargetingService;

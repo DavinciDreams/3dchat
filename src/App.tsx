@@ -17,7 +17,7 @@ const LoginForm = React.lazy(() => import('./components/LoginForm'));
 
 function App() {
   const [error, setError] = useState<AppError | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // Temporarily set to true for debugging
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(false);
   const { setProcessing, isMuted, setIsMuted, selectedModelId, setSelectedModelId, selectedVoiceId, setSelectedVoiceId, setCurrentAnimation, animationSpeed, setAnimationSpeed } = useChatStore();
 
