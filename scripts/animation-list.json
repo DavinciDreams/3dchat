@@ -334,7 +334,7 @@
       "name": "pushStart",
       "mixamoName": "Push Start",
       "category": "action",
-      "description": "Push start action"
+      "description": "Start pushing a large object"
     },
     {
       "name": "roar",
@@ -592,7 +592,7 @@
       "name": "bowing",
       "mixamoName": "Bow",
       "category": "social",
-      "description": "Respectful bow"
+      "description": "throwing elbows in a fight"
     },
     {
       "name": "salute",
@@ -745,10 +745,58 @@
       "description": "Defensive block"
     },
     {
-      "name": "magicCast",
-      "mixamoName": "Standing Magic Attack",
+      "name": "flyingKnee",
+      "mixamoName": "Flying Knee Punch Combo",
       "category": "action",
-      "description": "Cast magic spell"
+      "description": "Flying knee punch combo attack"
+    },
+    {
+      "name": "daggerStab",
+      "mixamoName": "Double Dagger Stab",
+      "category": "action",
+      "description": "Double dagger stab attack"
+    },
+    {
+      "name": "jogBackwards",
+      "mixamoName": "Slow Jog Backwards",
+      "category": "movement",
+      "description": "Jogging backwards slowly"
+    },
+    {
+      "name": "climbing",
+      "mixamoName": "Climbing To Top",
+      "category": "movement",
+      "description": "Climbing to the top"
+    },
+    {
+      "name": "turnRight",
+      "mixamoName": "Right Turn With Briefcase",
+      "category": "movement",
+      "description": "Turn right while holding briefcase"
+    },
+    {
+      "name": "shrugging",
+      "mixamoName": "Shrugging",
+      "category": "gesture",
+      "description": "Shoulder shrug gesture"
+    },
+    {
+      "name": "dropKick",
+      "mixamoName": "Drop Kick",
+      "category": "action",
+      "description": "Drop kick attack"
+    },
+    {
+      "name": "bodyBlock",
+      "mixamoName": "Body Block",
+      "category": "action",
+      "description": "Body block defense"
+    },
+    {
+      "name": "reloading",
+      "mixamoName": "Reloading",
+      "category": "action",
+      "description": "Reloading weapon"
     },
     {
       "name": "throw",
@@ -815,6 +863,48 @@
       "mixamoName": "Landing",
       "category": "movement",
       "description": "Landing from jump"
+    },
+    {
+      "name": "sillyDancing",
+      "mixamoName": "Silly Dancing",
+      "category": "dance",
+      "description": "Fun silly dancing"
+    },
+    {
+      "name": "plank",
+      "mixamoName": "Plank",
+      "category": "action",
+      "description": "Plank exercise"
+    },
+    {
+      "name": "textingAndWalking",
+      "mixamoName": "Texting And Walking",
+      "category": "movement",
+      "description": "Walking while texting"
+    },
+    {
+      "name": "openDoor",
+      "mixamoName": "Open Door",
+      "category": "action",
+      "description": "Opening a door"
+    },
+    {
+      "name": "golfBadShot",
+      "mixamoName": "Golf Bad Shot",
+      "category": "action",
+      "description": "Golf bad shot animation"
+    },
+    {
+      "name": "golfPrePutt",
+      "mixamoName": "Golf Pre Putt",
+      "category": "action",
+      "description": "Golf pre-putt preparation"
+    },
+    {
+      "name": "talkingOnPhone",
+      "mixamoName": "Talking On Phone",
+      "category": "action",
+      "description": "Talking on phone animation"
     }
   ]
 }

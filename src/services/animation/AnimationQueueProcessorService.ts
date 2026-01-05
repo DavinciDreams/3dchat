@@ -7,6 +7,7 @@
 
 import type { AnimationTrigger, ScheduledAnimation, AnimationLayerType, AnimationJudgment, AnimationJudgmentWithTiming } from '../../types';
 import { animationDurationService } from './AnimationDurationService';
+import { truncateArray } from '../../utils/safeLogger';
 
 const BUFFER_BETWEEN_ANIMATIONS = 500; // Buffer time between animations (ms)
 
@@ -34,7 +35,7 @@ export class AnimationQueueProcessorService {
     }
 
     console.log('%c📋 [AnimationQueueProcessor] PROCESSING QUEUE', 'background: #f39c12; color: black; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
-    console.log('%c📋 [AnimationQueueProcessor] Animations:', 'color: #f39c12; font-weight: bold;', animations);
+    console.log('%c📋 [AnimationQueueProcessor] Animations:', 'color: #f39c12; font-weight: bold;', truncateArray(animations));
 
     let currentIndex = 0;
 
