@@ -8,6 +8,7 @@ import { textToVisemes } from './visemePreprocessor';
 import { TTSCache } from './speechSynthesisService/TTSCache';
 import { animationPrefetchService } from './animationPrefetchService';
 import { AnimationTrigger } from '../types';
+import { truncateArray } from '../utils/safeLogger';
 
 // Default voice (will be overridden by selected voice from store)
 const DEFAULT_VOICE_NAME = 'en-GB-LibbyNeural';

@@ -56,6 +56,9 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   const initializedModelId = useRef<string | null>(null);
   const [vrmaAnimationsLoaded, setVrmaAnimationsLoaded] = useState(false);
   
+  // Track if we're in a transition to avoid triggering multiple animations
+  const isTransitioningToIdle = useRef(false);
+  
   // PERFORMANCE FIX: Track last VRM update time for throttling
   // This reduces CPU usage by 30-50% by limiting VRM.update() calls
   const lastVrmUpdateRef = useRef(0);
@@ -306,6 +309,40 @@ const Character: React.FC<ExtendedCharacterProps> = ({
               console.warn('Failed to load HIGH priority animations:', error);
             });
 
+          // OPTIMIZATION: Pre-load MEDIUM priority animations in background for faster response
+          // This preloads dance, combat, and other animations that may be requested
+          // Loading them in batches prevents on-demand delays of 500-1000ms
+          setTimeout(async () => {
+            const MEDIUM_PRIORITY_ANIMATIONS = [
+              // Dance animations (most commonly requested)
+              'hipHopDance', 'hipHopDancing', 'swinging', 'catwalk', 'catwalkWalking',
+              'rumbaDancing', 'sambaDancing', 'sillyDancing', 'twistDance', 'dancingTwerk',
+              // Combat & action animations
+              'punch', 'dropKick', 'flyingKnee', 'daggerStab', 'bodyBlock', 'reloading',
+              // Movement animations
+              'walking', 'jogBackwards', 'jumping', 'climbing', 'turnRight',
+              // Sports & activities
+              'golfBadShot', 'golfPrePutt', 'situps', 'plank', 'cartwheel', 'backflip',
+              'skateboarding', 'swimming', 'paddling', 'catch', 'throwing', 'fishingCast',
+              // Other common actions
+              'talkingOnPhone', 'textingAndWalking', 'pacingAndTalkingOnAPhone',
+              'rummaging', 'searchingPockets', 'buttonPushing', 'openDoor', 'patting',
+              'petting', 'pettingAnimal', 'kiss', 'blowAKiss', 'praying', 'yawn',
+              'smoking', 'lyingDown', 'layingIdle', 'kneeling',
+            ];
+            
+            for (const animName of MEDIUM_PRIORITY_ANIMATIONS) {
+              if (!vrmaActions.current[animName] && !vrmaClips.current[animName]) {
+                try {
+                  await loadVRMAAnimation(animName);
+                } catch (error) {
+                  // Silently skip animations that fail to load
+                  // Some animations may not be compatible with all models
+                }
+              }
+            }
+          }, 2000); // Start loading after 2 seconds to avoid blocking initial load
+
           // Only start idle animation if no explicit animation is playing
           const store = useChatStore.getState();
           if (!store.currentAnimation) {
@@ -345,6 +382,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   }, [position, scale, rotation, selectedModelId, modelConfig]);
 
   // Apply a natural standing pose to the VRM model
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const applyNaturalPose = (vrm: unknown) => {
     const vrmObj = vrm as Record<string, unknown>;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -521,9 +559,16 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         onComplete: () => {
           // When animation completes, transition back to idle
           // This fixes the issue of animations not returning to idle
+          
+          // Check if we're already transitioning to avoid recursive calls
+          if (isTransitioningToIdle.current) {
+            return;
+          }
+          
           const store = useChatStore.getState();
           if (!store.currentAnimation || store.currentAnimation === animationName) {
             // Only transition to idle if no new animation has been triggered
+            isTransitioningToIdle.current = true;
             store.setCurrentAnimation('modelPose'); // Set to idle animation instead of null to avoid T-pose
           }
         }
@@ -551,6 +596,8 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     }
 
     if (currentAnimation) {
+      // Reset transition flag when new animation is triggered
+      isTransitioningToIdle.current = false;
       playAnimationDirectly(currentAnimation);
     } else {
       // Play idle animation when currentAnimation is null

@@ -58,11 +58,11 @@ export const MEDIUM_PRIORITY_ANIMATIONS = [
   'brooklynUprock', 'crosslegFreeze', 'flair', 'flair_2', 'flair_3',
 
   // Combat & Martial Arts
-  'dropKick', 'flyingKnee', 'daggerStab', 'bodyBlock', 'centerBlock', 'reloading', 'magicCast',
+  'dropKick', 'flyingKnee', 'daggerStab', 'bodyBlock', 'centerBlock', 'reloading',
   'aimingGun', 'takeCover', 'ninjaIdle', 'kipUp', 'roar', 'punch',
 
   // Movement variations
-  'jogBackwards', 'climbing', 'turnLeft', 'turnRight',
+  'jogBackwards', 'climbing', 'turnRight',
   'runningUpStairs', 'startWalking', 'crouchToStand', 'sitToStand',
   'standToSit', 'jumpingDown', 'jumpingJacks', 'vaultOverBox',
 
@@ -159,7 +159,6 @@ const FALLBACK_MAP: Record<string, string> = {
   'bodyBlock': 'angryGesture',
   'centerBlock': 'angryGesture',
   'reloading': 'angryGesture',
-  'magicCast': 'angryGesture',
   'aimingGun': 'angryGesture',
   'takeCover': 'angryGesture',
   'ninjaIdle': 'modelPose',
@@ -171,7 +170,6 @@ const FALLBACK_MAP: Record<string, string> = {
   'jogBackwards': 'modelPose',
   'jumping': 'modelPose',
   'climbing': 'modelPose',
-  'turnLeft': 'modelPose',
   'turnRight': 'modelPose',
   'runningUpStairs': 'modelPose',
   'startWalking': 'modelPose',

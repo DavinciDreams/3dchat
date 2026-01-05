@@ -7,6 +7,7 @@
 
 import axios from 'axios';
 import type { ChatMessage, LLMResponse } from '../../di/ServiceInterfaces';
+import { truncateString } from '../../utils/safeLogger';
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openai/gpt-4o-mini';
@@ -295,7 +296,7 @@ export class LLMClientService {
     const startTime = performance.now();
 
     console.log('%c🤖 [LLMClient] Sending chat request', 'color: #3498db; font-weight: bold;');
-    console.log('%c🤖 [LLMClient] Messages:', 'color: #3498db;', messages);
+    console.log('%c🤖 [LLMClient] Messages (count):', 'color: #3498db;', messages.length);
     console.log('%c🤖 [LLMClient] Model:', 'color: #3498db; font-weight: bold;', JUDGE_MODEL);
     console.log('%c🤖 [LLMClient] API Key present:', 'color: #3498db; font-weight: bold;', !!OPENROUTER_API_KEY);
 
@@ -320,7 +321,14 @@ export class LLMClientService {
       const elapsed = performance.now() - startTime;
       console.log(`%c🤖 [LLMClient] LLM call took ${elapsed.toFixed(0)}ms`, 'color: #3498db;');
       console.log('%c🤖 [LLMClient] API Response status:', 'color: #3498db;', response.status);
-      console.log('%c🤖 [LLMClient] Full API response:', 'color: #3498db;', response.data);
+      // Only log summary of response, not full object to avoid extremely long logs
+      console.log('%c🤖 [LLMClient] Response summary:', 'color: #3498db;', {
+        hasChoices: !!response.data?.choices,
+        choicesCount: response.data?.choices?.length || 0,
+        hasContent: !!response.data?.choices?.[0]?.message?.content,
+        hasToolCalls: !!response.data?.choices?.[0]?.message?.tool_calls,
+        toolCallsCount: response.data?.choices?.[0]?.message?.tool_calls?.length || 0
+      });
 
       // Extract message from response
       if (!response.data?.choices || response.data.choices.length === 0) {
@@ -329,7 +337,7 @@ export class LLMClientService {
       }
 
       const message = response.data.choices[0].message;
-      console.log('%c🤖 [LLMClient] Message from response:', 'color: #3498db;', message);
+      console.log('%c🤖 [LLMClient] Message content preview:', 'color: #3498db;', truncateString(message?.content || '(no content)'));
 
       // Extract tool calls if present
       const toolCalls = message.tool_calls || [];
@@ -347,14 +355,13 @@ export class LLMClientService {
       console.error('%c🤖 [LLMClient] ERROR CAUGHT:', 'color: #e74c3c; font-weight: bold;');
       console.error('%c🤖 [LLMClient] Error name:', 'color: #e74c3c;', error instanceof Error ? error.name : 'Unknown');
       console.error('%c🤖 [LLMClient] Error message:', 'color: #e74c3c;', error instanceof Error ? error.message : String(error));
-      console.error('%c🤖 [LLMClient] Error stack:', 'color: #e74c3c;', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('%c🤖 [LLMClient] Error stack:', 'color: #e74c3c;', error instanceof Error ? truncateString(error.stack, 500) : 'No stack trace');
 
       // Check if it's an axios error with more details
       if (error && typeof error === 'object' && 'response' in error) {
         const axiosError = error as { response?: { data?: unknown; status?: number; headers?: unknown } };
-        console.error('%c🤖 [LLMClient] Axios error response:', 'color: #e74c3c;', axiosError.response?.data);
+        // Only log status, not full response data to avoid extremely long logs
         console.error('%c🤖 [LLMClient] Axios error status:', 'color: #e74c3c;', axiosError.response?.status);
-        console.error('%c🤖 [LLMClient] Axios error headers:', 'color: #e74c3c;', axiosError.response?.headers);
       }
 
       // Re-throw to let caller handle error
