@@ -18,7 +18,6 @@ export const CRITICAL_ANIMATIONS = [
   'peace',        // Happy emotion - high frequency
   'headNod',      // Agreement gestures - high frequency
   'shakingHeadNo', // Disagreement gestures - high frequency
-  'acknowledging', // Conversation acknowledgment - high frequency
 ] as const;
 
 // HIGH Tier - Background load after critical complete
@@ -29,7 +28,7 @@ export const HIGH_PRIORITY_ANIMATIONS = [
 
   // Common social gestures
   'waving',  'salute', 'shakingHands1',
-  'pointing', 'shrugging',
+  'shrugging',
 
   // Common movements
   'lookAround', 'idle', 'weightShift', 'walking', 'jumping',
@@ -37,15 +36,17 @@ export const HIGH_PRIORITY_ANIMATIONS = [
 
   // Common actions
   'typing',
+  'shoot', 'spin', 'squat',
 ] as const;
 
 // MEDIUM Tier - Load on-demand when requested
 export const MEDIUM_PRIORITY_ANIMATIONS = [
   // Music & Performance
   'guitarPlaying', 'pianoPlaying', 'playingDrums', 'playingTheViolin',
-  'singing', 'singing_1', 'hipHopDance', 'hipHopDancing',
-  'swinging', 'catwalk', 'catwalkWalking', 'rumbaDancing',
+  'singing_1', 'hipHopDance', 'hipHopDancing',
+  'catwalkWalking', 'rumbaDancing',
   'sambaDancing', 'sillyDancing', 'twistDance', 'dancingTwerk',
+  'victoryDance', 'golfPuttVictory',
 
   // Dance variations
   'breakdance1990', 'breakdance1990_2', 'breakdance1990_2_alt', 'breakdance1990_3',
@@ -58,8 +59,8 @@ export const MEDIUM_PRIORITY_ANIMATIONS = [
   'brooklynUprock', 'crosslegFreeze', 'flair', 'flair_2', 'flair_3',
 
   // Combat & Martial Arts
-  'dropKick', 'flyingKnee', 'daggerStab', 'bodyBlock', 'centerBlock', 'reloading',
-  'aimingGun', 'takeCover', 'ninjaIdle', 'kipUp', 'roar', 'punch',
+  'dropKick', 'flyingKnee', 'daggerStab', 'bodyBlock', 'reloading',
+  'aimingGun', 'ninjaIdle', 'kipUp', 'roar', 'punch',
 
   // Movement variations
   'jogBackwards', 'climbing', 'turnRight',
@@ -85,87 +86,73 @@ export const MEDIUM_PRIORITY_ANIMATIONS = [
 
 // LOW Tier - Load on-demand, lower cache priority
 export const LOW_PRIORITY_ANIMATIONS = [
-  // Breakdance animations (40)
-  'breakdance1990', 'breakdance1990_2', 'breakdance1990_2_alt', 'breakdance1990_3',
-  'breakdanceEnding1', 'breakdanceEnding2', 'breakdanceEnding3',
-  'breakdanceFootwork1', 'breakdanceFootwork2', 'breakdanceFootwork3', 'breakdanceFootworkToFreeze',
-  'breakdanceFreezes', 'breakdanceFreezeVar1', 'breakdanceFreezeVar2', 'breakdanceFreezeVar3', 'breakdanceFreezeVar4',
-  'breakdanceReady', 'breakdanceReady_2', 'breakdanceReady_3',
-  'breakdanceSwipes', 'breakdanceUprock', 'breakdanceUprock_2', 'breakdanceUprockToGround', 'breakdanceUprockToGround_2',
-  'breakdanceUprockVar1', 'breakdanceUprockVar1End', 'breakdanceUprockVar1Start', 'breakdanceUprockVar2',
-  'brooklynUprock', 'crosslegFreeze', 'flair', 'flair_2', 'flair_3',
-
   // Gesture variations
   'hardHeadNod', 'lengthyHeadNod', 'sarcasticHeadNod',
   'annoyedHeadShake', 'thoughtfulHeadShake',
   'happyHandGesture', 'dismissingGesture', 'lookAwayGesture',
-  'cockyHeadTurn', 'strongGesture', 'standingClap', 'sittingClap',
+  'cockyHeadTurn', 'strongGesture', 'sittingClap',
 
   // Social variations
-  'standingGreeting', 'standingArguing', 'sittingTalking', 'sittingDisapproval',
-  'beckoning', 'standingJump', 'sadWalk', 'victory', 'yelling', 'standingClap',
+  'standingArguing', 'sittingTalking', 'sittingDisapproval',
+  'beckoning', 'standingJump', 'sadWalk', 'victory', 'yelling',
 
   // Rare movements
-  'standardRun', 'floating', 'gettingUp', 'zombieStandUp',
+  'standardRun', 'floating', 'gettingUp',
   'catwalkTwistLToWalk180', 'catwalkWalkStopTwistR', 'entry', 'push',
-  'pushStart', 'snatch',
+  'pushStart',
 
   // Rare actions
-  'angryGesture_1', 'aimingGun', 'victory', 'situps', 'plank',
-  'jumpingJacks', 'vaultOverBox',
-  'rummaging', 'searchingPockets', 'buttonPushing',
+  'angryGesture_1', 'victory',
 
   // Rare idle states
-  'boredmelancholyIdle_1', 'ninjaIdle', 'defeatIdle', 'victoryIdle',
+  'boredmelancholyIdle_1', 'defeatIdle', 'victoryIdle',
   'layingIdle',
 ] as const;
 
 // Fallback animation mapping
 // When an animation is requested but not loaded, use this fallback
+// IMPORTANT: All fallbacks must reference animations that exist in AVAILABLE_ANIMATIONS
 const FALLBACK_MAP: Record<string, string> = {
-  // Idle fallbacks
+  // Idle fallbacks - all map to modelPose which always exists
   'happyIdle': 'modelPose',
   'sadIdle': 'modelPose',
   'defeatIdle': 'modelPose',
   'victoryIdle': 'modelPose',
   'boredmelancholyIdle_1': 'modelPose',
-
-  // Gesture fallbacks
-  'headNod': 'acknowledging',
+  
+  // Gesture fallbacks - use CRITICAL animations that always exist
+  'headNod': 'headNod',
   'hardHeadNod': 'headNod',
   'lengthyHeadNod': 'headNod',
   'sarcasticHeadNod': 'headNod',
-  'shakingHeadNo': 'acknowledging',
+  'shakingHeadNo': 'shakingHeadNo',
   'annoyedHeadShake': 'shakingHeadNo',
   'thoughtfulHeadShake': 'shakingHeadNo',
-
-  // Dance fallbacks
-  'hipHopDance': 'greeting',
-  'hipHopDancing': 'greeting',
-  'swinging': 'greeting',
-  'catwalk': 'greeting',
-  'catwalkWalking': 'greeting',
-  'rumbaDancing': 'greeting',
-  'sambaDancing': 'greeting',
-  'sillyDancing': 'greeting',
-  'twistDance': 'greeting',
-  'dancingTwerk': 'greeting',
-
-  // Combat fallbacks
-  'punch': 'angryGesture',
-  'dropKick': 'angryGesture',
-  'flyingKnee': 'angryGesture',
-  'daggerStab': 'angryGesture',
-  'bodyBlock': 'angryGesture',
-  'centerBlock': 'angryGesture',
-  'reloading': 'angryGesture',
-  'aimingGun': 'angryGesture',
-  'takeCover': 'angryGesture',
+  
+  // Dance fallbacks - use standingGreeting which exists
+  'hipHopDance': 'standingGreeting',
+  'hipHopDancing': 'standingGreeting',
+  'catwalkWalking': 'standingGreeting',
+  'rumbaDancing': 'standingGreeting',
+  'sambaDancing': 'standingGreeting',
+  'sillyDancing': 'standingGreeting',
+  'twistDance': 'standingGreeting',
+  'dancingTwerk': 'standingGreeting',
+  'victoryDance': 'standingGreeting',
+  
+  // Combat fallbacks - use CRITICAL animations that always exist
+  'punch': 'peace',
+  'dropKick': 'peace',
+  'flyingKnee': 'peace',
+  'daggerStab': 'peace',
+  'bodyBlock': 'peace',
+  'reloading': 'peace',
+  'aimingGun': 'peace',
   'ninjaIdle': 'modelPose',
-  'kipUp': 'angryGesture',
-  'roar': 'angryGesture',
-
-  // Movement fallbacks
+  'kipUp': 'peace',
+  'roar': 'peace',
+  
+  // Movement fallbacks - all map to modelPose which always exists
   'walking': 'modelPose',
   'jogBackwards': 'modelPose',
   'jumping': 'modelPose',
@@ -184,9 +171,8 @@ const FALLBACK_MAP: Record<string, string> = {
   'paddling': 'modelPose',
   'floating': 'modelPose',
   'gettingUp': 'modelPose',
-  'zombieStandUp': 'modelPose',
-
-  // Sports fallbacks
+  
+  // Sports fallbacks - all map to modelPose which always exists
   'golfBadShot': 'modelPose',
   'golfPrePutt': 'modelPose',
   'golfDrive': 'modelPose',
@@ -195,8 +181,8 @@ const FALLBACK_MAP: Record<string, string> = {
   'plank': 'modelPose',
   'cartwheel': 'modelPose',
   'backflip': 'modelPose',
-
-  // Stealth fallbacks
+  
+  // Stealth fallbacks - all map to modelPose which always exists
   'lowCrawl': 'modelPose',
   'sneakingForward': 'modelPose',
   'sneakyWalking': 'modelPose',
@@ -204,8 +190,8 @@ const FALLBACK_MAP: Record<string, string> = {
   'nervouslyLookAround': 'modelPose',
   'plotting': 'thinking',
   'militarySignaling': 'salute',
-
-  // Other action fallbacks
+  
+  // Other action fallbacks - use CRITICAL animations that always exist
   'talkingOnPhone': 'modelPose',
   'lookAround': 'modelPose',
   'textingAndWalking': 'modelPose',
@@ -226,64 +212,63 @@ const FALLBACK_MAP: Record<string, string> = {
   'lyingDown': 'modelPose',
   'layingIdle': 'modelPose',
   'kneeling': 'modelPose',
-
-  // Emotional expression fallbacks
+  
+  // Emotional expression fallbacks - use CRITICAL animations that always exist
   'happyHandGesture': 'peace',
   'dismissingGesture': 'shakingHeadNo',
   'lookAwayGesture': 'modelPose',
-  'cockyHeadTurn': 'beingCocky',
-  'strongGesture': 'angryGesture',
-
-  // Social gesture fallbacks
-  'standingGreeting': 'greeting',
-  'bowing': 'greeting',
-  'salute': 'greeting',
-  'shakingHands1': 'greeting',
-  'pointing': 'modelPose',
+  'cockyHeadTurn': 'happyIdle',
+  'strongGesture': 'peace',
+  
+  // Social gesture fallbacks - use CRITICAL animations that always exist
+  'standingGreeting': 'standingGreeting',
+  'bowing': 'standingGreeting',
+  'salute': 'standingGreeting',
+  'shakingHands1': 'standingGreeting',
   'shrugging': 'modelPose',
   'beckoning': 'waving',
   'standingJump': 'jumping',
   'sadWalk': 'modelPose',
   'victory': 'peace',
-  'yelling': 'angryGesture',
+  'yelling': 'peace',
   'standingClap': 'peace',
   'sittingClap': 'peace',
-
-  // Breakdance fallbacks (all use greeting as fallback)
-  'breakdance1990': 'greeting',
-  'breakdance1990_2': 'greeting',
-  'breakdance1990_2_alt': 'greeting',
-  'breakdance1990_3': 'greeting',
-  'breakdanceEnding1': 'greeting',
-  'breakdanceEnding2': 'greeting',
-  'breakdanceEnding3': 'greeting',
-  'breakdanceFootwork1': 'greeting',
-  'breakdanceFootwork2': 'greeting',
-  'breakdanceFootwork3': 'greeting',
-  'breakdanceFootworkToFreeze': 'greeting',
-  'breakdanceFreezes': 'greeting',
-  'breakdanceFreezeVar1': 'greeting',
-  'breakdanceFreezeVar2': 'greeting',
-  'breakdanceFreezeVar3': 'greeting',
-  'breakdanceFreezeVar4': 'greeting',
-  'breakdanceReady': 'greeting',
-  'breakdanceReady_2': 'greeting',
-  'breakdanceReady_3': 'greeting',
-  'breakdanceSwipes': 'greeting',
-  'breakdanceUprock': 'greeting',
-  'breakdanceUprock_2': 'greeting',
-  'breakdanceUprockToGround': 'greeting',
-  'breakdanceUprockToGround_2': 'greeting',
-  'breakdanceUprockVar1': 'greeting',
-  'breakdanceUprockVar1End': 'greeting',
-  'breakdanceUprockVar1Start': 'greeting',
-  'breakdanceUprockVar2': 'greeting',
-  'brooklynUprock': 'greeting',
-  'crosslegFreeze': 'greeting',
-  'flair': 'greeting',
-  'flair_2': 'greeting',
-  'flair_3': 'greeting',
-
+  
+  // Breakdance fallbacks - use standingGreeting which exists
+  'breakdance1990': 'standingGreeting',
+  'breakdance1990_2': 'standingGreeting',
+  'breakdance1990_2_alt': 'standingGreeting',
+  'breakdance1990_3': 'standingGreeting',
+  'breakdanceEnding1': 'standingGreeting',
+  'breakdanceEnding2': 'standingGreeting',
+  'breakdanceEnding3': 'standingGreeting',
+  'breakdanceFootwork1': 'standingGreeting',
+  'breakdanceFootwork2': 'standingGreeting',
+  'breakdanceFootwork3': 'standingGreeting',
+  'breakdanceFootworkToFreeze': 'standingGreeting',
+  'breakdanceFreezes': 'standingGreeting',
+  'breakdanceFreezeVar1': 'standingGreeting',
+  'breakdanceFreezeVar2': 'standingGreeting',
+  'breakdanceFreezeVar3': 'standingGreeting',
+  'breakdanceFreezeVar4': 'standingGreeting',
+  'breakdanceReady': 'standingGreeting',
+  'breakdanceReady_2': 'standingGreeting',
+  'breakdanceReady_3': 'standingGreeting',
+  'breakdanceSwipes': 'standingGreeting',
+  'breakdanceUprock': 'standingGreeting',
+  'breakdanceUprock_2': 'standingGreeting',
+  'breakdanceUprockToGround': 'standingGreeting',
+  'breakdanceUprockToGround_2': 'standingGreeting',
+  'breakdanceUprockVar1': 'standingGreeting',
+  'breakdanceUprockVar1End': 'standingGreeting',
+  'breakdanceUprockVar1Start': 'standingGreeting',
+  'breakdanceUprockVar2': 'standingGreeting',
+  'brooklynUprock': 'standingGreeting',
+  'crosslegFreeze': 'standingGreeting',
+  'flair': 'standingGreeting',
+  'flair_2': 'standingGreeting',
+  'flair_3': 'standingGreeting',
+  
   // Default fallback for any animation not in map
   'default': 'modelPose',
 };

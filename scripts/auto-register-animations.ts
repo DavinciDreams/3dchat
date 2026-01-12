@@ -75,6 +75,7 @@ const SPECIAL_PATH_MAPPINGS: Record<string, string> = {
 // Category suggestions based on filename patterns
 const CATEGORY_PATTERNS: Array<{ pattern: RegExp; category: string }> = [
   { pattern: /breakdance|flair|uprock|freeze/i, category: 'breakdance' },
+  { pattern: /thriller/i, category: 'thriller' },
   { pattern: /dance|twerk|rumba|samba|twist|macarena|fistpump|jumpingjoy|victory|excited|silly/i, category: 'dance' },
   { pattern: /idle|standing|sitting|laying|defeat|ninja|bored|melancholy|victory|weightshift|lookingaround/i, category: 'idle' },
   { pattern: /walk|run|jump|crouch|kneel|crawl|swim|float|sneak|pacing|skate|texting|turn|climb|sit|stand|fall|land|catwalk/i, category: 'movement' },

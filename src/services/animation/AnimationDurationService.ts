@@ -2,7 +2,7 @@
  * Animation Duration Service
  * 
  * Provides animation durations for all available animations.
- * This service extracts duration data from the hardcoded constants
+ * This service extracts duration data from hardcoded constants
  * and provides a clean interface for looking up animation durations.
  */
 
@@ -23,12 +23,9 @@ const ANIMATION_DURATIONS: Record<string, number> = {
   'talkingOnPhone': 5000,
   'bowing': 3500,
   'salute': 2500,
-  'singing': 5000,
 
   // Dance & Celebration
   'hipHopDance': 5000,
-  'swinging': 4000,
-  'catwalk': 4000,
 
   // Combat & Action
   'punch': 1500,
@@ -36,22 +33,16 @@ const ANIMATION_DURATIONS: Record<string, number> = {
   'flyingKnee': 3000,
   'daggerStab': 2000,
   'bodyBlock': 2000,
-  'centerBlock': 2000,
   'catch': 1500,
-  'snatch': 1500,
   'reloading': 3000,
-  'magicCast': 3500,
 
   // Movement
   'walking': 3000,
   'jogBackwards': 3000,
   'jumping': 2000,
   'climbing': 4000,
-  'takeCover': 2500,
-  'zombieStandUp': 3500,
   'plank': 3000,
   'openDoor': 3000,
-  'turnLeft': 2000,
   'turnRight': 2500,
 
   // Sports
@@ -69,7 +60,6 @@ const ANIMATION_DURATIONS: Record<string, number> = {
   'thoughtfulHeadShake': 2500,
   'happyHandGesture': 2000,
   'dismissingGesture': 2000,
-  'acknowledging': 2000,
   'angryGesture': 2000,
   'beingCocky': 3000,
   'relievedSigh': 2500,
@@ -149,7 +139,6 @@ const ANIMATION_DURATIONS: Record<string, number> = {
   'waving': 2500,
   'shakingHands1': 3000,
   'beckoning': 2000,
-  'pointing': 2000,
   'patting': 2000,
   'petting': 2000,
   'pettingAnimal': 2000,
@@ -195,6 +184,10 @@ const ANIMATION_DURATIONS: Record<string, number> = {
   'hipHopDancing': 5000,
   'dancingTwerk': 4000,
   'twistDance': 4000,
+  'victoryDance': 4000,
+  'golfPuttVictory': 4000,
+  'golfDrive': 4000,
+  'situps': 3000,
 
   // Combat & Aggressive
   'roar': 2000,
@@ -213,10 +206,16 @@ const ANIMATION_DURATIONS: Record<string, number> = {
   'standingClap': 2000,
   'standingGreeting': 3000,
   'standingJump': 2500,
-  'situps': 3000,
   'smoking': 4000,
   'yawn': 3000,
   'yelling': 2000,
+
+  // Additional animations from AVAILABLE_ANIMATIONS
+  'boredmelancholyIdle_1': 3000,
+  'catwalkTwistLToWalk180': 3000,
+  'catwalkWalkStopTwistR': 3000,
+  'catwalkWalking': 4000,
+  'praying': 3000,
 };
 
 const DEFAULT_ANIMATION_DURATION = 3000;
@@ -229,7 +228,7 @@ const DEFAULT_ANIMATION_DURATION = 3000;
 export class AnimationDurationService implements IAnimationDurationProvider {
   /**
    * Get duration for a specific animation
-   * @param animationName - The name of the animation
+   * @param animationName - The name of animation
    * @returns Duration in milliseconds
    */
   getDuration(animationName: string): number {
@@ -254,8 +253,8 @@ export class AnimationDurationService implements IAnimationDurationProvider {
 
   /**
    * Check if an animation has a defined duration
-   * @param animationName - The name of the animation
-   * @returns True if the animation has a defined duration
+   * @param animationName - The name of animation
+   * @returns True if animation has a defined duration
    */
   hasDuration(animationName: string): boolean {
     return animationName in ANIMATION_DURATIONS;

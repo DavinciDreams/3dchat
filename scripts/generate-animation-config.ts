@@ -87,8 +87,6 @@ const ADDITIONAL_GESTURE_ANIMATIONS: AnimationDefinition[] = [
   { name: 'beingCocky', mixamoName: 'Being Cocky', category: 'gesture', description: 'Cocky pose' },
   { name: 'relievedSigh', mixamoName: 'Relieved Sigh', category: 'gesture', description: 'Relieved sigh' },
   { name: 'lookAwayGesture', mixamoName: 'Look Away Gesture', category: 'gesture', description: 'Look away gesture' },
-  { name: 'thumbsUp', mixamoName: 'Thumbs Up', category: 'gesture', description: 'Thumbs up approval' },
-  { name: 'thumbsDown', mixamoName: 'Thumbs Down', category: 'gesture', description: 'Thumbs down disapproval' },
 ];
 
 function readAnimationList(): AnimationList {
@@ -108,82 +106,138 @@ function categorizeAnimations(animations: AnimationDefinition[]) {
   return categories;
 }
 
-function getVRMAPath(name: string): string {
+function getVRMAPath(anim: AnimationDefinition): string {
   // Core animations use VRMA_XX.vrma naming
   const corePaths: Record<string, string> = {
-    'greeting': '/animations/vrma/VRMA_02.vrma',
-    'peace': '/animations/vrma/VRMA_03.vrma',
-    'shoot': '/animations/vrma/VRMA_04.vrma',
-    'spin': '/animations/vrma/VRMA_05.vrma',
-    'modelPose': '/animations/vrma/VRMA_06.vrma',
-    'squat': '/animations/vrma/VRMA_07.vrma',
+    'greeting': 'animations/vrma/VRMA_02.vrma',
+    'peace': 'animations/vrma/VRMA_03.vrma',
+    'shoot': 'animations/vrma/VRMA_04.vrma',
+    'spin': 'animations/vrma/VRMA_05.vrma',
+    'modelPose': 'animations/vrma/VRMA_06.vrma',
+    'squat': 'animations/vrma/VRMA_07.vrma',
   };
 
   // Breakdance animations use special naming
   const breakdancePaths: Record<string, string> = {
-    'breakdance1990_2_alt': '/animations/vrma/breakdance1990(2).vrma',
-    'breakdance1990_3': '/animations/vrma/breakdance1990(3).vrma',
-    'breakdanceReady_2': '/animations/vrma/breakdanceReady(2).vrma',
-    'breakdanceReady_3': '/animations/vrma/breakdanceReady(3).vrma',
-    'breakdanceUprock_2': '/animations/vrma/breakdanceUprock(2).vrma',
-    'breakdanceUprockToGround_2': '/animations/vrma/breakdanceUprockToGround(2).vrma',
-    'flair_2': '/animations/vrma/flair(2).vrma',
-    'flair_3': '/animations/vrma/flair(3).vrma',
+    'breakdance1990_2_alt': 'animations/vrma/breakdance1990(2).vrma',
+    'breakdance1990_3': 'animations/vrma/breakdance1990(3).vrma',
+    'breakdanceReady_2': 'animations/vrma/breakdanceReady(2).vrma',
+    'breakdanceReady_3': 'animations/vrma/breakdanceReady(3).vrma',
+    'breakdanceUprock_2': 'animations/vrma/breakdanceUprock(2).vrma',
+    'breakdanceUprockToGround_2': 'animations/vrma/breakdanceUprockToGround(2).vrma',
+    'flair_2': 'animations/vrma/flair(2).vrma',
+    'flair_3': 'animations/vrma/flair(3).vrma',
   };
 
   // Special path mappings
   const specialPaths: Record<string, string> = {
-    'plank': '/animations/vrma/startPlank.vrma',
-    'openDoor': '/animations/vrma/openingDoorInwards.vrma',
-    'flyingKnee': '/animations/vrma/flyingKneePunchCombo.vrma',
-    'daggerStab': '/animations/vrma/doubleDaggerStab.vrma',
-    'jogBackwards': '/animations/vrma/slowJogBackwards.vrma',
-    'climbing': '/animations/vrma/climbingToTop.vrma',
-    'turnRight': '/animations/vrma/rightTurnWBriefcase.vrma',
+    'plank': 'animations/vrma/startPlank.vrma',
+    'openDoor': 'animations/vrma/openingDoorInwards.vrma',
+    'flyingKnee': 'animations/vrma/flyingKneePunchCombo.vrma',
+    'daggerStab': 'animations/vrma/doubleDaggerStab.vrma',
+    'jogBackwards': 'animations/vrma/slowJogBackwards.vrma',
+    'climbing': 'animations/vrma/climbingToTop.vrma',
+    'turnRight': 'animations/vrma/rightTurnWBriefcase.vrma',
+    'blowKiss': 'animations/vrma/blowAKiss.vrma',
+    'clapping': 'animations/vrma/standingClap.vrma',
+    'headShake': 'animations/vrma/shakingHeadNo.vrma',
+    'running': 'animations/vrma/standardRun.vrma',
+    'sittingDown': 'animations/vrma/standToSit.vrma',
+    'standingUp': 'animations/vrma/sitToStand.vrma',
+    'crouching': 'animations/vrma/crouchToStand.vrma',
+    'sillyDance': 'animations/vrma/sillyDancing.vrma',
+    'victoryDance': 'animations/vrma/victory.vrma',
+    'thrillerPart2': 'animations/vrma/Thriller Part2.vrma',
+    'thrillerPart3': 'animations/vrma/Thriller Part3 (1).vrma',
   };
 
-  if (corePaths[name]) return corePaths[name];
-  if (breakdancePaths[name]) return breakdancePaths[name];
-  if (specialPaths[name]) return specialPaths[name];
+  if (corePaths[anim.name]) return corePaths[anim.name];
+  if (breakdancePaths[anim.name]) return breakdancePaths[anim.name];
+  if (specialPaths[anim.name]) return specialPaths[anim.name];
 
-  // Default: use name.vrma
-  return `/animations/vrma/${name}.vrma`;
+  // Default: use name.vrma (matches actual file names on disk)
+  const filename = `${anim.name}.vrma`;
+  return `animations/vrma/${filename}`;
 }
 
 function generateRuntimeConfig(animations: AnimationDefinition[]): string {
   const categories = categorizeAnimations(animations);
 
+  // Track used paths to prevent duplicates - shared across all categories
+  const usedPaths = new Set<string>();
+
   // Generate VRMA_CORE_ANIMATIONS
   const coreAnimations = CORE_ANIMATIONS.map(anim => {
-    const path = getVRMAPath(anim.name);
+    const path = getVRMAPath(anim);
+    usedPaths.add(path);
     return `  { path: '${path}', name: '${anim.name}', description: '${anim.description}' }`;
   }).join(',\n');
 
   // Generate VRMA_EXTENDED_ANIMATIONS (all non-core, non-gesture, non-breakdance from JSON)
-  const extendedCategories = ['idle', 'action', 'social', 'movement', 'dance'];
+  const extendedCategories = ['idle', 'action', 'social', 'movement', 'dance', 'thriller'];
   const extendedAnimations = extendedCategories.flatMap(cat => {
-    return (categories[cat] || []).map(anim => {
-      const path = getVRMAPath(anim.name);
-      return `  { path: '${path}', name: '${anim.name}', description: '${anim.description}' }`;
-    });
+    return (categories[cat] || [])
+      .filter(anim => {
+        const path = getVRMAPath(anim);
+        // Skip if this path is already used
+        if (usedPaths.has(path)) {
+          return false;
+        }
+        usedPaths.add(path);
+        return true;
+      })
+      .map(anim => {
+        const path = getVRMAPath(anim);
+        return `  { path: '${path}', name: '${anim.name}', description: '${anim.description}' }`;
+      });
   }).join(',\n');
 
   // Generate VRMA_GESTURE_ANIMATIONS (gesture from JSON + additional gestures)
-  const gestureFromJson = (categories['gesture'] || []).map(anim => {
-    const path = getVRMAPath(anim.name);
-    return `  { path: '${path}', name: '${anim.name}', description: '${anim.description}' }`;
-  });
-  const additionalGestures = ADDITIONAL_GESTURE_ANIMATIONS.map(anim => {
-    const path = getVRMAPath(anim.name);
-    return `  { path: '${path}', name: '${anim.name}', description: '${anim.description}' }`;
-  });
+  const gestureFromJson = (categories['gesture'] || [])
+    .filter(anim => {
+      const path = getVRMAPath(anim);
+      // Skip if this path is already used
+      if (usedPaths.has(path)) {
+        return false;
+      }
+      usedPaths.add(path);
+      return true;
+    })
+    .map(anim => {
+      const path = getVRMAPath(anim);
+      return `  { path: '${path}', name: '${anim.name}', description: '${anim.description}' }`;
+    });
+  const additionalGestures = ADDITIONAL_GESTURE_ANIMATIONS
+    .filter(anim => {
+      const path = getVRMAPath(anim);
+      // Skip if this path is already used
+      if (usedPaths.has(path)) {
+        return false;
+      }
+      usedPaths.add(path);
+      return true;
+    })
+    .map(anim => {
+      const path = getVRMAPath(anim);
+      return `  { path: '${path}', name: '${anim.name}', description: '${anim.description}' }`;
+    });
   const gestureAnimations = [...gestureFromJson, ...additionalGestures].join(',\n');
 
   // Generate VRMA_BREAKDANCE_ANIMATIONS
-  const breakdanceAnimations = BREAKDANCE_ANIMATIONS.map(anim => {
-    const path = getVRMAPath(anim.name);
-    return `  { path: '${path}', name: '${anim.name}' }`;
-  }).join(',\n');
+  const breakdanceAnimations = BREAKDANCE_ANIMATIONS
+    .filter(anim => {
+      const path = getVRMAPath(anim);
+      // Skip if this path is already used
+      if (usedPaths.has(path)) {
+        return false;
+      }
+      usedPaths.add(path);
+      return true;
+    })
+    .map(anim => {
+      const path = getVRMAPath(anim);
+      return `  { path: '${path}', name: '${anim.name}' }`;
+    }).join(',\n');
 
   return `/**
  * AUTO-GENERATED - DO NOT EDIT
@@ -230,7 +284,7 @@ function generateTypeDefinitions(animations: AnimationDefinition[]): string {
   const coreAnimations = CORE_ANIMATIONS.map(anim => `  '${anim.name}'`).join(',\n');
 
   // Extended animations (all non-core, non-gesture, non-breakdance)
-  const extendedCategories = ['idle', 'action', 'social', 'movement', 'dance'];
+  const extendedCategories = ['idle', 'action', 'social', 'movement', 'dance', 'thriller'];
   const extendedAnimations = extendedCategories.flatMap(cat => {
     return (categories[cat] || []).map(anim => `  '${anim.name}'`);
   }).join(',\n');
@@ -294,7 +348,7 @@ function generateLLMPrompt(animations: AnimationDefinition[]): string {
   const coreSection = CORE_ANIMATIONS.map(anim => `- ${anim.name}: ${anim.description}`).join('\n');
 
   // Extended animations by category
-  const extendedCategories = ['idle', 'action', 'social', 'movement', 'dance'];
+  const extendedCategories = ['idle', 'action', 'social', 'movement', 'dance', 'thriller'];
   const extendedSections = extendedCategories.map(cat => {
     const catAnims = categories[cat] || [];
     if (catAnims.length === 0) return '';

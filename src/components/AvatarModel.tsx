@@ -557,19 +557,30 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         weight: 1.0,
         duration: durationSec, // Set duration for auto-transition
         onComplete: () => {
-          // When animation completes, transition back to idle
-          // This fixes the issue of animations not returning to idle
+          // When animation completes, transition back to modelPose (idle)
+          // FIX: Directly play modelPose animation instead of setting store state
+          // This prevents T-pose by ensuring immediate animation playback
           
-          // Check if we're already transitioning to avoid recursive calls
+          // Check if we're already transitioning to avoid duplicate calls
           if (isTransitioningToIdle.current) {
             return;
           }
           
           const store = useChatStore.getState();
           if (!store.currentAnimation || store.currentAnimation === animationName) {
-            // Only transition to idle if no new animation has been triggered
+            // Only transition to modelPose if no new animation has been triggered
             isTransitioningToIdle.current = true;
-            store.setCurrentAnimation('modelPose'); // Set to idle animation instead of null to avoid T-pose
+            
+            // FIX: Directly play modelPose animation using animation layering service
+            // This ensures immediate playback without timing gap that causes T-pose
+            // Previously: store.setCurrentAnimation('modelPose') triggered useEffect cycle
+            // Now: Direct playback prevents T-pose visibility
+            animationLayeringService.playAnimation('modelPose', 'full_body', {
+              fadeInDuration: 0.3,
+              fadeOutDuration: 0.3,
+              loop: THREE.LoopRepeat,
+              weight: 1.0
+            });
           }
         }
       });

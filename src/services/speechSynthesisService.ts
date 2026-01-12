@@ -247,6 +247,7 @@ let isSpeakingQueue = false;
 export function speakChunk(text: string): void {
   console.log('🔊 [speakChunk] Called with text:', text);
   console.log('🔊 [speakChunk] Text length:', text.length);
+  console.log('🔊 [speakChunk] Current buffer BEFORE adding:', JSON.stringify(speechChunkBuffer));
   
   // Check mute state before processing
   const isMuted = useChatStore.getState().isMuted;
@@ -267,6 +268,7 @@ export function speakChunk(text: string): void {
 
   // Append chunk to buffer
   speechChunkBuffer += text;
+  console.log('🔊 [speakChunk] Current buffer AFTER adding:', JSON.stringify(speechChunkBuffer));
   console.log('🔊 [speakChunk] Buffer size:', speechChunkBuffer.length);
 
   // Set timeout to speak accumulated text
@@ -286,15 +288,19 @@ function flushSpeechBuffer(): void {
   }
 
   console.log('🔊 [flushSpeechBuffer] Flushing buffer, length:', speechChunkBuffer.length);
+  console.log('🔊 [flushSpeechBuffer] Buffer content:', JSON.stringify(speechChunkBuffer));
+  console.log('🔊 [flushSpeechBuffer] Queue BEFORE flush:', JSON.stringify(speechSegmentQueue));
 
   // Split buffer into sentence segments for smoother playback
   // Try to split on sentence boundaries first, then on phrase boundaries
   const segments = splitIntoSegments(speechChunkBuffer);
   
-  console.log('🔊 [flushSpeechBuffer] Created', segments.length, 'segments');
+  console.log('🔊 [flushSpeechBuffer] Created', segments.length, 'segments:', JSON.stringify(segments));
   
   // Add segments to queue
   speechSegmentQueue.push(...segments);
+  
+  console.log('🔊 [flushSpeechBuffer] Queue AFTER flush:', JSON.stringify(speechSegmentQueue));
   
   // Clear buffer
   speechChunkBuffer = '';

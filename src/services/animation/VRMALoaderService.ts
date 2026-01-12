@@ -108,7 +108,9 @@ export class VRMALoaderService implements IVRMALoaderService {
    */
   async loadAnimation(config: VRMAAnimationConfig): Promise<VRMAAnimation> {
     try {
-      const gltf = await this.loader.loadAsync(config.path);
+      // URL-encode the path to handle spaces and special characters
+      const encodedPath = encodeURI(config.path);
+      const gltf = await this.loader.loadAsync(encodedPath);
       
       // VRMA files contain animation data in userData.vrmAnimations
       const vrmAnimations = (gltf.userData as { vrmAnimations?: unknown[] }).vrmAnimations;
