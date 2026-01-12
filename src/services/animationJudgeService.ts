@@ -95,13 +95,67 @@ export async function judgeAnimations(
     console.log('%c🎬 [AnimationJudge] Tool call received!', 'background: #ff6b6b; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
     console.log('%c🎬 [AnimationJudge] Raw args:', 'color: #ff6b6b; font-weight: bold;', args);
 
-    // Validate animations are in our allowed list
+    // Helper function to find closest matching animation name
+    function findClosestAnimationName(requestedName: string): string | null {
+      // Try exact match first
+      if (AVAILABLE_ANIMATIONS.includes(requestedName as typeof AVAILABLE_ANIMATIONS[number])) {
+        return requestedName;
+      }
+
+      // Try case-insensitive match
+      const caseInsensitiveMatch = AVAILABLE_ANIMATIONS.find(
+        anim => anim.toLowerCase() === requestedName.toLowerCase()
+      );
+      if (caseInsensitiveMatch) {
+        console.log('%c🔍 [AnimationJudge] Case-insensitive match found:', 'color: #3498db; font-weight: bold;',
+          `"${requestedName}" → "${caseInsensitiveMatch}"`);
+        return caseInsensitiveMatch;
+      }
+
+      // Try fuzzy match - remove common suffixes and try partial match
+      const normalizedRequested = requestedName
+        .toLowerCase()
+        .replace(/ing$/, '')
+        .replace(/s$/, '');
+
+      const fuzzyMatch = AVAILABLE_ANIMATIONS.find(anim => {
+        const normalizedAnim = anim.toLowerCase().replace(/ing$/, '').replace(/s$/, '');
+        return normalizedAnim === normalizedRequested ||
+               normalizedAnim.includes(normalizedRequested) ||
+               normalizedRequested.includes(normalizedAnim);
+      });
+
+      if (fuzzyMatch) {
+        console.log('%c🔍 [AnimationJudge] Fuzzy match found:', 'color: #3498db; font-weight: bold;',
+          `"${requestedName}" → "${fuzzyMatch}"`);
+        return fuzzyMatch;
+      }
+
+      // No match found
+      return null;
+    }
+
+    // Validate animations are in our allowed list with fuzzy matching
     const validAnimations: AnimationTrigger[] = args.animations
-      .filter((a: AnimationTrigger) => AVAILABLE_ANIMATIONS.includes(a.name as typeof AVAILABLE_ANIMATIONS[number]))
-      .map((a: AnimationTrigger) => ({
-        name: a.name,
-        delay: a.delay || 0
-      }));
+      .map((a: AnimationTrigger) => {
+        const matchedName = findClosestAnimationName(a.name);
+        if (matchedName) {
+          return {
+            name: matchedName,
+            delay: a.delay || 0
+          };
+        } else {
+          console.log('%c❌ [AnimationJudge] Animation rejected - no match found:', 'color: #e74c3c; font-weight: bold;', a.name);
+          console.log('%c❌ [AnimationJudge] Did you mean one of these?', 'color: #e74c3c; font-weight: bold;',
+            AVAILABLE_ANIMATIONS.filter(anim => {
+              const search = a.name.toLowerCase().replace(/ing$/, '').substring(0, 10);
+              return anim.toLowerCase().includes(search);
+            }).slice(0, 5)
+          );
+          return null;
+        }
+      })
+      .filter((a): a is AnimationTrigger => a !== null) as AnimationTrigger[];
 
     console.log('%c🎬 [AnimationJudge] Valid animations:', 'color: #ff6b6b; font-weight: bold;', validAnimations);
 
@@ -124,7 +178,7 @@ export async function judgeAnimations(
   }
 }
 
-const BUFFER_BETWEEN_ANIMATIONS = 500; // Buffer time between animations (ms)
+const BUFFER_BETWEEN_ANIMATIONS = 100; // Buffer time between animations (ms) - reduced for smoother transitions
 
 /**
  * Process animation queue - schedules animations with their delays

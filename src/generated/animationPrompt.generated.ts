@@ -18,11 +18,8 @@ CORE ANIMATIONS:
 
 IDLE:
 - idle: Default standing pose
-- breathingIdle: Calm breathing animation
 - happyIdle: Happy standing pose
 - sadIdle: Sad standing pose
-- boredIdle: Bored stance with fidgeting
-- lookingAround: Looking around curiously
 - weightShift: Shifting weight between feet
 - boredmelancholyIdle_1: Bored and melancholy idle animation
 - defeatIdle: Defeated idle pose
@@ -52,15 +49,11 @@ ACTION:
 - typing: Typing animation
 - vaultOverBox: Vaulting over a box
 - punch: Punch forward
-- kick: Kick forward
-- dodge: Dodge to the side
-- block: Defensive block
 - flyingKnee: Flying knee punch combo attack
 - daggerStab: Double dagger stab attack
 - dropKick: Drop kick attack
 - bodyBlock: Body block defense
 - reloading: Reloading weapon
-- throw: Throw something
 - catch: Catch something
 - push: Push forward
 - plank: Plank exercise
@@ -75,7 +68,6 @@ SOCIAL:
 - kiss: Kissing gesture
 - praying: Praying gesture
 - shakingHands1: Shaking hands gesture
-- shrug: Shoulder shrug gesture
 - sittingClap: Clapping while sitting
 - sittingTalking: Talking while sitting
 - standingArguing: Arguing while standing
@@ -87,9 +79,7 @@ SOCIAL:
 - salute: Military-style salute
 - blowKiss: Blow a kiss
 - clapping: Applause
-- cheering: Excited cheering
 - headNod: Nodding head yes
-- headShake: Shaking head no
 
 MOVEMENT:
 - catwalkTwistLToWalk180: Catwalk twist left to 180 turn
@@ -118,7 +108,7 @@ MOVEMENT:
 - startWalking: Start walking
 - swimming: Swimming animation
 - jogBackwards: Jogging backwards slowly
-- climbing: Climbing to the top
+- climbing: Climbing to top
 - turnRight: Turn right while holding briefcase
 - walking: Walking in place
 - running: Running in place
@@ -126,8 +116,6 @@ MOVEMENT:
 - sittingDown: Sit down
 - standingUp: Stand up
 - crouching: Crouch down
-- falling: Falling animation
-- landing: Landing from jump
 - textingAndWalking: Walking while texting
 
 DANCE:
@@ -139,10 +127,6 @@ DANCE:
 - sillyDance: Fun silly dance
 - twistDance: Twist dance moves
 - victoryDance: Victory celebration dance
-- fistPump: Fist pump celebration
-- jumpingJoy: Jumping with joy
-- excited: Excited reaction
-- macarena: Macarena dance
 - sillyDancing: Fun silly dancing
 
 GESTURE ANIMATIONS (subtle expressions):
@@ -156,12 +140,7 @@ HEAD GESTURES:
 - thoughtfulHeadShake: Thoughtful head shake
 
 HAND GESTURES:
-- pointing: Point at something
-- thumbsUp: Thumbs up approval
-- thumbsDown: Thumbs down disapproval
 - happyHandGesture: Happy hand gesture
-- thumbsUp: Thumbs up approval
-- thumbsDown: Thumbs down disapproval
 
 BREAKDANCE:
 - breakdance1990: 1990 spin
