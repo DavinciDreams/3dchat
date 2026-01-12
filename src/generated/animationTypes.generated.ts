@@ -53,6 +53,7 @@ export const EXTENDED_ANIMATIONS = [
   'reloading',
   'catch',
   'push',
+  'swinging',
   'plank',
   'openDoor',
   'golfBadShot',
@@ -109,16 +110,16 @@ export const EXTENDED_ANIMATIONS = [
   'sittingDown',
   'standingUp',
   'crouching',
+  'catwalk',
   'textingAndWalking',
   'dancingTwerk',
   'golfPuttVictory',
-  'hipHopDance',
+  'hipHopDancing',
   'rumbaDancing',
   'sambaDancing',
-  'sillyDance',
+  'sillyDancing',
   'twistDance',
-  'victoryDance',
-  'sillyDancing'
+  'victoryDance'
 ] as const;
 
 // Gesture animations
