@@ -204,6 +204,10 @@ function App() {
               onChange={(id) => {
                 console.log('🎭 [App.tsx] Model changed from', selectedModelId, 'to', id);
                 setSelectedModelId(id);
+                // FIX: Clear current animation when model changes to ensure idle animation plays
+                // Otherwise, the new avatar remains in T-pose because the idle animation check
+                // in AvatarModel.tsx only plays modelPose if !store.currentAnimation
+                setCurrentAnimation('');
               }}
               label="Character"
               icon={<User className="h-4 w-4" />}
