@@ -169,7 +169,7 @@
       "description": "Playing guitar"
     },
     {
-      "name": "hipHopDance",
+      "name": "hipHopDancing",
       "mixamoName": "Hip Hop Dancing",
       "category": "dance",
       "description": "Hip hop dance moves"
@@ -367,7 +367,7 @@
       "description": "Shaking hands gesture"
     },
     {
-      "name": "sillyDance",
+      "name": "sillyDancing",
       "mixamoName": "Silly Dancing",
       "category": "dance",
       "description": "Fun silly dance"
@@ -703,10 +703,16 @@
       "description": "Crouch down"
     },
     {
-      "name": "sillyDancing",
-      "mixamoName": "Silly Dancing",
-      "category": "dance",
-      "description": "Fun silly dancing"
+      "name": "swinging",
+      "mixamoName": "Swinging",
+      "category": "action",
+      "description": "Swinging motion"
+    },
+    {
+      "name": "catwalk",
+      "mixamoName": "Catwalk",
+      "category": "movement",
+      "description": "Catwalk style walking"
     },
     {
       "name": "plank",

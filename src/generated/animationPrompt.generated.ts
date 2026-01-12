@@ -56,6 +56,7 @@ ACTION:
 - reloading: Reloading weapon
 - catch: Catch something
 - push: Push forward
+- swinging: Swinging motion
 - plank: Plank exercise
 - openDoor: Opening a door
 - golfBadShot: Golf bad shot animation
@@ -116,18 +117,18 @@ MOVEMENT:
 - sittingDown: Sit down
 - standingUp: Stand up
 - crouching: Crouch down
+- catwalk: Catwalk style walking
 - textingAndWalking: Walking while texting
 
 DANCE:
 - dancingTwerk: Twerk dance moves
 - golfPuttVictory: Victory golf putt celebration
-- hipHopDance: Hip hop dance moves
+- hipHopDancing: Hip hop dance moves
 - rumbaDancing: Rumba dance moves
 - sambaDancing: Samba dance moves
-- sillyDance: Fun silly dance
+- sillyDancing: Fun silly dance
 - twistDance: Twist dance moves
 - victoryDance: Victory celebration dance
-- sillyDancing: Fun silly dancing
 
 GESTURE ANIMATIONS (subtle expressions):
 HEAD GESTURES:
