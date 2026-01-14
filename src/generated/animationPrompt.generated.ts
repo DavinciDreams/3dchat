@@ -117,7 +117,6 @@ MOVEMENT:
 - sittingDown: Sit down
 - standingUp: Stand up
 - crouching: Crouch down
-- catwalk: Catwalk style walking
 - textingAndWalking: Walking while texting
 
 DANCE:

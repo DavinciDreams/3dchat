@@ -292,7 +292,7 @@ export const EXTENDED_ANIMATIONS = [
   // Greetings & Social
   'bowing', 'salute', 'singing', 'shakingHands1', 'standingClap', 'standingGreeting', 'waving', 'yelling',
   // Dance & Celebration
-  'hipHopDance', 'swinging', 'catwalk', 'rumbaDancing', 'sambaDancing',
+  'hipHopDancing', 'swinging', 'catwalk', 'rumbaDancing', 'sambaDancing',
   // Combat & Action
   'punch', 'dropKick', 'flyingKnee', 'daggerStab', 'bodyBlock', 'catch', 'snatch', 'reloading', 'magicCast',
   // Movement

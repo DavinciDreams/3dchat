@@ -11,6 +11,8 @@ import { truncateString } from '../../utils/safeLogger';
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openai/gpt-4o-mini';
+const LLM_TIMEOUT_MS = parseInt(import.meta.env.VITE_LLM_TIMEOUT_MS || '60000'); // Default 60 seconds
+const MAX_RETRIES = parseInt(import.meta.env.VITE_LLM_MAX_RETRIES || '2'); // Default 2 retries
 
 const SYSTEM_PROMPT = `You are an animation director for a 3D avatar. Given a conversation exchange, decide which animations avatar should perform to accompany speaking its response.
 
@@ -102,74 +104,136 @@ export class LLMClientService {
     console.log('%c🤖 [LLMClient] Messages (count):', 'color: #3498db;', messages.length);
     console.log('%c🤖 [LLMClient] Model:', 'color: #3498db; font-weight: bold;', JUDGE_MODEL);
     console.log('%c🤖 [LLMClient] API Key present:', 'color: #3498db; font-weight: bold;', !!OPENROUTER_API_KEY);
-
-    try {
-      const response = await axios.post(
-        'https://openrouter.ai/api/v1/chat/completions',
-        {
-          model: JUDGE_MODEL,
-          messages,
-          tools: [TOOL_DEFINITION],
-          tool_choice: { type: 'function', function: { name: 'trigger_animations' } }
-        },
-        {
-          timeout: 30000, // 30 second timeout to prevent indefinite hanging
-          headers: {
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
+    console.log('%c🤖 [LLMClient] Timeout:', 'color: #3498db; font-weight: bold;', `${LLM_TIMEOUT_MS}ms`);
+    console.log('%c🤖 [LLMClient] Max retries:', 'color: #3498db; font-weight: bold;', MAX_RETRIES);
+    
+    // Calculate prompt size for diagnostics
+    const promptSize = JSON.stringify(messages).length;
+    console.log('%c🤖 [LLMClient] Prompt size:', 'color: #3498db; font-weight: bold;', `${promptSize} bytes`);
+    
+    // Set up warning timer for approaching timeout
+    const WARNING_THRESHOLD = Math.floor(LLM_TIMEOUT_MS * 0.7); // Warn at 70% of timeout
+    const timeoutWarning = setTimeout(() => {
       const elapsed = performance.now() - startTime;
-      console.log(`%c🤖 [LLMClient] LLM call took ${elapsed.toFixed(0)}ms`, 'color: #3498db;');
-      console.log('%c🤖 [LLMClient] API Response status:', 'color: #3498db;', response.status);
-      // Only log summary of response, not full object to avoid extremely long logs
-      console.log('%c🤖 [LLMClient] Response summary:', 'color: #3498db;', {
-        hasChoices: !!response.data?.choices,
-        choicesCount: response.data?.choices?.length || 0,
-        hasContent: !!response.data?.choices?.[0]?.message?.content,
-        hasToolCalls: !!response.data?.choices?.[0]?.message?.tool_calls,
-        toolCallsCount: response.data?.choices?.[0]?.message?.tool_calls?.length || 0
-      });
+      console.warn(`%c⚠️ [LLMClient] WARNING: Request taking longer than expected - ${elapsed.toFixed(0)}ms elapsed (timeout at ${LLM_TIMEOUT_MS}ms)`,
+        'color: #f39c12; font-weight: bold; font-size: 12px;');
+    }, WARNING_THRESHOLD);
 
-      // Extract message from response
-      if (!response.data?.choices || response.data.choices.length === 0) {
-        console.error('%c🤖 [LLMClient] No choices in API response', 'color: #e74c3c;');
-        return { content: '', tool_calls: [] };
-      }
-
-      const message = response.data.choices[0].message;
-      console.log('%c🤖 [LLMClient] Message content preview:', 'color: #3498db;', truncateString(message?.content || '(no content)'));
-
-      // Extract tool calls if present
-      const toolCalls = message.tool_calls || [];
-
-      return {
-        content: message.content || '',
-        tool_calls: toolCalls.map((call: any) => ({
-          function: {
-            name: call.function.name,
-            arguments: call.function.arguments
+    // Retry logic for timeouts
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const response = await axios.post(
+          'https://openrouter.ai/api/v1/chat/completions',
+          {
+            model: JUDGE_MODEL,
+            messages,
+            tools: [TOOL_DEFINITION],
+            tool_choice: { type: 'function', function: { name: 'trigger_animations' } }
+          },
+          {
+            timeout: LLM_TIMEOUT_MS,
+            headers: {
+              'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+              'Content-Type': 'application/json'
+            }
           }
-        }))
-      };
-    } catch (error) {
-      console.error('%c🤖 [LLMClient] ERROR CAUGHT:', 'color: #e74c3c; font-weight: bold;');
-      console.error('%c🤖 [LLMClient] Error name:', 'color: #e74c3c;', error instanceof Error ? error.name : 'Unknown');
-      console.error('%c🤖 [LLMClient] Error message:', 'color: #e74c3c;', error instanceof Error ? error.message : String(error));
-      console.error('%c🤖 [LLMClient] Error stack:', 'color: #e74c3c;', error instanceof Error ? truncateString(error.stack, 500) : 'No stack trace');
+        );
 
-      // Check if it's an axios error with more details
-      if (error && typeof error === 'object' && 'response' in error) {
-        const axiosError = error as { response?: { data?: unknown; status?: number; headers?: unknown } };
-        // Only log status, not full response data to avoid extremely long logs
-        console.error('%c🤖 [LLMClient] Axios error status:', 'color: #e74c3c;', axiosError.response?.status);
+        clearTimeout(timeoutWarning);
+        
+        const elapsed = performance.now() - startTime;
+        console.log(`%c🤖 [LLMClient] LLM call took ${elapsed.toFixed(0)}ms`, 'color: #3498db;');
+        console.log('%c🤖 [LLMClient] Attempt:', 'color: #3498db; font-weight: bold;', `${attempt}/${MAX_RETRIES}`);
+        
+        // Log response size
+        const responseSize = JSON.stringify(response.data).length;
+        console.log('%c🤖 [LLMClient] Response size:', 'color: #3498db; font-weight: bold;', `${responseSize} bytes`);
+        
+        // Warn if response took more than 70% of timeout
+        if (elapsed > WARNING_THRESHOLD) {
+          console.warn(`%c⚠️ [LLMClient] Slow response detected - ${elapsed.toFixed(0)}ms (consider increasing timeout)`,
+            'color: #f39c12; font-weight: bold;');
+        }
+        console.log('%c🤖 [LLMClient] API Response status:', 'color: #3498db;', response.status);
+        // Only log summary of response, not full object to avoid extremely long logs
+        console.log('%c🤖 [LLMClient] Response summary:', 'color: #3498db;', {
+          hasChoices: !!response.data?.choices,
+          choicesCount: response.data?.choices?.length || 0,
+          hasContent: !!response.data?.choices?.[0]?.message?.content,
+          hasToolCalls: !!response.data?.choices?.[0]?.message?.tool_calls,
+          toolCallsCount: response.data?.choices?.[0]?.message?.tool_calls?.length || 0
+        });
+
+        // Extract message from response
+        if (!response.data?.choices || response.data.choices.length === 0) {
+          console.error('%c🤖 [LLMClient] No choices in API response', 'color: #e74c3c;');
+          return { content: '', tool_calls: [] };
+        }
+
+        const message = response.data.choices[0].message;
+        console.log('%c🤖 [LLMClient] Message content preview:', 'color: #3498db;', truncateString(message?.content || '(no content)'));
+
+        // Extract tool calls if present
+        const toolCalls = message.tool_calls || [];
+
+        return {
+          content: message.content || '',
+          tool_calls: toolCalls.map((call: any) => ({
+            function: {
+              name: call.function.name,
+              arguments: call.function.arguments
+            }
+          }))
+        };
+      } catch (error) {
+        clearTimeout(timeoutWarning);
+        const elapsed = performance.now() - startTime;
+        lastError = error instanceof Error ? error : new Error(String(error));
+        
+        console.error('%c🤖 [LLMClient] ERROR CAUGHT:', 'color: #e74c3c; font-weight: bold;');
+        console.error('%c🤖 [LLMClient] Error name:', 'color: #e74c3c;', lastError.name);
+        console.error('%c🤖 [LLMClient] Error message:', 'color: #e74c3c;', lastError.message);
+        console.error('%c🤖 [LLMClient] Time elapsed before error:', 'color: #e74c3c; font-weight: bold;', `${elapsed.toFixed(0)}ms`);
+        console.error('%c🤖 [LLMClient] Attempt:', 'color: #e74c3c; font-weight: bold;', `${attempt}/${MAX_RETRIES}`);
+
+        // Check if it's an axios error with more details
+        if (error && typeof error === 'object' && 'response' in error) {
+          const axiosError = error as { response?: { data?: unknown; status?: number; headers?: unknown } };
+          // Only log status, not full response data to avoid extremely long logs
+          console.error('%c🤖 [LLMClient] Axios error status:', 'color: #e74c3c;', axiosError.response?.status);
+        }
+        
+        // Check if it's a timeout error and we have retries left
+        const isTimeout = lastError.message.includes('timeout');
+        if (isTimeout && attempt < MAX_RETRIES) {
+          const retryDelay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff, max 5s
+          console.warn(`%c🔄 [LLMClient] Timeout detected, retrying in ${retryDelay}ms (attempt ${attempt + 1}/${MAX_RETRIES})`,
+            'color: #f39c12; font-weight: bold;');
+          
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          continue; // Try again
+        }
+        
+        // Special handling for timeout errors (final attempt)
+        if (isTimeout) {
+          console.error('%c🤖 [LLMClient] TIMEOUT ERROR DETAILS:', 'color: #e74c3c; font-weight: bold; font-size: 14px;');
+          console.error('%c🤖 [LLMClient] - Request timed out after ${LLM_TIMEOUT_MS}ms', 'color: #e74c3c;');
+          console.error('%c🤖 [LLMClient] - Model:', 'color: #e74c3c;', JUDGE_MODEL);
+          console.error('%c🤖 [LLMClient] - Prompt size:', 'color: #e74c3c;', `${promptSize} bytes`);
+          console.error('%c🤖 [LLMClient] - Messages count:', 'color: #e74c3c;', messages.length);
+          console.error('%c🤖 [LLMClient] - Total attempts:', 'color: #e74c3c;', `${attempt}/${MAX_RETRIES}`);
+          console.error('%c🤖 [LLMClient] SUGGESTION: Consider increasing VITE_LLM_TIMEOUT_MS or using a faster model', 'color: #f39c12; font-weight: bold;');
+        }
+
+        // Re-throw to let caller handle error
+        throw lastError;
       }
-
-      // Re-throw to let caller handle error
-      throw error;
     }
+    
+    // This should never be reached, but TypeScript needs it
+    throw new Error('Unexpected error: All retries exhausted');
   }
 
   /**

@@ -149,6 +149,8 @@ function getVRMAPath(anim: AnimationDefinition): string {
     'victoryDance': 'animations/vrma/victory.vrma',
     'thrillerPart2': 'animations/vrma/Thriller Part2.vrma',
     'thrillerPart3': 'animations/vrma/Thriller Part3 (1).vrma',
+    'catwalk': 'animations/vrma/catwalkWalking.vrma',
+    'hipHopDancing': 'animations/vrma/hipHopDance.vrma',
   };
 
   if (corePaths[anim.name]) return corePaths[anim.name];

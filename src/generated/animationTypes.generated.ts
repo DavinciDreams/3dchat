@@ -110,7 +110,6 @@ export const EXTENDED_ANIMATIONS = [
   'sittingDown',
   'standingUp',
   'crouching',
-  'catwalk',
   'textingAndWalking',
   'dancingTwerk',
   'golfPuttVictory',

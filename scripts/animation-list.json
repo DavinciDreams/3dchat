@@ -709,12 +709,6 @@
       "description": "Swinging motion"
     },
     {
-      "name": "catwalk",
-      "mixamoName": "Catwalk",
-      "category": "movement",
-      "description": "Catwalk style walking"
-    },
-    {
       "name": "plank",
       "mixamoName": "Plank",
       "category": "action",
