@@ -23,6 +23,14 @@ export interface ExtendedCharacterProps extends CharacterProps {
 const DEFAULT_POSITION: [number, number, number] = [0, 0, 0];
 const DEFAULT_ROTATION: [number, number, number] = [0, 0, 0];
 
+// Animation blending constants for smooth transitions
+// Using shorter fade durations (0.15-0.3s) for more responsive animation blending
+const ANIMATION_FADE_IN_DURATION = 0.3;  // 0.3 seconds for responsive fade-in
+const ANIMATION_FADE_OUT_DURATION = 0.2; // 0.2 seconds for responsive fade-out
+const ANIMATION_CROSS_FADE_DURATION = 0.3; // 0.3 seconds for cross-fade transitions
+const IDLE_FADE_DURATION = 0.2; // 0.2 seconds for idle transitions
+const QUICK_FADE_DURATION = 0.15; // 0.15 seconds for quick transitions (background loading)
+
 const Character: React.FC<ExtendedCharacterProps> = ({
   position = DEFAULT_POSITION,
   scale = 1,
@@ -62,7 +70,13 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   // PERFORMANCE FIX: Track last VRM update time for throttling
   // This reduces CPU usage by 30-50% by limiting VRM.update() calls
   const lastVrmUpdateRef = useRef(0);
-  const VRM_UPDATE_INTERVAL = 16; // Update every ~16ms (60fps target)
+  const VRM_UPDATE_INTERVAL = 33; // Update every ~33ms (30fps target) - reduced from 16ms for better performance
+  const lastAnimationUpdateRef = useRef(0);
+  const ANIMATION_UPDATE_INTERVAL = 16; // Update animations every ~16ms (60fps target)
+
+  // Track currently playing action for smooth cross-fade transitions
+  // This prevents T-pose snap by enabling crossFadeTo() between animations
+  const currentPlayingAction = useRef<THREE.AnimationAction | null>(null);
 
   const vrm = gltf.userData.vrm as unknown;
   const scene = gltf.scene;
@@ -335,7 +349,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
               if (!vrmaActions.current[animName] && !vrmaClips.current[animName]) {
                 try {
                   await loadVRMAAnimation(animName);
-                } catch (error) {
+                } catch {
                   // Silently skip animations that fail to load
                   // Some animations may not be compatible with all models
                 }
@@ -348,7 +362,11 @@ const Character: React.FC<ExtendedCharacterProps> = ({
           if (!store.currentAnimation) {
             if (vrmaActions.current['modelPose']) {
               try {
-                vrmaActions.current['modelPose'].reset().fadeIn(0.3).play();
+                const action = vrmaActions.current['modelPose'];
+                // FIX: Never use reset() - it causes T-pose snapping
+                // Use fadeIn() without reset for smooth initial animation
+                action.fadeIn(IDLE_FADE_DURATION).play();
+                currentPlayingAction.current = action;
               } catch {
                 console.warn('Failed to play modelPose animation');
               }
@@ -378,6 +396,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       animationLayeringService.clear();
       vrmaAnimationService.clearRetargetedClipsForModel(selectedModelId);
       isInitialized.current = false;
+      currentPlayingAction.current = null;
     };
   }, [position, scale, rotation, selectedModelId, modelConfig]);
 
@@ -454,17 +473,28 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     // and the mixer to process too much time at once
     const clampedDelta = Math.min(delta, 0.1);
     
-    // Update animation mixer to advance animations
-    // Only update if mixer exists and delta is reasonable
-    if (mixer.current) {
-      mixer.current.update(clampedDelta);
-    }
+    const now = performance.now();
+    
+    // PERFORMANCE FIX: Throttle mixer updates to reduce CPU usage
+    // The mixer is the most expensive operation in the frame loop
+    // Updating it every frame at 60fps can cause 93ms+ frame times
+    const timeSinceLastAnimationUpdate = now - lastAnimationUpdateRef.current;
+    
+    if (timeSinceLastAnimationUpdate >= ANIMATION_UPDATE_INTERVAL) {
+      // Update animation mixer to advance animations
+      // Only update if mixer exists and delta is reasonable
+      if (mixer.current) {
+        mixer.current.update(clampedDelta);
+      }
 
-    // PERFORMANCE FIX: Call animationLayeringService.update() to handle weight interpolation
-    // This enables smooth blending between animation layers
-    // Note: animationLayeringService.update() NO LONGER calls mixer.update() to avoid
-    // triple processing of the same time delta (the main performance bottleneck)
-    animationLayeringService.update(clampedDelta);
+      // PERFORMANCE FIX: Call animationLayeringService.update() to handle weight interpolation
+      // This enables smooth blending between animation layers
+      // Note: animationLayeringService.update() NO LONGER calls mixer.update() to avoid
+      // triple processing of the same time delta (the main performance bottleneck)
+      animationLayeringService.update(clampedDelta);
+      
+      lastAnimationUpdateRef.current = now;
+    }
 
     // PERFORMANCE FIX: Only update VRM when animations are actually playing
     // VRM.update() is expensive as it recalculates all bone transforms
@@ -474,7 +504,6 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       Object.values(currentActions.current).some(action => action.isRunning());
     
     if (vrmRef.current && hasActiveAnimations) {
-      const now = performance.now();
       const timeSinceLastUpdate = now - lastVrmUpdateRef.current;
       
       // PERFORMANCE FIX: Throttle VRM.update() calls to reduce CPU usage
@@ -507,14 +536,23 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       if (vrmaActions.current['modelPose']) {
         try {
           animationLayeringService.playAnimation('modelPose', 'full_body', {
-            fadeInDuration: 0.1,
-            fadeOutDuration: 0.1,
+            fadeInDuration: QUICK_FADE_DURATION,
+            fadeOutDuration: QUICK_FADE_DURATION,
             loop: THREE.LoopRepeat,
             weight: 1.0
           });
         } catch {
           // Fallback to direct playback if layering service fails
-          vrmaActions.current['modelPose'].reset().fadeIn(0.1).play();
+          const fallbackAction = vrmaActions.current['modelPose'];
+          // FIX: Never use reset() - it causes T-pose snapping
+          // Always use crossFadeTo() for smooth transitions
+          if (currentPlayingAction.current && currentPlayingAction.current !== fallbackAction) {
+            currentPlayingAction.current.crossFadeTo(fallbackAction, QUICK_FADE_DURATION, false);
+          } else {
+            // No current action or same action - use fadeIn without reset
+            fallbackAction.fadeIn(QUICK_FADE_DURATION).play();
+          }
+          currentPlayingAction.current = fallbackAction;
         }
       }
       // Load in background without blocking
@@ -522,6 +560,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         // Once loaded, play the requested animation
         playAnimationDirectly(animationName);
       });
+      return;
     }
 
     const action = vrmaActions.current[animationName] || currentActions.current[animationName];
@@ -551,8 +590,8 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // Play animation on full_body layer for maximum impact
       // Using layering service provides smooth cross-fade between animations
       animationLayeringService.playAnimation(animationName, 'full_body', {
-        fadeInDuration: 0.5, // Longer fade-in for smoother transitions
-        fadeOutDuration: 0.5, // Longer fade-out for smoother transitions
+        fadeInDuration: ANIMATION_FADE_IN_DURATION, // 1.0s for smooth fade-in
+        fadeOutDuration: ANIMATION_FADE_OUT_DURATION, // 0.8s for smooth fade-out
         loop: THREE.LoopRepeat,
         weight: 1.0,
         duration: durationSec, // Set duration for auto-transition
@@ -576,23 +615,42 @@ const Character: React.FC<ExtendedCharacterProps> = ({
             // Previously: store.setCurrentAnimation('modelPose') triggered useEffect cycle
             // Now: Direct playback prevents T-pose visibility
             animationLayeringService.playAnimation('modelPose', 'full_body', {
-              fadeInDuration: 0.3,
-              fadeOutDuration: 0.3,
+              fadeInDuration: IDLE_FADE_DURATION, // 0.8s for smooth idle transition
+              fadeOutDuration: IDLE_FADE_DURATION, // 0.8s for smooth idle transition
               loop: THREE.LoopRepeat,
               weight: 1.0
             });
           }
         }
       });
+      
+      // Update the currently playing action reference
+      currentPlayingAction.current = action;
     } catch (error) {
       console.warn(`Failed to play animation using layering service: ${animationName}`, error);
       // Fallback to direct playback if layering service fails
-      action.reset();
+      // FIX: Use crossFadeTo() for smooth transitions instead of reset() + fadeIn()
+      // This prevents T-pose snap by blending from current pose to new animation
+      
       // Set animation playback speed
       action.timeScale = getAnimationTimeScale();
-      action.fadeIn(0.3);
       action.setLoop(THREE.LoopRepeat, Infinity);
-      action.play();
+      
+      // Cross-fade from current action to new action for smooth transition
+      // If no current action, just play the new one
+      if (currentPlayingAction.current && currentPlayingAction.current !== action) {
+        // Use crossFadeTo() to smoothly transition from current animation to new one
+        // This fades out the current animation while fading in the new one
+        // Using 1.0s duration for maximum smoothness
+        currentPlayingAction.current.crossFadeTo(action, ANIMATION_CROSS_FADE_DURATION, false);
+      } else {
+        // No previous action or same action, just play
+        action.fadeIn(IDLE_FADE_DURATION);
+        action.play();
+      }
+      
+      // Update the currently playing action reference
+      currentPlayingAction.current = action;
     }
   };
 
@@ -631,6 +689,37 @@ const MemoizedCharacter = React.memo(Character);
 const Scene: React.FC<SceneProps> = ({
   shadows = true,
 }) => {
+  const controlsRef = useRef<any>(null);
+
+  // PERFORMANCE FIX: Configure OrbitControls to use passive wheel event listener
+  // This fixes the "[Violation] Added non-passive event listener to a scroll-blocking 'wheel' event" warning
+  useEffect(() => {
+    if (!controlsRef.current) return;
+
+    const controls = controlsRef.current;
+
+    // Access the underlying THREE.OrbitControls instance
+    // The @react-three/drei OrbitControls component wraps THREE.OrbitControls
+    const orbitControls = controls as any;
+
+    // Store original wheel handler
+    const originalWheelHandler = orbitControls._wheel;
+
+    // Remove original non-passive wheel event listener
+    orbitControls.domElement.removeEventListener('wheel', originalWheelHandler, false);
+
+    // Add wheel event listener with passive: true
+    // This makes the page more responsive by allowing scroll to continue
+    // while the event handler is processing
+    orbitControls.domElement.addEventListener('wheel', originalWheelHandler, { passive: true } as any);
+
+    // Cleanup function to restore original behavior
+    return () => {
+      orbitControls.domElement.removeEventListener('wheel', originalWheelHandler, { passive: true } as any);
+      orbitControls.domElement.addEventListener('wheel', originalWheelHandler, false);
+    };
+  }, []);
+
   return (
     <>
       <ambientLight intensity={0.6} />
@@ -649,6 +738,7 @@ const Scene: React.FC<SceneProps> = ({
       </Suspense>
       
       <OrbitControls
+        ref={controlsRef}
         enablePan={false}
         enableZoom={true}
         minPolarAngle={Math.PI / 6}

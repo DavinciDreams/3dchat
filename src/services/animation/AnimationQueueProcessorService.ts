@@ -9,7 +9,7 @@ import type { AnimationTrigger, ScheduledAnimation, AnimationLayerType, Animatio
 import { animationDurationService } from './AnimationDurationService';
 import { truncateArray } from '../../utils/safeLogger';
 
-const BUFFER_BETWEEN_ANIMATIONS = 500; // Buffer time between animations (ms)
+const BUFFER_BETWEEN_ANIMATIONS = 0; // Buffer time between animations (ms) - set to 0 for continuous dance sequences
 
 /**
  * Animation Queue Processor Service implementation
@@ -48,43 +48,33 @@ export class AnimationQueueProcessorService {
 
     const playNext = () => {
       if (currentIndex >= animations.length) {
-        // Add buffer before completing to let the last animation finish smoothly
-        console.log('%c⏳ [AnimationQueueProcessor] Adding buffer before completion...', 'color: #f39c12;');
-        setTimeout(() => {
-          console.log('%c🎉 [AnimationQueueProcessor] ALL ANIMATIONS COMPLETE', 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
-          onComplete();
-        }, BUFFER_BETWEEN_ANIMATIONS);
+        // Complete immediately without buffer for continuous sequences
+        console.log('%c🎉 [AnimationQueueProcessor] ALL ANIMATIONS COMPLETE', 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+        onComplete();
         return;
       }
 
       const animation = animations[currentIndex];
-      const animationDelay = (animation.delay || 0) * 1000;
+      // Ignore LLM delay values for continuous dance sequences - set to 0
+      const animationDelay = 0;
       const animationDuration = animationDurationService.getDuration(animation.name);
 
-      console.log('%c⏱️ [AnimationQueueProcessor] Scheduling "' + animation.name + '" - delay: ' + animationDelay + 'ms, duration: ' + animationDuration + 'ms', 'color: #f39c12;');
+      console.log('%c⏱️ [AnimationQueueProcessor] Scheduling "' + animation.name + '" - delay: ' + animationDelay + 'ms (continuous), duration: ' + animationDuration + 'ms', 'color: #f39c12;');
 
-      // Track timeout for cancellation if ref provided
-      // Wait for specified delay before playing
-      const delayTimeoutId = setTimeout(() => {
-        console.log('%c▶️ [AnimationQueueProcessor] EXECUTING: ' + animation.name + ' (duration: ' + animationDuration + 'ms)', 'background: #e67e22; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;');
-        onPlay(animation.name);
+      // Play animation immediately without delay for continuous sequences
+      console.log('%c▶️ [AnimationQueueProcessor] EXECUTING: ' + animation.name + ' (duration: ' + animationDuration + 'ms)', 'background: #e67e22; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;');
+      onPlay(animation.name);
 
-        // Wait for animation to complete, then play next
-        const durationTimeoutId = setTimeout(() => {
-          console.log('%c🏁 [AnimationQueueProcessor] Animation "' + animation.name + '" finished (' + (currentIndex + 1) + '/' + animations.length + ')', 'color: #27ae60;');
-          currentIndex++;
-          playNext();
-        }, animationDuration);
+      // Wait for animation to complete, then play next
+      const durationTimeoutId = setTimeout(() => {
+        console.log('%c🏁 [AnimationQueueProcessor] Animation "' + animation.name + '" finished (' + (currentIndex + 1) + '/' + animations.length + ')', 'color: #27ae60;');
+        currentIndex++;
+        playNext();
+      }, animationDuration);
 
-        // Track duration timeout for cancellation if ref provided
-        if (timeoutTrackingRef) {
-          timeoutTrackingRef.current.push(durationTimeoutId);
-        }
-      }, animationDelay);
-
-      // Track delay timeout for cancellation if ref provided
+      // Track duration timeout for cancellation if ref provided
       if (timeoutTrackingRef) {
-        timeoutTrackingRef.current.push(delayTimeoutId);
+        timeoutTrackingRef.current.push(durationTimeoutId);
       }
     };
 
