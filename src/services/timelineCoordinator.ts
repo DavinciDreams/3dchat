@@ -7,6 +7,7 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import * as THREE from 'three';
 import {
   Emotion,
   ScheduledAnimation,
@@ -14,9 +15,11 @@ import {
   TimelineCoordinatorState,
   TimelineCoordinatorOptions,
   TextTimingEstimator,
+  AnimationLayerType,
 } from '../types';
 import { textTimingEstimator } from './textTimingEstimator';
 import { timelineManager } from './timelineManager';
+import { animationLayeringService } from './animationLayeringService';
 
 /**
  * TimelineCoordinator class
@@ -423,19 +426,72 @@ export class TimelineCoordinator {
 
   /**
    * Execute an animation (callback wrapper)
-   * FIX: Actually execute the animation using AnimationQueueService
+   * PERFORMANCE FIX: Integrated with AnimationLayeringService for actual animation playback
    * Previously this was just a stub that logged to console
    */
   private executeAnimation(animation: ScheduledAnimation): void {
-    // Import AnimationQueueService dynamically to avoid circular dependency
-    // The actual execution should use AnimationQueueService.playAnimation()
-    // For now, log the animation execution as a placeholder
-    // TODO: Integrate with AnimationQueueService for proper animation execution
-    if (this.debug) {
-      console.log(`%c[TimelineCoordinator] Executing animation: ${animation.name}`,
-        'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px;');
-      console.log('%c⚠️ [TimelineCoordinator] NOTE: AnimationQueueService integration needed for actual execution',
-        'color: #f39c12;');
+    // Use AnimationLayeringService directly since timing is already handled by timeline
+    const layer: AnimationLayerType = animation.layer || 'full_body';
+    const duration = animation.duration / 1000; // Convert ms to seconds
+
+    try {
+      // Check if animation is registered
+      const registeredAnimations = animationLayeringService.getRegisteredAnimations();
+      if (!registeredAnimations.includes(animation.name)) {
+        console.warn(
+          `%c⚠️ [TimelineCoordinator] Animation not registered: ${animation.name}`,
+          'color: #f39c12;'
+        );
+        console.log(
+          `%c[TimelineCoordinator] Available animations: ${registeredAnimations.join(', ')}`,
+          'color: #95a5a6;'
+        );
+        return;
+      }
+
+      // Play animation with appropriate settings
+      const animationId = animationLayeringService.playAnimation(animation.name, layer, {
+        fadeInDuration: 0.3,
+        fadeOutDuration: 0.3,
+        loop: duration > 0 ? THREE.LoopOnce : THREE.LoopRepeat,
+        interruptible: animation.interruptible !== false,
+      });
+
+      if (this.debug) {
+        console.log(
+          `%c▶️ [TimelineCoordinator] Executing animation: ${animation.name} on ${layer} (${animationId})`,
+          'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px;'
+        );
+      }
+
+      // Schedule automatic stop if duration is specified
+      if (duration > 0 && animationId) {
+        const stopCallback = () => {
+          animationLayeringService.stopAnimation(animationId, 0.3);
+          if (this.debug) {
+            console.log(
+              `%c⏹ [TimelineCoordinator] Auto-stopping animation: ${animation.name}`,
+              'color: #f39c12;'
+            );
+          }
+        };
+
+        // Schedule stop event through timeline manager
+        if (this.timelineManager && typeof this.timelineManager === 'object' && 'schedule' in this.timelineManager) {
+          (this.timelineManager as any).schedule({
+            id: `${animationId}_stop`,
+            timestamp: animation.triggerTime + animation.duration,
+            type: 'animation_stop',
+            callback: stopCallback,
+          });
+        }
+      }
+    } catch (error) {
+      console.error(
+        `%c❌ [TimelineCoordinator] Failed to execute animation: ${animation.name}`,
+        'color: #e74c3c;',
+        error
+      );
     }
   }
 

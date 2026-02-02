@@ -58,12 +58,26 @@ interface ActiveAnimation {
  * - Smooth crossfade transitions
  * - Layer priority management
  */
+/**
+ * Cleanup queue item for frame-based animation disposal
+ */
+interface CleanupQueueItem {
+  animationId: string;
+  action: THREE.AnimationAction;
+  frameNum: number;
+}
+
 export class AnimationLayeringService {
   private mixer: THREE.AnimationMixer | null = null;
   private actionCache: Map<string, THREE.AnimationAction> = new Map();
   private activeAnimations: Map<string, ActiveAnimation> = new Map();
   private layerWeights: Map<AnimationLayerType, number> = new Map();
   private animationCounter: number = 0;
+  private frameCount: number = 0;
+  private cleanupQueue: CleanupQueueItem[] = [];
+
+  // PERFORMANCE FIX: Conditional debug logging to reduce production overhead
+  private readonly DEBUG = process.env.NODE_ENV === 'development';
 
   /** Default layer configurations */
   private static readonly LAYER_CONFIGS: Record<AnimationLayerType, AnimationLayerConfig> = {
@@ -106,7 +120,9 @@ export class AnimationLayeringService {
    */
   setMixer(mixer: THREE.AnimationMixer): void {
     this.mixer = mixer;
-    console.log('%c🎬 [AnimationLayering] Mixer set', 'color: #3498db;');
+    if (this.DEBUG) {
+      console.log('%c🎬 [AnimationLayering] Mixer set', 'color: #3498db;');
+    }
   }
 
   /**
@@ -209,16 +225,20 @@ export class AnimationLayeringService {
     // Update layer weight
     this.layerWeights.set(layer, weight);
 
-    console.log(
-      `%c▶️ [AnimationLayering] Playing: ${name} on ${layer} (weight: ${weight})`,
-      'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px;'
-    );
+    if (this.DEBUG) {
+      console.log(
+        `%c▶️ [AnimationLayering] Playing: ${name} on ${layer} (weight: ${weight})`,
+        'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px;'
+      );
+    }
 
     return animationId;
   }
 
   /**
    * Stop and fade out an animation by ID
+   * PERFORMANCE FIX: Replaced setTimeout with frame-based cleanup queue
+   * to prevent memory leaks on component unmount
    * @param animationId - ID of animation to stop
    * @param fadeOutDuration - Duration of fade-out in seconds
    */
@@ -230,14 +250,19 @@ export class AnimationLayeringService {
 
     anim.isFadingOut = true;
     anim.action.fadeOut(fadeOutDuration);
-    
-    console.log(`%c⏹ [AnimationLayering] Stopping: ${animationId}`, 'color: #f39c12;');
 
-    // Remove from active animations after fade out
-    setTimeout(() => {
-      anim.action.stop();  // Actually stop the animation
-      this.activeAnimations.delete(animationId);
-    }, fadeOutDuration * 1000);
+    if (this.DEBUG) {
+      console.log(`%c⏹ [AnimationLayering] Stopping: ${animationId}`, 'color: #f39c12;');
+    }
+
+    // Queue for cleanup in update loop (frame-based, prevents memory leaks)
+    // Assuming 60fps, calculate target frame number
+    const framesToWait = Math.ceil(fadeOutDuration * 60);
+    this.cleanupQueue.push({
+      animationId,
+      action: anim.action,
+      frameNum: this.frameCount + framesToWait
+    });
   }
 
   /**
@@ -258,12 +283,14 @@ export class AnimationLayeringService {
    * @param fadeOutDuration - Duration of fade-out in seconds
    */
   stopAll(fadeOutDuration: number = 0.3): void {
-    console.log('%c🗑️ [AnimationLayering] Stopping all animations', 'color: #95a5a6;');
-    
+    if (this.DEBUG) {
+      console.log('%c🗑️ [AnimationLayering] Stopping all animations', 'color: #95a5a6;');
+    }
+
     this.activeAnimations.forEach((anim, id) => {
       this.stopAnimation(id, fadeOutDuration);
     });
-    
+
     this.layerWeights.clear();
   }
 
@@ -275,7 +302,9 @@ export class AnimationLayeringService {
     const anim = this.activeAnimations.get(animationId);
     if (anim) {
       anim.action.paused = true;
-      console.log(`%c⏸️ [AnimationLayering] Paused: ${animationId}`, 'color: #f39c12;');
+      if (this.DEBUG) {
+        console.log(`%c⏸️ [AnimationLayering] Paused: ${animationId}`, 'color: #f39c12;');
+      }
     }
   }
 
@@ -287,7 +316,9 @@ export class AnimationLayeringService {
     const anim = this.activeAnimations.get(animationId);
     if (anim) {
       anim.action.paused = false;
-      console.log(`%c▶️ [AnimationLayering] Resumed: ${animationId}`, 'color: #27ae60;');
+      if (this.DEBUG) {
+        console.log(`%c▶️ [AnimationLayering] Resumed: ${animationId}`, 'color: #27ae60;');
+      }
     }
   }
 
@@ -295,7 +326,9 @@ export class AnimationLayeringService {
    * Pause all active animations
    */
   pauseAll(): void {
-    console.log('%c⏸️ [AnimationLayering] Pausing all animations', 'color: #f39c12;');
+    if (this.DEBUG) {
+      console.log('%c⏸️ [AnimationLayering] Pausing all animations', 'color: #f39c12;');
+    }
     this.activeAnimations.forEach((anim, id) => {
       this.pauseAnimation(id);
     });
@@ -305,7 +338,9 @@ export class AnimationLayeringService {
    * Resume all paused animations
    */
   resumeAll(): void {
-    console.log('%c▶️ [AnimationLayering] Resuming all animations', 'color: #27ae60;');
+    if (this.DEBUG) {
+      console.log('%c▶️ [AnimationLayering] Resuming all animations', 'color: #27ae60;');
+    }
     this.activeAnimations.forEach((anim, id) => {
       this.resumeAnimation(id);
     });
@@ -369,48 +404,60 @@ export class AnimationLayeringService {
    * Clear all registered animations and reset state, disposing THREE.js resources
    */
   clear(): void {
-    console.log('%c🗑️ [AnimationLayering] Clearing all animations and disposing resources', 'color: #95a5a6;');
-    
+    if (this.DEBUG) {
+      console.log('%c🗑️ [AnimationLayering] Clearing all animations and disposing resources', 'color: #95a5a6;');
+    }
+
     this.stopAll(0);
-    
+
+    // Clear the cleanup queue to prevent memory leaks
+    this.cleanupQueue = [];
+    this.frameCount = 0;
+
     // Properly dispose THREE.js AnimationActions to free GPU memory
     this.actionCache.forEach((action, name) => {
       try {
         action.stop();
         action.reset();
+        // Note: AnimationActions are automatically cleaned up when their clips are uncached
       } catch (error) {
-        console.warn(`%c⚠️ [AnimationLayering] Failed to dispose action ${name}:`, 'color: #f39c12;', error);
+        if (this.DEBUG) {
+          console.warn(`%c⚠️ [AnimationLayering] Failed to dispose action ${name}:`, 'color: #f39c12;', error);
+        }
       }
     });
     this.actionCache.clear();
-    
+
     // FIX: Properly dispose THREE.js AnimationClips to free GPU memory
     // Previously used track.values = new Float32Array(0) which doesn't free GPU memory
-    // Now properly dispose clips using clip.dispose() and mixer.uncacheClip()
+    // Now properly dispose clips using mixer.uncacheClip()
     this.activeAnimations.forEach((anim, id) => {
       try {
         const clip = anim.action.getClip();
         if (clip) {
-          // Properly dispose the clip to free GPU memory
-          clip.dispose();
-          // Uncache the clip from the mixer
+          // Uncache the clip from the mixer to free GPU memory
           if (this.mixer) {
             this.mixer.uncacheClip(clip);
           }
         }
       } catch (error) {
-        console.warn(`%c⚠️ [AnimationLayering] Failed to dispose clip for animation ${id}:`, 'color: #f39c12;', error);
+        if (this.DEBUG) {
+          console.warn(`%c⚠️ [AnimationLayering] Failed to dispose clip for animation ${id}:`, 'color: #f39c12;', error);
+        }
       }
     });
     this.activeAnimations.clear();
     this.layerWeights.clear();
-    
-    console.log('%c✅ [AnimationLayering] Cleared all animations and disposed THREE.js resources', 'color: #27ae60;');
+
+    if (this.DEBUG) {
+      console.log('%c✅ [AnimationLayering] Cleared all animations and disposed THREE.js resources', 'color: #27ae60;');
+    }
   }
 
   /**
    * Update animation weights for smooth blending
    * Called each frame to interpolate weights
+   * PERFORMANCE FIX: Added frame-based cleanup queue processing
    * @param delta - Time since last frame in seconds
    */
   update(delta: number): void {
@@ -418,18 +465,36 @@ export class AnimationLayeringService {
     // The mixer is already updated in AvatarModel.tsx useFrame hook
     // Calling it again causes triple processing of the same time delta
     // which leads to choppy animations (58-86ms per frame instead of ~16ms)
-    
+
+    // Increment frame counter for cleanup queue
+    this.frameCount++;
+
+    // Process cleanup queue (replaces setTimeout to prevent memory leaks)
+    this.cleanupQueue = this.cleanupQueue.filter(item => {
+      if (item.frameNum <= this.frameCount) {
+        // Time to clean up this animation
+        try {
+          item.action.stop();
+          this.activeAnimations.delete(item.animationId);
+        } catch (error) {
+          console.warn(`%c⚠️ [AnimationLayering] Failed to cleanup animation ${item.animationId}:`, 'color: #f39c12;', error);
+        }
+        return false; // Remove from queue
+      }
+      return true; // Keep in queue
+    });
+
     // Update animation weights for smooth blending
     this.activeAnimations.forEach((anim) => {
       if (anim.isFadingIn) {
         // Interpolate weight towards target
         const fadeSpeed = 1 / anim.fadeInDuration;
         anim.weight = Math.min(anim.weight + fadeSpeed * delta, anim.targetWeight);
-        
+
         if (anim.weight >= anim.targetWeight) {
           anim.isFadingIn = false;
         }
-        
+
         // Apply weight to action
         anim.action.weight = anim.weight;
       }
