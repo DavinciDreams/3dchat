@@ -7,6 +7,12 @@ import { aiService } from '../services/aiService';
 
 export const MAX_MESSAGES = 10;
 
+// Polyfill for crypto.randomUUID for browser compatibility
+const generateId = (): string => {
+  return crypto.randomUUID?.() ||
+    Date.now().toString(36) + Math.random().toString(36).substr(2);
+};
+
 export const useChatStore = create<ChatState>()(
   persist(
     (set) => ({
@@ -33,7 +39,7 @@ export const useChatStore = create<ChatState>()(
           messages: [
             ...state.messages,
             {
-              id: crypto.randomUUID(),
+              id: generateId(),
               timestamp: Date.now(),
               ...message,
             }

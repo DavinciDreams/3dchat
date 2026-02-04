@@ -97,6 +97,12 @@
       "description": "Catwalk style walking"
     },
     {
+      "name": "catwalk",
+      "mixamoName": "Catwalk Walking",
+      "category": "alias",
+      "description": "Catwalk style walking (alias for catwalkWalking)"
+    },
+    {
       "name": "cockyHeadTurn",
       "mixamoName": "Cocky Head Turn",
       "category": "gesture",
@@ -173,6 +179,12 @@
       "mixamoName": "Hip Hop Dancing",
       "category": "dance",
       "description": "Hip hop dance moves"
+    },
+    {
+      "name": "hipHopDance",
+      "mixamoName": "Hip Hop Dancing",
+      "category": "alias",
+      "description": "Hip hop dance moves (alias for hipHopDancing)"
     },
     {
       "name": "jumpingDown",

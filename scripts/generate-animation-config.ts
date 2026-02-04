@@ -150,7 +150,9 @@ function getVRMAPath(anim: AnimationDefinition): string {
     'thrillerPart2': 'animations/vrma/Thriller Part2.vrma',
     'thrillerPart3': 'animations/vrma/Thriller Part3 (1).vrma',
     'catwalk': 'animations/vrma/catwalkWalking.vrma',
+    'catwalkWalking': 'animations/vrma/catwalkWalking.vrma',
     'hipHopDancing': 'animations/vrma/hipHopDance.vrma',
+    'hipHopDance': 'animations/vrma/hipHopDance.vrma',
   };
 
   if (corePaths[anim.name]) return corePaths[anim.name];
@@ -193,6 +195,13 @@ function generateRuntimeConfig(animations: AnimationDefinition[]): string {
         return `  { path: '${path}', name: '${anim.name}', description: '${anim.description}' }`;
       });
   }).join(',\n');
+
+  // Generate VRMA_ALIAS_ANIMATIONS (alias entries that point to existing animations)
+  const aliasAnimations = (categories['alias'] || [])
+    .map(anim => {
+      const path = getVRMAPath(anim);
+      return `  { path: '${path}', name: '${anim.name}', description: '${anim.description}' }`;
+    }).join(',\n');
 
   // Generate VRMA_GESTURE_ANIMATIONS (gesture from JSON + additional gestures)
   const gestureFromJson = (categories['gesture'] || [])
@@ -269,12 +278,18 @@ export const VRMA_BREAKDANCE_ANIMATIONS: VRMAAnimationConfig[] = [
 ${breakdanceAnimations},
 ];
 
+// Alias animations (alternative names for existing animations)
+export const VRMA_ALIAS_ANIMATIONS: VRMAAnimationConfig[] = [
+${aliasAnimations},
+];
+
 // Combined list of all animations
 export const VRMA_ANIMATIONS: VRMAAnimationConfig[] = [
   ...VRMA_CORE_ANIMATIONS,
   ...VRMA_EXTENDED_ANIMATIONS,
   ...VRMA_GESTURE_ANIMATIONS,
   ...VRMA_BREAKDANCE_ANIMATIONS,
+  ...VRMA_ALIAS_ANIMATIONS,
 ];
 `;
 }
@@ -394,6 +409,69 @@ function generateLLMPrompt(animations: AnimationDefinition[]): string {
     '5. Be selective - not every response needs an animation',
     '6. If the user explicitly asks for an action (spin, wave, dance, etc), definitely include it',
     '7. Prefer core animations for basic interactions, extended for more specific scenarios',
+    '',
+    'SEQUENCE GUIDELINES:',
+    '- Prefer using 3 or more animations in sequence when the context allows',
+    '- Create a logical narrative flow with your animation choices',
+    '- Consider the starting and ending poses of each animation',
+    '- Build sequences that tell a coherent story or action flow',
+    '',
+    'TRANSITION GUIDELINES:',
+    '- Ensure animations can transition smoothly from one to another',
+    '- Avoid abrupt pose changes (e.g., from lying down to jumping)',
+    '- Use intermediate animations when needed for smooth transitions',
+    '- Consider the delay timing to allow each animation to complete naturally',
+    '- Typical animation durations: core/gestures ~2-4s, dance ~4-8s, breakdance ~3-6s',
+    '',
+    'SEQUENCE EXAMPLES:',
+    '',
+    'Example 1: User says "Show me a cool dance routine"',
+    'Response: [',
+    '  { name: "breakdanceReady", delay: 0 },',
+    '  { name: "breakdanceUprock", delay: 3 },',
+    '  { name: "breakdanceFootwork1", delay: 7 },',
+    '  { name: "breakdanceFreezeVar1", delay: 11 },',
+    '  { name: "victoryDance", delay: 14 }',
+    ']',
+    '',
+    'Example 2: User says "Hello!" and avatar responds with greeting',
+    'Response: [',
+    '  { name: "greeting", delay: 0 },',
+    '  { name: "headNod", delay: 3 },',
+    '  { name: "peace", delay: 5 }',
+    ']',
+    '',
+    'Example 3: User says "Do something cool!"',
+    'Response: [',
+    '  { name: "spin", delay: 0 },',
+    '  { name: "shoot", delay: 3 },',
+    '  { name: "victoryDance", delay: 6 },',
+    '  { name: "peace", delay: 10 }',
+    ']',
+    '',
+    'Example 4: User says "I\'m so happy right now!"',
+    'Response: [',
+    '  { name: "happyHandGesture", delay: 0 },',
+    '  { name: "clapping", delay: 3 },',
+    '  { name: "victoryDance", delay: 7 }',
+    ']',
+    '',
+    'Example 5: User says "Can you show me some breakdance moves?"',
+    'Response: [',
+    '  { name: "breakdanceReady", delay: 0 },',
+    '  { name: "breakdanceUprock", delay: 3 },',
+    '  { name: "breakdanceFootwork1", delay: 7 },',
+    '  { name: "breakdanceFootwork2", delay: 11 },',
+    '  { name: "breakdanceFreezeVar1", delay: 15 },',
+    '  { name: "breakdanceEnding1", delay: 18 }',
+    ']',
+    '',
+    'Example 6: User says "That\'s amazing!"',
+    'Response: [',
+    '  { name: "hardHeadNod", delay: 0 },',
+    '  { name: "happyHandGesture", delay: 2 },',
+    '  { name: "clapping", delay: 5 }',
+    ']',
   ].join('\n');
 
   const header = `/**

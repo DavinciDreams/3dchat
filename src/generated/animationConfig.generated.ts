@@ -191,10 +191,17 @@ export const VRMA_BREAKDANCE_ANIMATIONS: VRMAAnimationConfig[] = [
   { path: 'animations/vrma/flair(3).vrma', name: 'flair_3' },
 ];
 
+// Alias animations (alternative names for existing animations)
+export const VRMA_ALIAS_ANIMATIONS: VRMAAnimationConfig[] = [
+  { path: 'animations/vrma/catwalkWalking.vrma', name: 'catwalk', description: 'Catwalk style walking (alias for catwalkWalking)' },
+  { path: 'animations/vrma/hipHopDance.vrma', name: 'hipHopDance', description: 'Hip hop dance moves (alias for hipHopDancing)' },
+];
+
 // Combined list of all animations
 export const VRMA_ANIMATIONS: VRMAAnimationConfig[] = [
   ...VRMA_CORE_ANIMATIONS,
   ...VRMA_EXTENDED_ANIMATIONS,
   ...VRMA_GESTURE_ANIMATIONS,
   ...VRMA_BREAKDANCE_ANIMATIONS,
+  ...VRMA_ALIAS_ANIMATIONS,
 ];

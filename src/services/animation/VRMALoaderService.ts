@@ -108,26 +108,71 @@ export class VRMALoaderService implements IVRMALoaderService {
    */
   async loadAnimation(config: VRMAAnimationConfig): Promise<VRMAAnimation> {
     try {
-      // URL-encode the path to handle spaces and special characters
-      const encodedPath = encodeURI(config.path);
-      const gltf = await this.loader.loadAsync(encodedPath);
+      // Suppress GLTFLoader console warnings for missing textures
+      // VRMA files reference external textures (e.g., Image_0.jpg) that don't exist
+      // These are non-critical and the animations work fine without them
+      const originalConsoleWarn = console.warn;
+      const originalConsoleLog = console.log;
       
-      // VRMA files contain animation data in userData.vrmAnimations
-      const vrmAnimations = (gltf.userData as { vrmAnimations?: unknown[] }).vrmAnimations;
-      
-      if (!vrmAnimations || vrmAnimations.length === 0) {
-        throw new Error(`No VRM animations found in VRMA file: ${config.path}`);
-      }
-
-      // Use first VRM animation from VRMA file
-      const vrmAnimation = vrmAnimations[0];
-      const animation: VRMAAnimation = {
-        name: config.name,
-        clip: gltf.animations[0], // Keep raw clip for reference
-        vrmAnimation: vrmAnimation, // Store VRM animation data for retargeting
+      console.warn = (...args: unknown[]) => {
+        // Filter out GLTFLoader texture warnings for VRMA files
+        const message = args[0];
+        if (typeof message === 'string') {
+          // Suppress GLTFLoader texture warnings
+          if (message.includes('THREE.GLTFLoader') && message.includes('texture')) {
+            return;
+          }
+          // Suppress failed to load item warnings for Image_ files
+          if (message.includes('Failed to load item') && message.includes('Image_')) {
+            return;
+          }
+          // Suppress VRM T-pose validation warnings (non-critical, animations work correctly)
+          if (message.includes('VRMAnimationLoaderPlugin') && message.includes('T-pose')) {
+            return;
+          }
+        }
+        // Pass through other warnings
+        originalConsoleWarn.apply(console, args);
       };
+      
+      console.log = (...args: unknown[]) => {
+        // Filter out GLTFLoader texture logs for VRMA files
+        const message = args[0];
+        if (typeof message === 'string') {
+          if (message.includes('THREE.GLTFLoader') && message.includes('texture')) {
+            return;
+          }
+        }
+        // Pass through other logs
+        originalConsoleLog.apply(console, args);
+      };
+      
+      try {
+        // URL-encode the path to handle spaces and special characters
+        const encodedPath = encodeURI(config.path);
+        const gltf = await this.loader.loadAsync(encodedPath);
+        
+        // VRMA files contain animation data in userData.vrmAnimations
+        const vrmAnimations = (gltf.userData as { vrmAnimations?: unknown[] }).vrmAnimations;
+        
+        if (!vrmAnimations || vrmAnimations.length === 0) {
+          throw new Error(`No VRM animations found in VRMA file: ${config.path}`);
+        }
 
-      return animation;
+        // Use first VRM animation from VRMA file
+        const vrmAnimation = vrmAnimations[0];
+        const animation: VRMAAnimation = {
+          name: config.name,
+          clip: gltf.animations[0], // Keep raw clip for reference
+          vrmAnimation: vrmAnimation, // Store VRM animation data for retargeting
+        };
+
+        return animation;
+      } finally {
+        // Restore original console methods
+        console.warn = originalConsoleWarn;
+        console.log = originalConsoleLog;
+      }
     } catch (error) {
       throw new Error(`Failed to load VRMA animation ${config.name}: ${error instanceof Error ? error.message : String(error)}`);
     }
