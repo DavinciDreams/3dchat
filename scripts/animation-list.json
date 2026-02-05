@@ -556,7 +556,7 @@
       "name": "victoryDance",
       "mixamoName": "Victory",
       "category": "dance",
-      "description": "Victory celebration dance"
+      "description": "Arms up victory pose indicating strength"
     },
     {
       "name": "waving",
@@ -580,7 +580,7 @@
       "name": "bowing",
       "mixamoName": "Bow",
       "category": "social",
-      "description": "throwing elbows in a fight"
+      "description": "Elbowing strike in a fight"
     },
     {
       "name": "salute",
@@ -718,7 +718,7 @@
       "name": "swinging",
       "mixamoName": "Swinging",
       "category": "action",
-      "description": "Swinging motion"
+      "description": "Rope swing animation"
     },
     {
       "name": "plank",
