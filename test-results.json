@@ -1,0 +1,60 @@
+{
+  "initial_load": {
+    "passed": true,
+    "metrics": {
+      "server_response_time_ms": 31.34,
+      "status_code": 200
+    },
+    "issues": [
+      "Canvas element not found in response"
+    ]
+  },
+  "animation_smoothness": {
+    "passed": false,
+    "metrics": {},
+    "issues": [
+      "AnimationMixer not found in page",
+      "VRM.update not found in page",
+      "VRM update throttling not implemented",
+      "Delta clamping not implemented"
+    ]
+  },
+  "on_demand_loading": {
+    "passed": false,
+    "metrics": {},
+    "issues": [
+      "loadVRMAAnimation function not found",
+      "Fallback animation (modelPose) not found",
+      "Async loading not implemented"
+    ]
+  },
+  "pre_cache_effectiveness": {
+    "passed": false,
+    "metrics": {},
+    "issues": [
+      "preCacheRetargetedClips function not found",
+      "Common animations not pre-cached: idle, modelPose, talkingOnPhone, headNod, shakingHeadNo"
+    ]
+  },
+  "regression": {
+    "passed": false,
+    "metrics": {},
+    "issues": [
+      "Critical elements missing: canvas, three",
+      "VRMA animation service not found",
+      "Animation layering service not found"
+    ]
+  },
+  "edge_cases": {
+    "passed": false,
+    "metrics": {},
+    "issues": [
+      "Error handling not implemented",
+      "Null/undefined checks not found",
+      "Loading states not handled",
+      "Warning logging not implemented"
+    ]
+  },
+  "test_date": "2026-01-02T22:05:47.152996",
+  "total_duration_seconds": 0.131614
+}
