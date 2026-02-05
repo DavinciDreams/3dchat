@@ -17,7 +17,7 @@ const LoginForm = React.lazy(() => import('./components/LoginForm'));
 
 function App() {
   const [error, setError] = useState<AppError | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // Temporarily set to true for debugging
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(false);
   const { setProcessing, isMuted, setIsMuted, selectedModelId, setSelectedModelId, selectedVoiceId, setSelectedVoiceId, setCurrentAnimation, animationSpeed, setAnimationSpeed } = useChatStore();
 
@@ -112,28 +112,8 @@ function App() {
   }, []);
 
   // Initialize speech recognition on component mount
-  useEffect(() => {
-    const initSpeech = async () => {
-      try {
-        setProcessing(true);
-        await initSpeechRecognition();
-      } catch (err) {
-        console.error('Failed to initialize speech recognition:', err);
-        setError({
-          type: 'auth',
-          message: 'Failed to initialize speech recognition'
-        });
-      } finally {
-        setProcessing(false);
-      }
-    };
-
-    initSpeech();
-
-    return () => {
-      setProcessing(false);
-    };
-  }, [setProcessing]);
+  // Speech recognition initialization moved to user-triggered action (mic button click)
+  // to ensure permission request is within a user gesture context
 
   useEffect(() => {
     // Initialize voices
@@ -224,6 +204,10 @@ function App() {
               onChange={(id) => {
                 console.log('🎭 [App.tsx] Model changed from', selectedModelId, 'to', id);
                 setSelectedModelId(id);
+                // FIX: Clear current animation when model changes to ensure idle animation plays
+                // Otherwise, the new avatar remains in T-pose because the idle animation check
+                // in AvatarModel.tsx only plays modelPose if !store.currentAnimation
+                setCurrentAnimation('');
               }}
               label="Character"
               icon={<User className="h-4 w-4" />}

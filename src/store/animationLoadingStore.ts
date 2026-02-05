@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { type AnimationPriority } from '../config/animationPriorities';
+import { type AnimationPriority } from '../services/animation/AnimationPriorityService';
 
 export type LoadingState = 'idle' | 'loading' | 'loaded' | 'error';
 
