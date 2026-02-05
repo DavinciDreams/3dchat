@@ -56,7 +56,7 @@ ACTION:
 - reloading: Reloading weapon
 - catch: Catch something
 - push: Push forward
-- swinging: Swinging motion
+- swinging: Rope swing animation
 - plank: Plank exercise
 - openDoor: Opening a door
 - golfBadShot: Golf bad shot animation
@@ -76,7 +76,7 @@ SOCIAL:
 - standingGreeting: Greeting while standing
 - talking: Talking gesture
 - waving: Wave hello/goodbye
-- bowing: throwing elbows in a fight
+- bowing: Elbowing strike in a fight
 - salute: Military-style salute
 - blowKiss: Blow a kiss
 - clapping: Applause
@@ -127,7 +127,7 @@ DANCE:
 - sambaDancing: Samba dance moves
 - sillyDancing: Fun silly dance
 - twistDance: Twist dance moves
-- victoryDance: Victory celebration dance
+- victoryDance: Arms up victory pose indicating strength
 
 GESTURE ANIMATIONS (subtle expressions):
 HEAD GESTURES:

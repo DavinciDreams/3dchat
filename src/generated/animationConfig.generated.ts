@@ -55,7 +55,7 @@ export const VRMA_EXTENDED_ANIMATIONS: VRMAAnimationConfig[] = [
   { path: 'animations/vrma/reloading.vrma', name: 'reloading', description: 'Reloading weapon' },
   { path: 'animations/vrma/catch.vrma', name: 'catch', description: 'Catch something' },
   { path: 'animations/vrma/push.vrma', name: 'push', description: 'Push forward' },
-  { path: 'animations/vrma/swinging.vrma', name: 'swinging', description: 'Swinging motion' },
+  { path: 'animations/vrma/swinging.vrma', name: 'swinging', description: 'Rope swing animation' },
   { path: 'animations/vrma/startPlank.vrma', name: 'plank', description: 'Plank exercise' },
   { path: 'animations/vrma/openingDoorInwards.vrma', name: 'openDoor', description: 'Opening a door' },
   { path: 'animations/vrma/golfBadShot.vrma', name: 'golfBadShot', description: 'Golf bad shot animation' },
@@ -73,7 +73,7 @@ export const VRMA_EXTENDED_ANIMATIONS: VRMAAnimationConfig[] = [
   { path: 'animations/vrma/standingGreeting.vrma', name: 'standingGreeting', description: 'Greeting while standing' },
   { path: 'animations/vrma/talking.vrma', name: 'talking', description: 'Talking gesture' },
   { path: 'animations/vrma/waving.vrma', name: 'waving', description: 'Wave hello/goodbye' },
-  { path: 'animations/vrma/bowing.vrma', name: 'bowing', description: 'throwing elbows in a fight' },
+  { path: 'animations/vrma/bowing.vrma', name: 'bowing', description: 'Elbowing strike in a fight' },
   { path: 'animations/vrma/salute.vrma', name: 'salute', description: 'Military-style salute' },
   { path: 'animations/vrma/headNod.vrma', name: 'headNod', description: 'Nodding head yes' },
   { path: 'animations/vrma/catwalkTwistLToWalk180.vrma', name: 'catwalkTwistLToWalk180', description: 'Catwalk twist left to 180 turn' },
@@ -114,7 +114,7 @@ export const VRMA_EXTENDED_ANIMATIONS: VRMAAnimationConfig[] = [
   { path: 'animations/vrma/sambaDancing.vrma', name: 'sambaDancing', description: 'Samba dance moves' },
   { path: 'animations/vrma/sillyDancing.vrma', name: 'sillyDancing', description: 'Fun silly dance' },
   { path: 'animations/vrma/twistDance.vrma', name: 'twistDance', description: 'Twist dance moves' },
-  { path: 'animations/vrma/victory.vrma', name: 'victoryDance', description: 'Victory celebration dance' },
+  { path: 'animations/vrma/victory.vrma', name: 'victoryDance', description: 'Arms up victory pose indicating strength' },
 ];
 
 // Gesture animations
