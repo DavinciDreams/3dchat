@@ -49,7 +49,7 @@
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.11",
     "globals": "^15.9.0",
-    "happy-dom": "^20.0.11",
+    "happy-dom": "^20.8.9",
     "jsdom": "^27.4.0",
     "postcss": "^8.5.3",
     "puppeteer": "^24.34.0",
