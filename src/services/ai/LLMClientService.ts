@@ -10,7 +10,7 @@ import type { ChatMessage, LLMResponse } from '../../di/ServiceInterfaces';
 import { truncateString } from '../../utils/safeLogger';
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
-const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openai/gpt-4o-mini';
+const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openai/gpt-oss-20b:free';
 const LLM_TIMEOUT_MS = parseInt(import.meta.env.VITE_LLM_TIMEOUT_MS || '60000'); // Default 60 seconds
 const MAX_RETRIES = parseInt(import.meta.env.VITE_LLM_MAX_RETRIES || '2'); // Default 2 retries
 
