@@ -7,12 +7,6 @@
       "description": "Default standing pose"
     },
     {
-      "name": "breathingIdle",
-      "mixamoName": "Breathing Idle",
-      "category": "idle",
-      "description": "Calm breathing animation"
-    },
-    {
       "name": "happyIdle",
       "mixamoName": "Happy Idle",
       "category": "idle",
@@ -23,18 +17,6 @@
       "mixamoName": "Sad Idle",
       "category": "idle",
       "description": "Sad standing pose"
-    },
-    {
-      "name": "boredIdle",
-      "mixamoName": "Bored",
-      "category": "idle",
-      "description": "Bored stance with fidgeting"
-    },
-    {
-      "name": "lookingAround",
-      "mixamoName": "Looking Around",
-      "category": "idle",
-      "description": "Looking around curiously"
     },
     {
       "name": "weightShift",
@@ -115,6 +97,12 @@
       "description": "Catwalk style walking"
     },
     {
+      "name": "catwalk",
+      "mixamoName": "Catwalk Walking",
+      "category": "alias",
+      "description": "Catwalk style walking (alias for catwalkWalking)"
+    },
+    {
       "name": "cockyHeadTurn",
       "mixamoName": "Cocky Head Turn",
       "category": "gesture",
@@ -187,10 +175,16 @@
       "description": "Playing guitar"
     },
     {
-      "name": "hipHopDance",
+      "name": "hipHopDancing",
       "mixamoName": "Hip Hop Dancing",
       "category": "dance",
       "description": "Hip hop dance moves"
+    },
+    {
+      "name": "hipHopDance",
+      "mixamoName": "Hip Hop Dancing",
+      "category": "alias",
+      "description": "Hip hop dance moves (alias for hipHopDancing)"
     },
     {
       "name": "jumpingDown",
@@ -334,7 +328,7 @@
       "name": "pushStart",
       "mixamoName": "Push Start",
       "category": "action",
-      "description": "Push start action"
+      "description": "Start pushing a large object"
     },
     {
       "name": "roar",
@@ -385,13 +379,7 @@
       "description": "Shaking hands gesture"
     },
     {
-      "name": "shrug",
-      "mixamoName": "Shrug",
-      "category": "social",
-      "description": "Shoulder shrug gesture"
-    },
-    {
-      "name": "sillyDance",
+      "name": "sillyDancing",
       "mixamoName": "Silly Dancing",
       "category": "dance",
       "description": "Fun silly dance"
@@ -568,7 +556,7 @@
       "name": "victoryDance",
       "mixamoName": "Victory",
       "category": "dance",
-      "description": "Victory celebration dance"
+      "description": "Arms up victory pose indicating strength"
     },
     {
       "name": "waving",
@@ -592,7 +580,7 @@
       "name": "bowing",
       "mixamoName": "Bow",
       "category": "social",
-      "description": "Respectful bow"
+      "description": "Elbowing strike in a fight"
     },
     {
       "name": "salute",
@@ -613,112 +601,10 @@
       "description": "Applause"
     },
     {
-      "name": "cheering",
-      "mixamoName": "Cheering",
-      "category": "social",
-      "description": "Excited cheering"
-    },
-    {
       "name": "headNod",
       "mixamoName": "Head Nod Yes",
       "category": "social",
       "description": "Nodding head yes"
-    },
-    {
-      "name": "headShake",
-      "mixamoName": "Head Shake No",
-      "category": "social",
-      "description": "Shaking head no"
-    },
-    {
-      "name": "fistPump",
-      "mixamoName": "Fist Pump",
-      "category": "dance",
-      "description": "Fist pump celebration"
-    },
-    {
-      "name": "jumpingJoy",
-      "mixamoName": "Jumping Joy",
-      "category": "dance",
-      "description": "Jumping with joy"
-    },
-    {
-      "name": "excited",
-      "mixamoName": "Excited",
-      "category": "dance",
-      "description": "Excited reaction"
-    },
-    {
-      "name": "macarena",
-      "mixamoName": "Macarena Dance",
-      "category": "dance",
-      "description": "Macarena dance"
-    },
-    {
-      "name": "pointing",
-      "mixamoName": "Pointing",
-      "category": "gesture",
-      "description": "Point at something"
-    },
-    {
-      "name": "thumbsUp",
-      "mixamoName": "Thumbs Up",
-      "category": "gesture",
-      "description": "Thumbs up approval"
-    },
-    {
-      "name": "thumbsDown",
-      "mixamoName": "Thumbs Down",
-      "category": "gesture",
-      "description": "Thumbs down disapproval"
-    },
-    {
-      "name": "facePalm",
-      "mixamoName": "Face Palm",
-      "category": "gesture",
-      "description": "Facepalm reaction"
-    },
-    {
-      "name": "crying",
-      "mixamoName": "Crying",
-      "category": "gesture",
-      "description": "Crying animation"
-    },
-    {
-      "name": "laughing",
-      "mixamoName": "Laughing",
-      "category": "gesture",
-      "description": "Laughing animation"
-    },
-    {
-      "name": "surprised",
-      "mixamoName": "Surprised",
-      "category": "gesture",
-      "description": "Surprised reaction"
-    },
-    {
-      "name": "scared",
-      "mixamoName": "Terrified",
-      "category": "gesture",
-      "description": "Scared/terrified reaction"
-    },
-    {
-      "name": "confused",
-      "mixamoName": "Thinking",
-      "category": "gesture",
-      "description": "Confused expression"
-    },
-    {
-      "name": "agreeing",
-      "mixamoName": "Agreeing",
-      "category": "gesture",
-      "description": "Agreeing gesture"
-    },
-    {
-      "name": "disagreeing",
-      "mixamoName": "Disagreeing",
-      "category": "gesture",
-      "description": "Disagreeing gesture"
     },
     {
       "name": "punch",
@@ -727,34 +613,58 @@
       "description": "Punch forward"
     },
     {
-      "name": "kick",
-      "mixamoName": "Kicking",
+      "name": "flyingKnee",
+      "mixamoName": "Flying Knee Punch Combo",
       "category": "action",
-      "description": "Kick forward"
+      "description": "Flying knee punch combo attack"
     },
     {
-      "name": "dodge",
-      "mixamoName": "Dodge",
+      "name": "daggerStab",
+      "mixamoName": "Double Dagger Stab",
       "category": "action",
-      "description": "Dodge to the side"
+      "description": "Double dagger stab attack"
     },
     {
-      "name": "block",
-      "mixamoName": "Blocking",
-      "category": "action",
-      "description": "Defensive block"
+      "name": "jogBackwards",
+      "mixamoName": "Slow Jog Backwards",
+      "category": "movement",
+      "description": "Jogging backwards slowly"
     },
     {
-      "name": "magicCast",
-      "mixamoName": "Standing Magic Attack",
-      "category": "action",
-      "description": "Cast magic spell"
+      "name": "climbing",
+      "mixamoName": "Climbing To Top",
+      "category": "movement",
+      "description": "Climbing to top"
     },
     {
-      "name": "throw",
-      "mixamoName": "Throw",
+      "name": "turnRight",
+      "mixamoName": "Right Turn With Briefcase",
+      "category": "movement",
+      "description": "Turn right while holding briefcase"
+    },
+    {
+      "name": "shrugging",
+      "mixamoName": "Shrugging",
+      "category": "gesture",
+      "description": "Shoulder shrug gesture"
+    },
+    {
+      "name": "dropKick",
+      "mixamoName": "Drop Kick",
       "category": "action",
-      "description": "Throw something"
+      "description": "Drop kick attack"
+    },
+    {
+      "name": "bodyBlock",
+      "mixamoName": "Body Block",
+      "category": "action",
+      "description": "Body block defense"
+    },
+    {
+      "name": "reloading",
+      "mixamoName": "Reloading",
+      "category": "action",
+      "description": "Reloading weapon"
     },
     {
       "name": "catch",
@@ -805,16 +715,46 @@
       "description": "Crouch down"
     },
     {
-      "name": "falling",
-      "mixamoName": "Falling Idle",
-      "category": "movement",
-      "description": "Falling animation"
+      "name": "swinging",
+      "mixamoName": "Swinging",
+      "category": "action",
+      "description": "Rope swing animation"
     },
     {
-      "name": "landing",
-      "mixamoName": "Landing",
+      "name": "plank",
+      "mixamoName": "Plank",
+      "category": "action",
+      "description": "Plank exercise"
+    },
+    {
+      "name": "textingAndWalking",
+      "mixamoName": "Texting And Walking",
       "category": "movement",
-      "description": "Landing from jump"
+      "description": "Walking while texting"
+    },
+    {
+      "name": "openDoor",
+      "mixamoName": "Open Door",
+      "category": "action",
+      "description": "Opening a door"
+    },
+    {
+      "name": "golfBadShot",
+      "mixamoName": "Golf Bad Shot",
+      "category": "action",
+      "description": "Golf bad shot animation"
+    },
+    {
+      "name": "golfPrePutt",
+      "mixamoName": "Golf Pre Putt",
+      "category": "action",
+      "description": "Golf pre-putt preparation"
+    },
+    {
+      "name": "talkingOnPhone",
+      "mixamoName": "Talking On Phone",
+      "category": "action",
+      "description": "Talking on phone animation"
     }
   ]
 }

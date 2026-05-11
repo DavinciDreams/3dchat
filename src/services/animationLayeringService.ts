@@ -1,18 +1,10 @@
 import * as THREE from 'three';
 import type { AnimationLayerType } from '../types';
 import { getAnimationTimeScale } from '../config/animationSpeedConfig';
-
-/**
- * Animation layer configuration
- */
-export interface AnimationLayerConfig {
-  /** Layer priority (higher = overrides lower priority layers) */
-  priority: number;
-  /** Default blend mode for this layer */
-  blendMode: THREE.Blending;
-  /** Default weight for animations on this layer */
-  defaultWeight: number;
-}
+import {
+  getLayerConfig,
+  getLayerPriority
+} from '../config/animationLayerConfig';
 
 /**
  * Animation playback options
@@ -28,6 +20,10 @@ export interface AnimationPlaybackOptions {
   loop?: THREE.AnimationActionLoopStyles;
   /** Whether to animation can be interrupted */
   interruptible?: boolean;
+  /** Duration of animation in seconds (0 for infinite loop) */
+  duration?: number;
+  /** Callback when animation completes */
+  onComplete?: () => void;
 }
 
 /**
@@ -43,6 +39,9 @@ interface ActiveAnimation {
   startTime: number;
   isFadingIn: boolean;
   isFadingOut: boolean;
+  duration: number;
+  onComplete?: () => void;
+  hasCompleted: boolean;
 }
 
 /**
@@ -115,7 +114,7 @@ export class AnimationLayeringService {
   }
 
   /**
-   * Set or update the AnimationMixer
+   * Set or update AnimationMixer
    * @param mixer - THREE.AnimationMixer instance
    */
   setMixer(mixer: THREE.AnimationMixer): void {
@@ -166,12 +165,14 @@ export class AnimationLayeringService {
     // Set animation playback speed
     action.timeScale = getAnimationTimeScale();
 
-    const config = AnimationLayeringService.LAYER_CONFIGS[layer];
+    const config = getLayerConfig(layer);
     const {
       fadeInDuration = 0.3,
       fadeOutDuration = 0.3,
       weight = config.defaultWeight,
-      loop = THREE.LoopRepeat
+      loop = THREE.LoopRepeat,
+      duration = 0,
+      onComplete
     } = options;
 
     // Generate unique animation ID
@@ -183,10 +184,10 @@ export class AnimationLayeringService {
     // FIX: Implement cross-layer weight management
     // When new animation starts, reduce weights on other layers proportionally
     // based on priority to enable proper blending between layers
-    const newLayerPriority = AnimationLayeringService.LAYER_CONFIGS[layer].priority;
-    this.activeAnimations.forEach((anim, id) => {
+    const newLayerPriority = getLayerPriority(layer);
+    this.activeAnimations.forEach((anim) => {
       if (anim.layer !== layer && !anim.isFadingOut) {
-        const existingLayerPriority = AnimationLayeringService.LAYER_CONFIGS[anim.layer].priority;
+        const existingLayerPriority = getLayerPriority(anim.layer);
         // Reduce weight more for lower priority layers
         const priorityRatio = existingLayerPriority / (existingLayerPriority + newLayerPriority);
         const newWeight = anim.weight * priorityRatio * 0.5; // Reduce to 50% or less based on priority
@@ -219,8 +220,16 @@ export class AnimationLayeringService {
       fadeOutDuration,
       startTime: performance.now(),
       isFadingIn: true,
-      isFadingOut: false
+      isFadingOut: false,
+      duration,
+      onComplete,
+      hasCompleted: false
     });
+
+    // Store completion callback
+    if (onComplete) {
+      this.completionCallbacks.set(animationId, onComplete);
+    }
 
     // Update layer weight
     this.layerWeights.set(layer, weight);
@@ -271,9 +280,9 @@ export class AnimationLayeringService {
    * @param duration - Fade duration in seconds
    */
   fadeOutLayer(layer: AnimationLayerType, duration: number = 0.3): void {
-    this.activeAnimations.forEach((anim, id) => {
+    this.activeAnimations.forEach((anim, animationId) => {
       if (anim.layer === layer && !anim.isFadingOut) {
-        this.stopAnimation(id, duration);
+        this.stopAnimation(animationId, duration);
       }
     });
   }
@@ -392,15 +401,6 @@ export class AnimationLayeringService {
   }
 
   /**
-   * Get layer configuration
-   * @param layer - Layer to query
-   * @returns Layer configuration
-   */
-  getLayerConfig(layer: AnimationLayerType): AnimationLayerConfig {
-    return AnimationLayeringService.LAYER_CONFIGS[layer];
-  }
-
-  /**
    * Clear all registered animations and reset state, disposing THREE.js resources
    */
   clear(): void {
@@ -463,7 +463,7 @@ export class AnimationLayeringService {
   update(delta: number): void {
     // PERFORMANCE FIX: Remove redundant mixer.update() call
     // The mixer is already updated in AvatarModel.tsx useFrame hook
-    // Calling it again causes triple processing of the same time delta
+    // Calling it again causes triple processing of same time delta
     // which leads to choppy animations (58-86ms per frame instead of ~16ms)
 
     // Increment frame counter for cleanup queue
@@ -487,7 +487,7 @@ export class AnimationLayeringService {
     // Update animation weights for smooth blending
     this.activeAnimations.forEach((anim) => {
       if (anim.isFadingIn) {
-        // Interpolate weight towards target
+        // Interpolate weight towards target for fade-in
         const fadeSpeed = 1 / anim.fadeInDuration;
         anim.weight = Math.min(anim.weight + fadeSpeed * delta, anim.targetWeight);
 
@@ -496,6 +496,13 @@ export class AnimationLayeringService {
         }
 
         // Apply weight to action
+        anim.action.weight = anim.weight;
+      } else if (anim.isFadingOut) {
+        // Interpolate weight towards 0 for fade-out
+        const fadeSpeed = 1 / anim.fadeOutDuration;
+        anim.weight = Math.max(anim.weight - fadeSpeed * delta, 0);
+        
+        // Apply weight during fade-out
         anim.action.weight = anim.weight;
       }
     });
@@ -516,25 +523,6 @@ export class AnimationLayeringService {
    */
   getRegisteredAnimations(): string[] {
     return Array.from(this.actionCache.keys());
-  }
-
-  /**
-   * Get layer priority
-   * @param layer - Layer to query
-   * @returns Priority value
-   */
-  getLayerPriority(layer: AnimationLayerType): number {
-    return AnimationLayeringService.LAYER_CONFIGS[layer].priority;
-  }
-
-  /**
-   * Compare layer priorities
-   * @param layer1 - First layer
-   * @param layer2 - Second layer
-   * @returns Positive if layer1 has higher priority, negative if lower
-   */
-  compareLayerPriority(layer1: AnimationLayerType, layer2: AnimationLayerType): number {
-    return this.getLayerPriority(layer1) - this.getLayerPriority(layer2);
   }
 }
 

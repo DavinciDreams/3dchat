@@ -11,7 +11,8 @@ import {
   TextAnalysis,
   TextTimingEstimatorOptions,
 } from '../types';
-import { getDefaultTextTimingConfig, TextTimingConfig } from '../config/textTimingConfig';
+import { textTimingConfigService } from './textTimingConfigService';
+import type { TextTimingConfig } from '../config/textTimingConfig';
 
 /**
  * TextTimingEstimator class
@@ -26,7 +27,7 @@ export class TextTimingEstimator {
   private calibrationHistory: Array<{ text: string; estimated: number; actual: number; factor: number }> = [];
 
   constructor(options?: Partial<TextTimingEstimatorOptions>) {
-    this.options = { ...getDefaultTextTimingConfig(), ...options };
+    this.options = { ...textTimingConfigService.getDefaultConfig(), ...options };
   }
 
   /**
