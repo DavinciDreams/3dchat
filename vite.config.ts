@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
@@ -32,22 +32,43 @@ function animationConfigGenerator() {
 }
 
 // https://vitejs.dev/config/
+export default defineConfig(({ mode }) => {
+  // Load all env vars (including non-VITE_ prefixed ones for the dev proxy)
+  const env = loadEnv(mode, process.cwd(), '');
 
-// https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react(), animationConfigGenerator()],
-  server: {
-    port: 3000,
-    host: true,
-  },
-  publicDir: 'public',
-  optimizeDeps: {
-    esbuildOptions: {
+  return {
+    plugins: [react(), animationConfigGenerator()],
+    server: {
+      port: 3000,
+      host: true,
+      // Mirror the production /api/openrouter Edge Function in dev so the
+      // server-side OPENROUTER_API_KEY never leaks into the client bundle.
+      proxy: {
+        '/api/openrouter': {
+          target: 'https://openrouter.ai',
+          changeOrigin: true,
+          rewrite: () => '/api/v1/chat/completions',
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq) => {
+              if (env.OPENROUTER_API_KEY) {
+                proxyReq.setHeader('Authorization', `Bearer ${env.OPENROUTER_API_KEY}`);
+              }
+              proxyReq.setHeader('HTTP-Referer', 'http://localhost:3000');
+              proxyReq.setHeader('X-Title', '3D AI Chat (dev)');
+            });
+          },
+        },
+      },
+    },
+    publicDir: 'public',
+    optimizeDeps: {
+      esbuildOptions: {
+        target: 'es2022',
+      },
+      include: ['wlipsync'],
+    },
+    build: {
       target: 'es2022',
     },
-    include: ['wlipsync'],
-  },
-  build: {
-    target: 'es2022',
-  },
+  };
 });

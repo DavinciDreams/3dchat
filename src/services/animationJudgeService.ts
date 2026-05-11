@@ -8,9 +8,8 @@ import { animationDurationService } from './animation/AnimationDurationService';
 import { truncateString } from '../utils/safeLogger';
 import { getAnimationJudgeCache } from './animationJudgeService/AnimationJudgeCache';
 
-const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 // Use a fast, cheap model for judge - falls back to free model if not specified
-const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openai/gpt-4o-mini';
+const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openai/gpt-oss-20b:free';
 
 const SYSTEM_PROMPT = ANIMATION_JUDGE_SYSTEM_PROMPT;
 
@@ -69,7 +68,6 @@ export async function judgeAnimations(
   console.log('%c🎬 [AnimationJudge] userMessage:', 'color: #e74c3c; font-weight: bold;', truncateString(userMessage));
   console.log('%c🎬 [AnimationJudge] aiResponse:', 'color: #e74c3c; font-weight: bold;', truncateString(aiResponse));
   console.log('%c🎬 [AnimationJudge] JUDGE_MODEL:', 'color: #e74c3c; font-weight: bold;', JUDGE_MODEL);
-  console.log('%c🎬 [AnimationJudge] OPENROUTER_API_KEY present:', 'color: #e74c3c; font-weight: bold;', !!OPENROUTER_API_KEY);
 
   // Use cache with thread-safe concurrent request handling
   return cache.getOrSet(userMessage, aiResponse, async () => {

@@ -9,8 +9,8 @@ import axios from 'axios';
 import type { ChatMessage, LLMResponse } from '../../di/ServiceInterfaces';
 import { truncateString } from '../../utils/safeLogger';
 
-const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
-const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openai/gpt-4o-mini';
+const OPENROUTER_PROXY_URL = '/api/openrouter';
+const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openai/gpt-oss-20b:free';
 const LLM_TIMEOUT_MS = parseInt(import.meta.env.VITE_LLM_TIMEOUT_MS || '60000'); // Default 60 seconds
 const MAX_RETRIES = parseInt(import.meta.env.VITE_LLM_MAX_RETRIES || '2'); // Default 2 retries
 
@@ -103,7 +103,7 @@ export class LLMClientService {
     console.log('%c🤖 [LLMClient] Sending chat request', 'color: #3498db; font-weight: bold;');
     console.log('%c🤖 [LLMClient] Messages (count):', 'color: #3498db;', messages.length);
     console.log('%c🤖 [LLMClient] Model:', 'color: #3498db; font-weight: bold;', JUDGE_MODEL);
-    console.log('%c🤖 [LLMClient] API Key present:', 'color: #3498db; font-weight: bold;', !!OPENROUTER_API_KEY);
+    console.log('%c🤖 [LLMClient] Endpoint:', 'color: #3498db; font-weight: bold;', OPENROUTER_PROXY_URL);
     console.log('%c🤖 [LLMClient] Timeout:', 'color: #3498db; font-weight: bold;', `${LLM_TIMEOUT_MS}ms`);
     console.log('%c🤖 [LLMClient] Max retries:', 'color: #3498db; font-weight: bold;', MAX_RETRIES);
     
@@ -124,7 +124,7 @@ export class LLMClientService {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         const response = await axios.post(
-          'https://openrouter.ai/api/v1/chat/completions',
+          OPENROUTER_PROXY_URL,
           {
             model: JUDGE_MODEL,
             messages,
@@ -133,10 +133,7 @@ export class LLMClientService {
           },
           {
             timeout: LLM_TIMEOUT_MS,
-            headers: {
-              'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-              'Content-Type': 'application/json'
-            }
+            headers: { 'Content-Type': 'application/json' }
           }
         );
 
@@ -248,7 +245,7 @@ export class LLMClientService {
 
     try {
       const response = await axios.post(
-        'https://openrouter.ai/api/v1/chat/completions',
+        OPENROUTER_PROXY_URL,
         {
           model: JUDGE_MODEL,
           messages,
@@ -257,10 +254,7 @@ export class LLMClientService {
           stream: true
         },
         {
-          headers: {
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           responseType: 'stream'
         }
       );
@@ -325,9 +319,9 @@ export class LLMClientService {
   }
 
   /**
-   * Check if API key is configured
+   * Always returns true — the API key now lives server-side in the /api/openrouter proxy.
    */
   isConfigured(): boolean {
-    return !!OPENROUTER_API_KEY;
+    return true;
   }
 }
