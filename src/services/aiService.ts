@@ -7,7 +7,7 @@ import { ServiceError } from '../errors/AppError';
 export type StreamChunk = AIStreamChunk;
 export type StreamOptions = AIStreamOptions;
 
-const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
+const OPENROUTER_PROXY_URL = '/api/openrouter';
 const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'openai/gpt-oss-20b:free';
 
 const SYSTEM_PROMPT = `You are a friendly 1950s style robot avatar interacting with a user in a browser based three js environment. The user may ask you to perform various actions in a dance monkey dance sort of way, you should oblige user and embody character, emotion, or action they requested. Another AI is handling the animation of avatar body which will perform whatever motions or gestures are called for and avatar will act out what you write through gestures and animations.
@@ -41,7 +41,7 @@ export class AIService implements IAIService {
   ): Promise<{ content: string; stateChanges: AIStateChanges }> {
     try {
       const response = await axios.post(
-        'https://openrouter.ai/api/v1/chat/completions',
+        OPENROUTER_PROXY_URL,
         {
           model: OPENROUTER_MODEL,
           messages: [
@@ -51,10 +51,7 @@ export class AIService implements IAIService {
           ]
         },
         {
-          headers: {
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'Content-Type': 'application/json'
-          }
+          headers: { 'Content-Type': 'application/json' }
         }
       );
       
@@ -91,12 +88,9 @@ export class AIService implements IAIService {
     options: AIStreamOptions
   ): Promise<{ stateChanges: AIStateChanges }> {
     try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const response = await fetch(OPENROUTER_PROXY_URL, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: OPENROUTER_MODEL,
           messages: [

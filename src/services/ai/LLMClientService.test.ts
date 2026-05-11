@@ -9,11 +9,8 @@ describe('LLMClientService', () => {
   let service: LLMClientService;
 
   beforeEach(() => {
-    // Set up environment variables for testing
-    process.env.VITE_OPENROUTER_API_KEY = 'test-api-key';
-    process.env.VITE_OPENROUTER_API_URL = 'https://api.openrouter.ai/api/v1/chat/completions';
-    process.env.VITE_OPENROUTER_MODEL = 'openai/gpt-4o-mini';
-
+    // The OpenRouter key now lives server-side in the /api/openrouter proxy,
+    // so the client no longer reads VITE_OPENROUTER_API_KEY.
     service = new LLMClientService();
   });
 
@@ -50,10 +47,8 @@ describe('LLMClientService', () => {
   });
 
   describe('isConfigured', () => {
-    it('should return true when API key is set', () => {
-      const configured = service.isConfigured();
-
-      expect(configured).toBe(true);
+    it('always returns true (key is held server-side)', () => {
+      expect(service.isConfigured()).toBe(true);
     });
   });
 });
