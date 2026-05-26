@@ -1,3 +1,13 @@
+/**
+ * TimelineCoordinator
+ *
+ * Service for coordinating text-based timeline with audio.
+ * Manages to synchronization between text-based timing estimates and actual audio playback.
+ */
+
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import * as THREE from 'three';
 import {
   Emotion,
   ScheduledAnimation,
@@ -5,12 +15,11 @@ import {
   TimelineCoordinatorState,
   TimelineCoordinatorOptions,
   TextTimingEstimator,
+  AnimationLayerType,
 } from '../types';
 import { textTimingEstimator } from './textTimingEstimator';
 import { timelineManager } from './timelineManager';
-import { TimelineStateService } from './timeline/TimelineStateService';
-import { TimelineScheduler as TimelineSchedulerService } from './timeline/TimelineScheduler';
-import { TextStreamHandler } from './timeline/TextStreamHandler';
+import { animationLayeringService } from './animationLayeringService';
 
 /**
  * TimelineCoordinator class
@@ -320,6 +329,155 @@ export class TimelineCoordinator {
     if (this.debug) {
       console.log('%c[TimelineCoordinator] Reset state',
         'background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px;');
+    }
+  }
+
+  /**
+   * Schedule animations on the timeline
+   */
+  private scheduleAnimations(animations: ScheduledAnimation[]): void {
+    if (!this.state.timeline) {
+      return;
+    }
+
+    animations.forEach(animation => {
+      // Calculate trigger time based on text position
+      const triggerTime = this.calculateAnimationTriggerTime(animation);
+
+      // Create timeline event
+      (this.timelineManager as any).schedule({
+        id: `anim_${animation.name}_${Date.now()}`,
+        timestamp: triggerTime,
+        type: 'animation',
+        data: animation,
+        callback: () => this.executeAnimation(animation),
+        priority: animation.layer ? 100 : 50,
+      });
+
+      if (this.debug) {
+        console.log(`%c[TimelineCoordinator] Scheduled animation: ${animation.name} at ${triggerTime.toFixed(0)}ms`,
+          'background: #3498db; color: white; padding: 4px 8px; border-radius: 4px;');
+      }
+    });
+  }
+
+  /**
+   * Calculate trigger time for an animation based on text position
+   */
+  private calculateAnimationTriggerTime(animation: ScheduledAnimation): number {
+    if (!this.state.timeline) {
+      return animation.triggerTime;
+    }
+
+    // If animation has explicit trigger time, use it
+    if (animation.triggerTime !== undefined) {
+      return animation.triggerTime;
+    }
+
+    // Otherwise, distribute based on timeline position
+    const progress = animation.triggerTime !== undefined
+      ? animation.triggerTime / this.state.totalDuration
+      : 0.5; // Default to middle
+
+    return Math.floor(progress * this.state.totalDuration);
+  }
+
+  /**
+   * Execute an animation (callback wrapper)
+   * PERFORMANCE FIX: Integrated with AnimationLayeringService for actual animation playback
+   * Previously this was just a stub that logged to console
+   */
+  private executeAnimation(animation: ScheduledAnimation): void {
+    // Use AnimationLayeringService directly since timing is already handled by timeline
+    const layer: AnimationLayerType = animation.layer || 'full_body';
+    const duration = animation.duration / 1000; // Convert ms to seconds
+
+    try {
+      // Check if animation is registered
+      const registeredAnimations = animationLayeringService.getRegisteredAnimations();
+      if (!registeredAnimations.includes(animation.name)) {
+        console.warn(
+          `%c⚠️ [TimelineCoordinator] Animation not registered: ${animation.name}`,
+          'color: #f39c12;'
+        );
+        console.log(
+          `%c[TimelineCoordinator] Available animations: ${registeredAnimations.join(', ')}`,
+          'color: #95a5a6;'
+        );
+        return;
+      }
+
+      // Play animation with appropriate settings
+      const animationId = animationLayeringService.playAnimation(animation.name, layer, {
+        fadeInDuration: 0.3,
+        fadeOutDuration: 0.3,
+        loop: duration > 0 ? THREE.LoopOnce : THREE.LoopRepeat,
+        interruptible: animation.interruptible !== false,
+      });
+
+      if (this.debug) {
+        console.log(
+          `%c▶️ [TimelineCoordinator] Executing animation: ${animation.name} on ${layer} (${animationId})`,
+          'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px;'
+        );
+      }
+
+      // Schedule automatic stop if duration is specified
+      if (duration > 0 && animationId) {
+        const stopCallback = () => {
+          animationLayeringService.stopAnimation(animationId, 0.3);
+          if (this.debug) {
+            console.log(
+              `%c⏹ [TimelineCoordinator] Auto-stopping animation: ${animation.name}`,
+              'color: #f39c12;'
+            );
+          }
+        };
+
+        // Schedule stop event through timeline manager
+        if (this.timelineManager && typeof this.timelineManager === 'object' && 'schedule' in this.timelineManager) {
+          (this.timelineManager as any).schedule({
+            id: `${animationId}_stop`,
+            timestamp: animation.triggerTime + animation.duration,
+            type: 'animation_stop',
+            callback: stopCallback,
+          });
+        }
+      }
+    } catch (error) {
+      console.error(
+        `%c❌ [TimelineCoordinator] Failed to execute animation: ${animation.name}`,
+        'color: #e74c3c;',
+        error
+      );
+    }
+  }
+
+  /**
+   * Adjust timeline duration to match audio
+   */
+  private adjustTimelineDuration(audioDuration: number): void {
+    if (!this.state.timeline) {
+      return;
+    }
+
+    const ratio = audioDuration / this.state.totalDuration;
+
+    // Scale all segment durations
+    this.state.timeline = {
+      ...this.state.timeline,
+      totalDuration: audioDuration,
+      segments: this.state.timeline.segments.map(seg => ({
+        ...seg,
+        duration: seg.duration * ratio,
+        startTime: seg.startTime * ratio,
+        endTime: seg.endTime * ratio,
+      })),
+    };
+
+    if (this.debug) {
+      console.log(`%c[TimelineCoordinator] Adjusted timeline duration by factor ${ratio.toFixed(3)}`,
+        'background: #f39c12; color: white; padding: 4px 8px; border-radius: 4px;');
     }
   }
 

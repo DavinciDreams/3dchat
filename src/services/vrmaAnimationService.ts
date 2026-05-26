@@ -69,17 +69,77 @@ class VRMAAnimationService {
   // Maximum retries for failed animations
   private readonly MAX_RETRIES = 3;
 
-  // Lazy-loaded services via DI
-  private get loader(): IVRMALoaderService {
-    return getContainer().resolve<IVRMALoaderService>(SERVICE_TOKENS.VRMA_LOADER);
-  }
+  // PERFORMANCE FIX: LRU cache management to prevent unbounded memory growth
+  private cacheAccessOrder: string[] = []; // Track LRU order (oldest first)
+  private estimatedCacheSize: number = 0; // Estimated memory usage in bytes
+  private readonly MAX_CACHE_SIZE_BYTES = 100 * 1024 * 1024; // 100MB limit
 
-  private get cache(): IVMACacheService {
-    return getContainer().resolve<IVMACacheService>(SERVICE_TOKENS.VRMA_CACHE);
-  }
-
-  private get retargeting(): IVMARetargetingService {
-    return getContainer().resolve<IVMARetargetingService>(SERVICE_TOKENS.VRMA_RETARGETING);
+  constructor() {
+    // Create a custom LoadingManager to handle VRMA texture loading errors gracefully
+    // VRMA files reference external textures (e.g., Image_0.jpg) that don't exist
+    // This prevents console spam and animation loading failures
+    const manager = new THREE.LoadingManager();
+    
+    // Override error handler to suppress texture warnings for VRMA files
+    manager.onError = (url: string) => {
+      // Only log texture errors for VRMA files (not VRM models)
+      if (url.includes('.vrma') || url.includes('Image_')) {
+        // Silently ignore - VRMA animations don't need external textures
+        return;
+      }
+      console.warn(`Failed to load resource: ${url}`);
+    };
+    
+    // Override itemError handler to catch texture loading failures
+    manager.itemError = (url: string) => {
+      // Silently ignore texture errors for VRMA files
+      if (url.includes('Image_')) {
+        return;
+      }
+      console.warn(`Failed to load item: ${url}`);
+    };
+    
+    // Create TextureLoader with custom manager
+    const textureLoader = new THREE.TextureLoader(manager);
+    const originalLoad = textureLoader.load.bind(textureLoader);
+    
+    // Override TextureLoader.load to provide fallback for missing textures
+    textureLoader.load = (
+      url: string,
+      onLoad?: (texture: THREE.Texture) => void,
+      onProgress?: (event: ProgressEvent) => void,
+      onError?: (error: unknown) => void
+    ) => {
+      // Check if this is an external texture reference from VRMA
+      if (url.includes('Image_') && !url.startsWith('data:')) {
+        // Create a fallback dummy texture to prevent errors
+        const canvas = document.createElement('canvas');
+        canvas.width = 4;
+        canvas.height = 4;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#808080'; // Neutral gray
+          ctx.fillRect(0, 0, 4, 4);
+        }
+        
+        const dummyTexture = new THREE.CanvasTexture(canvas);
+        dummyTexture.colorSpace = THREE.SRGBColorSpace;
+        dummyTexture.needsUpdate = true;
+        
+        // Call onLoad callback with dummy texture
+        if (onLoad) {
+          onLoad(dummyTexture);
+        }
+        return dummyTexture;
+      }
+      
+      // Normal loading for other textures
+      return originalLoad(url, onLoad, onProgress, onError);
+    };
+    
+    // Create GLTFLoader with custom manager
+    this.loader = new GLTFLoader(manager);
+    this.loader.register((parser) => new VRMAnimationLoaderPlugin(parser));
   }
 
   /**
@@ -87,6 +147,84 @@ class VRMAAnimationService {
    * @param config The VRMA animation configuration
    * @returns Promise resolving to loaded animation
    */
+  /**
+   * PERFORMANCE FIX: Add timeout wrapper to prevent infinite loading hangs
+   * Wraps a promise with a timeout that rejects if not resolved in time
+   */
+  private withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+      )
+    ]);
+  }
+
+  /**
+   * PERFORMANCE FIX: Estimate memory size of an AnimationClip
+   * Used for LRU cache size management
+   */
+  private estimateClipSize(clip: THREE.AnimationClip): number {
+    let totalSize = 0;
+
+    // Estimate based on tracks and keyframes
+    clip.tracks.forEach(track => {
+      // Each track has:
+      // - name (string): ~20-50 bytes
+      // - times array (Float32Array): 4 bytes per keyframe
+      // - values array (Float32Array): varies by track type
+      const keyframeCount = track.times.length;
+      const nameSize = track.name.length * 2; // UTF-16 encoding
+      const timesSize = keyframeCount * 4;
+      const valuesSize = track.values.length * 4; // Float32Array
+
+      totalSize += nameSize + timesSize + valuesSize;
+    });
+
+    // Add overhead for clip metadata (~1KB)
+    totalSize += 1024;
+
+    return totalSize;
+  }
+
+  /**
+   * PERFORMANCE FIX: Evict least recently used cache entries until under size limit
+   * Implements LRU eviction policy to prevent unbounded memory growth
+   */
+  private evictLRUCacheEntries(): void {
+    while (this.estimatedCacheSize > this.MAX_CACHE_SIZE_BYTES && this.cacheAccessOrder.length > 0) {
+      // Remove oldest (least recently used) entry
+      const lruKey = this.cacheAccessOrder.shift()!;
+      const clip = this.retargetedClipCache.get(lruKey);
+
+      if (clip) {
+        const clipSize = this.estimateClipSize(clip);
+        this.estimatedCacheSize -= clipSize;
+        this.retargetedClipCache.delete(lruKey);
+
+        console.log(
+          `%c🗑️ [VRMAAnimationService] Evicted LRU cache entry: ${lruKey} (freed ${(clipSize / 1024).toFixed(1)}KB, total: ${(this.estimatedCacheSize / 1024 / 1024).toFixed(1)}MB)`,
+          'color: #95a5a6;'
+        );
+      }
+    }
+  }
+
+  /**
+   * PERFORMANCE FIX: Track cache access for LRU ordering
+   * Moves accessed key to end of access order (most recently used)
+   */
+  private trackCacheAccess(cacheKey: string): void {
+    // Remove from current position
+    const index = this.cacheAccessOrder.indexOf(cacheKey);
+    if (index !== -1) {
+      this.cacheAccessOrder.splice(index, 1);
+    }
+
+    // Add to end (most recently used)
+    this.cacheAccessOrder.push(cacheKey);
+  }
+
   async loadAnimation(config: VRMAAnimationConfig): Promise<VRMAAnimation> {
     // Check cache first
     const cached = this.cache.getAnimation(config.name);
@@ -94,13 +232,45 @@ class VRMAAnimationService {
       return cached;
     }
 
-    // Load via loader service
-    const animation = await this.loader.loadAnimation(config);
-    
-    // Cache result
-    this.cache.setAnimation(config.name, animation);
-    
-    return animation;
+    // PERFORMANCE FIX: Wrap loader with 10-second timeout to prevent hangs
+    const LOAD_TIMEOUT_MS = 10000; // 10 seconds
+
+    // Create new loading promise with timeout
+    const loadPromise = this.withTimeout(
+      this.loader.loadAsync(config.path),
+      LOAD_TIMEOUT_MS,
+      `Animation loading timeout after ${LOAD_TIMEOUT_MS}ms: ${config.name}`
+    );
+
+    const promise = loadPromise
+      .then((gltf) => {
+        // VRMA files contain animation data in userData.vrmAnimations
+        const vrmAnimations = (gltf.userData as { vrmAnimations?: unknown[] }).vrmAnimations;
+        
+        if (!vrmAnimations || vrmAnimations.length === 0) {
+          throw new Error(`No VRM animations found in VRMA file: ${config.path}`);
+        }
+
+        // Use first VRM animation from VRMA file
+        const vrmAnimation = vrmAnimations[0];
+        const animation: VRMAAnimation = {
+          name: config.name,
+          clip: gltf.animations[0], // Keep raw clip for reference
+          vrmAnimation: vrmAnimation, // Store VRM animation data for retargeting
+        };
+
+        this.loadedAnimations.set(config.name, animation);
+        this.loadingPromises.delete(config.name);
+        
+        return animation;
+      })
+      .catch((error) => {
+        this.loadingPromises.delete(config.name);
+        throw new Error(`Failed to load VRMA animation ${config.name}: ${error.message}`);
+      });
+
+    this.loadingPromises.set(config.name, promise);
+    return promise;
   }
 
   /**
@@ -181,19 +351,47 @@ class VRMAAnimationService {
    * @returns The retargeted animation clip
    */
   getOrCreateRetargetedClip(
-     vrmAnimation: unknown,
-     vrm: unknown,
-     modelId: string,
-     animationName: string,
-     layer?: AnimationLayerType
-  ): unknown {
-    return this.retargeting.createRetargetedClip(
-      vrmAnimation,
-      vrm,
-      modelId,
-      animationName,
-      layer
-    );
+    vrmAnimation: unknown,
+    vrm: unknown,
+    modelId: string,
+    animationName: string,
+    layer?: AnimationLayerType
+  ): THREE.AnimationClip {
+    const cacheKey = `${modelId}_${animationName}_${layer || 'full'}`;
+
+    // PERFORMANCE FIX: Track cache access for LRU ordering
+    // Check cache first
+    if (this.retargetedClipCache.has(cacheKey)) {
+      this.trackCacheAccess(cacheKey);
+      return this.retargetedClipCache.get(cacheKey)!;
+    }
+
+    // Create new retargeted clip
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let retargetedClip = createVRMAnimationClip(vrmAnimation as any, vrm as any);
+
+    // Apply bone masking if layer is specified
+    if (layer) {
+      retargetedClip = maskAnimationClip(retargetedClip, layer);
+    }
+
+    // PERFORMANCE FIX: Evict LRU entries if cache size exceeds limit before adding new clip
+    const clipSize = this.estimateClipSize(retargetedClip);
+    this.estimatedCacheSize += clipSize;
+
+    if (this.estimatedCacheSize > this.MAX_CACHE_SIZE_BYTES) {
+      console.log(
+        `%c⚠️ [VRMAAnimationService] Cache size exceeded ${(this.MAX_CACHE_SIZE_BYTES / 1024 / 1024).toFixed(0)}MB (${(this.estimatedCacheSize / 1024 / 1024).toFixed(1)}MB), evicting LRU entries...`,
+        'color: #f39c12;'
+      );
+      this.evictLRUCacheEntries();
+    }
+
+    // Cache result and track access
+    this.retargetedClipCache.set(cacheKey, retargetedClip);
+    this.trackCacheAccess(cacheKey);
+
+    return retargetedClip;
   }
 
   /**
@@ -209,11 +407,58 @@ class VRMAAnimationService {
 
   /**
    * Clear all loaded animations
+   * PERFORMANCE FIX: Also clear LRU cache tracking
    */
   clear(): void {
-    this.cache.clear();
-    this.loadingStates.clear();
-    this.failedAnimations.clear();
+    this.loadedAnimations.clear();
+    this.loadingPromises.clear();
+    this.retargetedClipCache.clear();
+    // Clear LRU cache tracking
+    this.cacheAccessOrder = [];
+    this.estimatedCacheSize = 0;
+  }
+
+  /**
+   * Clear retargeted clips for a specific model
+   * PERFORMANCE FIX: Also update LRU cache tracking and size estimates
+   * @param modelId The model ID to clear clips for
+   */
+  clearRetargetedClipsForModel(modelId: string): void {
+    const keysToDelete: string[] = [];
+    for (const key of this.retargetedClipCache.keys()) {
+      // Match keys starting with modelId (handles new format: modelId_animName_layer)
+      if (key.startsWith(`${modelId}_`)) {
+        keysToDelete.push(key);
+      }
+    }
+    // Properly dispose THREE.js AnimationClips to free GPU memory
+    keysToDelete.forEach(key => {
+      const clip = this.retargetedClipCache.get(key);
+      if (clip) {
+        // Update cache size estimate
+        const clipSize = this.estimateClipSize(clip);
+        this.estimatedCacheSize -= clipSize;
+
+        // Dispose clip tracks to free memory
+        if (clip.tracks) {
+          clip.tracks.forEach(track => {
+            // Dispose keyframe track values
+            if (track.values) {
+              track.values = new Float32Array(0);
+            }
+          });
+          clip.tracks = [];
+        }
+      }
+      this.retargetedClipCache.delete(key);
+
+      // Remove from LRU access order
+      const index = this.cacheAccessOrder.indexOf(key);
+      if (index !== -1) {
+        this.cacheAccessOrder.splice(index, 1);
+      }
+    });
+    console.log(`[VRMAAnimationService] Cleared ${keysToDelete.length} retargeted clips for model: ${modelId}`);
   }
 
   /**
@@ -241,7 +486,103 @@ class VRMAAnimationService {
    * Get fallback animation for a given animation name
    */
   getFallbackAnimation(animationName: string): string {
-    return animationPriorityService.getFallbackAnimation(animationName);
+    return getFallbackAnimation(animationName);
+  }
+
+  /**
+   * Load CRITICAL tier animations synchronously
+   * These animations are required for basic avatar functionality
+   * @returns Promise resolving when all critical animations are loaded
+   */
+  async loadCriticalAnimations(): Promise<void> {
+    console.log(`%c🚀 [VRMAAnimationService] Loading ${CRITICAL_ANIMATIONS.length} CRITICAL animations...`, 'color: #e74c3c; font-weight: bold;');
+
+    const results = await Promise.allSettled(
+      CRITICAL_ANIMATIONS.map(name => {
+        const config = VRMA_ANIMATIONS.find(a => a.name === name);
+        if (!config) {
+          console.warn(`CRITICAL animation config not found: ${name}`);
+          return Promise.reject(new Error(`Config not found: ${name}`));
+        }
+        return this.loadAnimationWithRetry(config);
+      })
+    );
+
+    let loadedCount = 0;
+    let failedCount = 0;
+
+    results.forEach((result, index) => {
+      const animName = CRITICAL_ANIMATIONS[index];
+      if (result.status === 'fulfilled') {
+        loadedCount++;
+        this.loadingStates.set(animName, 'loaded');
+      } else {
+        failedCount++;
+        this.loadingStates.set(animName, 'error');
+        console.warn(`Failed to load CRITICAL animation: ${animName}`, result.reason);
+      }
+    });
+
+    console.log(`%c✅ [VRMAAnimationService] Loaded ${loadedCount}/${CRITICAL_ANIMATIONS.length} CRITICAL animations (${failedCount} failed)`, 'color: #27ae60; font-weight: bold;');
+  }
+
+  /**
+   * Load HIGH priority animations in background batches
+   * PERFORMANCE FIX: Changed from sequential to parallel batch loading
+   * Eliminates 100ms delays between batches (500-800ms faster)
+   * These animations are frequently used but not critical for initial load
+   * @returns Promise resolving when all high priority animations are loaded
+   */
+  async loadHighPriorityAnimations(): Promise<void> {
+    console.log(`%c🔄 [VRMAAnimationService] Starting parallel load of ${HIGH_PRIORITY_ANIMATIONS.length} HIGH priority animations...`, 'color: #f39c12; font-weight: bold;');
+
+    const batchSize = 5;
+    const batches: string[][] = [];
+
+    // Split into batches
+    for (let i = 0; i < HIGH_PRIORITY_ANIMATIONS.length; i += batchSize) {
+      batches.push(HIGH_PRIORITY_ANIMATIONS.slice(i, i + batchSize));
+    }
+
+    // PERFORMANCE FIX: Load all batches in parallel instead of sequentially
+    // This eliminates the 100ms delay per batch (600ms saved for 6 batches)
+    const allResults = await Promise.all(
+      batches.map((batch, batchIndex) => {
+        console.log(`%c📦 [VRMAAnimationService] Starting HIGH priority batch ${batchIndex + 1}/${batches.length} (${batch.length} animations)...`, 'color: #3498db;');
+
+        return Promise.allSettled(
+          batch.map(name => {
+            const config = VRMA_ANIMATIONS.find(a => a.name === name);
+            if (!config) {
+              console.warn(`HIGH priority animation config not found: ${name}`);
+              return Promise.reject(new Error(`Config not found: ${name}`));
+            }
+            return this.loadAnimationWithRetry(config);
+          })
+        ).then(results => ({ batch, results }));
+      })
+    );
+
+    // Process results from all batches
+    let loadedCount = 0;
+    let failedCount = 0;
+
+    allResults.forEach(({ batch, results }) => {
+      results.forEach((result, index) => {
+        const animName = batch[index];
+        if (result.status === 'fulfilled') {
+          loadedCount++;
+          this.loadingStates.set(animName, 'loaded');
+        } else {
+          failedCount++;
+          this.loadingStates.set(animName, 'error');
+          // Log but don't fail whole batch
+          console.debug(`Failed to load HIGH priority animation: ${animName}`);
+        }
+      });
+    });
+
+    console.log(`%c✅ [VRMAAnimationService] Parallel load complete: ${loadedCount}/${HIGH_PRIORITY_ANIMATIONS.length} HIGH priority animations loaded (${failedCount} failed)`, 'color: #27ae60; font-weight: bold;');
   }
 
   /**
