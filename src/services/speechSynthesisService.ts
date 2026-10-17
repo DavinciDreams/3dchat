@@ -8,6 +8,7 @@ import { textToVisemes } from './visemePreprocessor';
 import { TTSCache } from './speechSynthesisService/TTSCache';
 import { animationPrefetchService } from './animationPrefetchService';
 import { AnimationTrigger } from '../types';
+import { isElevenLabsVoice, synthesizeElevenLabs } from './elevenLabsService';
 
 
 // Default voice (will be overridden by selected voice from store)
@@ -63,6 +64,13 @@ export async function textToSpeech(text: string): Promise<TTSResult | null> {
   try {
     // Get selected voice from store
     const store = useChatStore.getState();
+    if (isElevenLabsVoice(store.selectedVoiceId)) {
+      const cached = ttsCache.get(text, store.selectedVoiceId, 0, 0);
+      const audioBuffer = cached?.audioBuffer || await synthesizeElevenLabs(text, store.selectedVoiceId);
+      const visemes = cached?.visemes || textToVisemes(text);
+      if (!cached) ttsCache.set(text, store.selectedVoiceId, 0, 0, audioBuffer, visemes);
+      return { audioBuffer, visemes, duration: text.length * 0.15 };
+    }
     const selectedVoice = AVAILABLE_VOICES.find(v => v.id === store.selectedVoiceId);
     const voiceName = selectedVoice?.name || DEFAULT_VOICE_NAME;
     
@@ -237,6 +245,25 @@ const SPEAK_BUFFER_DELAY = 150; // ms to wait before speaking accumulated text
 // Queue for accumulated text segments to speak sequentially
 let speechSegmentQueue: string[] = [];
 let isSpeakingQueue = false;
+let speechGeneration = 0;
+let speechStopped = false;
+let speechRequest: AbortController | null = null;
+
+export function beginStreamingSpeech(): void {
+  stopStreamingSpeech();
+  speechStopped = false;
+  useChatStore.setState({ speechError: null });
+}
+
+export function hasPendingSpeech(): boolean {
+  return isSpeakingQueue || speechSegmentQueue.length > 0 || speechChunkBuffer.length > 0;
+}
+
+export function finishStreamingSpeech(): void {
+  if (speechBufferTimeout !== null) clearTimeout(speechBufferTimeout);
+  speechBufferTimeout = null;
+  if (!speechStopped) flushSpeechBuffer();
+}
 
 /**
  * Speak a text chunk using Web Speech API for real-time streaming
@@ -251,7 +278,27 @@ export function speakChunk(text: string): void {
   
   // Check mute state before processing
   const isMuted = useChatStore.getState().isMuted;
-  if (isMuted) {
+  if (isMuted || speechStopped) {
+    return;
+  }
+
+  if (isElevenLabsVoice(useChatStore.getState().selectedVoiceId)) {
+    speechChunkBuffer += text;
+    // Send complete sentences, preserving token fragments until the stream ends.
+    let sentence: RegExpMatchArray | null;
+    while ((sentence = speechChunkBuffer.match(/^[\s\S]*?[.!?](?:\s+|$)/))) {
+      speechSegmentQueue.push(sentence[0].trim());
+      speechChunkBuffer = speechChunkBuffer.slice(sentence[0].length);
+    }
+    if (speechChunkBuffer.length > 350) {
+      const wordBoundary = speechChunkBuffer.lastIndexOf(' ', 350);
+      const boundary = wordBoundary > 0 ? wordBoundary : 350;
+      if (boundary > 0) {
+        speechSegmentQueue.push(speechChunkBuffer.slice(0, boundary));
+        speechChunkBuffer = speechChunkBuffer.slice(boundary).trimStart();
+      }
+    }
+    if (!isSpeakingQueue) processSpeechQueue();
     return;
   }
   
@@ -369,6 +416,7 @@ function processSpeechQueue(): void {
   if (speechSegmentQueue.length === 0) {
     console.log('🔊 [processSpeechQueue] Queue empty, stopping');
     isSpeakingQueue = false;
+    if (!speechChunkBuffer.length) useChatStore.getState().setSpeaking(false);
     return;
   }
 
@@ -376,6 +424,7 @@ function processSpeechQueue(): void {
   const isMuted = useChatStore.getState().isMuted;
   if (isMuted) {
     speechSegmentQueue.length = 0; // Clear the queue
+    isSpeakingQueue = false;
     return;
   }
 
@@ -384,9 +433,34 @@ function processSpeechQueue(): void {
   console.log('🔊 [processSpeechQueue] Speaking segment:', text);
   console.log('🔊 [processSpeechQueue] Remaining in queue:', speechSegmentQueue.length);
 
-  const utterance = new SpeechSynthesisUtterance(text);
-  
   const store = useChatStore.getState();
+  if (isElevenLabsVoice(store.selectedVoiceId)) {
+    const generation = speechGeneration;
+    const request = new AbortController();
+    speechRequest = request;
+    store.setSpeaking(true);
+    synthesizeElevenLabs(text, store.selectedVoiceId, request.signal)
+      .then(audio => {
+        if (generation === speechGeneration && !useChatStore.getState().isMuted) {
+          return playAudio(audio, request.signal);
+        }
+      }).catch(error => {
+        if (!request.signal.aborted && generation === speechGeneration) {
+          speechSegmentQueue = [];
+          speechChunkBuffer = '';
+          speechStopped = true;
+          useChatStore.setState({ speechError: error instanceof Error ? error.message : 'ElevenLabs speech failed' });
+        }
+      }).finally(() => {
+        if (generation !== speechGeneration) return;
+        speechRequest = null;
+        processSpeechQueue();
+      });
+    return;
+  }
+  const utterance = new SpeechSynthesisUtterance(text);
+  const generation = speechGeneration;
+  store.setSpeaking(true);
   const selectedVoice = AVAILABLE_VOICES.find(v => v.id === store.selectedVoiceId);
   const selectedVoiceName = selectedVoice?.name || DEFAULT_VOICE_NAME;
 
@@ -456,6 +530,7 @@ function processSpeechQueue(): void {
   currentStreamingUtterance = utterance;
   
   utterance.onend = () => {
+    if (speechStopped || generation !== speechGeneration) return;
     console.log('🔊 [processSpeechQueue] Utterance ended for text:', text);
     currentStreamingUtterance = null;
     // Process next segment in queue
@@ -463,6 +538,7 @@ function processSpeechQueue(): void {
   };
   
   utterance.onerror = (error) => {
+    if (speechStopped || generation !== speechGeneration) return;
     console.error('🔊 [processSpeechQueue] Utterance error:', error);
     currentStreamingUtterance = null;
     // Continue to next segment even on error
@@ -477,6 +553,11 @@ function processSpeechQueue(): void {
  * Stop currently streaming speech and clear all buffers
  */
 export function stopStreamingSpeech(): void {
+  speechStopped = true;
+  speechGeneration++;
+  speechRequest?.abort();
+  speechRequest = null;
+  if (currentAudioSource) stopAudio();
   console.log('%c🛑 [stopStreamingSpeech] FUNCTION ENTRY', 'background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
   console.log('🛑 [stopStreamingSpeech] window.speechSynthesis available:', !!window.speechSynthesis);
   console.log('🛑 [stopStreamingSpeech] currentStreamingUtterance:', currentStreamingUtterance);
@@ -505,6 +586,7 @@ export function stopStreamingSpeech(): void {
   
   // Reset speaking flag
   isSpeakingQueue = false;
+  useChatStore.getState().setSpeaking(false);
   
   console.log('%c✅ [stopStreamingSpeech] Web Speech API stopped, buffers cleared', 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px;');
 }
@@ -518,7 +600,7 @@ export const cancelSpeech = () => {
   }
 };
 
-export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
+export async function playAudio(audioBuffer: ArrayBuffer, signal?: AbortSignal): Promise<void> {
   console.log('🔊 [playAudio] Starting audio playback');
   console.log('🔊 [playAudio] Current audio source:', currentAudioSource ? 'active' : 'none');
   
@@ -546,6 +628,7 @@ export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
       await audioContext.resume();
     }
     const decodedData = await audioContext.decodeAudioData(audioBuffer);
+    if (signal?.aborted) throw new DOMException('Speech cancelled', 'AbortError');
     const source = audioContext.createBufferSource();
     source.buffer = decodedData;
     
@@ -564,12 +647,16 @@ export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
     gainNode.connect(audioContext.destination);
     // Play and handle completion
     await new Promise<void>((resolve, reject) => {
+      const abort = () => source.stop();
+      signal?.addEventListener('abort', abort, { once: true });
       source.onended = () => {
+        signal?.removeEventListener('abort', abort);
         console.log('🔊 [playAudio] Audio playback ended naturally');
-        currentAudioSource = null;
+        if (currentAudioSource === source) currentAudioSource = null;
         resolve();
       };
       source.addEventListener('error', (error) => {
+        signal?.removeEventListener('abort', abort);
         console.error('🔊 [playAudio] AudioSource error:', error);
         currentAudioSource = null;
         reject(new Error('Error playing audio: ' + error));
@@ -578,12 +665,14 @@ export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
         source.start(0);
         console.log('🔊 [playAudio] Audio started successfully');
       } catch (startError) {
+        signal?.removeEventListener('abort', abort);
         console.error('🔊 [playAudio] Error starting audio source:', startError);
         currentAudioSource = null;
         reject(startError);
       }
     });
   } catch (error) {
+    if (signal?.aborted) return;
     console.error('🔊 [playAudio] Error playing audio:', error);
     currentAudioSource = null;
     throw new ServiceError(
@@ -593,7 +682,7 @@ export async function playAudio(audioBuffer: ArrayBuffer): Promise<void> {
       0
     );
   } finally {
-    useChatStore.getState().setSpeaking(false);
+    if (!signal?.aborted) useChatStore.getState().setSpeaking(false);
   }
 }
 

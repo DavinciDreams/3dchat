@@ -6,7 +6,7 @@ import type { ChatMessage } from '../types';
 import { streamAIResponse } from '../services/aiService';
 import { startListening, stopListening } from '../services/speechService';
 import { judgeAnimations, processAnimationQueue } from '../services/animationJudgeService';
-import { speakChunk, stopStreamingSpeech, stopAudio } from '../services/speechSynthesisService';
+import { beginStreamingSpeech, finishStreamingSpeech, hasPendingSpeech, speakChunk, stopStreamingSpeech, stopAudio } from '../services/speechSynthesisService';
 import { supabase } from '../lib/supabaseClient';
 import AnimationIndicator from './AnimationIndicator';
 import {
@@ -223,6 +223,7 @@ const ChatInterface = (): JSX.Element => {
 
     try {
       // Reset judgment flag for new message
+      beginStreamingSpeech();
       // This ensures we only judge animations once per response
       hasMadeJudgmentRef.current = false;
 
@@ -251,6 +252,7 @@ const ChatInterface = (): JSX.Element => {
       await streamAIResponse(content, {
         onChunk: async (chunk) => {
           if (chunk.isComplete) {
+            finishStreamingSpeech();
             // Make animation judgment when streaming completes
             // Only judge once per response to prevent multiple LLM API calls
             if (!hasMadeJudgmentRef.current && fullText.trim().length > 0) {
@@ -291,7 +293,7 @@ const ChatInterface = (): JSX.Element => {
                     console.log('%c✅ ANIMATION QUEUE COMPLETE (Final)', 'background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
                     setCurrentAnimation('modelPose'); // Set to idle animation instead of null to avoid T-pose
                     setAnimationQueue([]);
-                    useChatStore.setState({ isSpeaking: false });
+                    useChatStore.setState({ isSpeaking: hasPendingSpeech() });
                   },
                   // Pass timeout tracking ref for cancellation
                   activeQueueTimeoutsRef
@@ -299,7 +301,7 @@ const ChatInterface = (): JSX.Element => {
               } else {
                 console.log('%c⚠️ NO ANIMATIONS TO QUEUE (Final)', 'background: #95a5a6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
                 // Reset speaking state if no animations
-                useChatStore.setState({ isSpeaking: false });
+                useChatStore.setState({ isSpeaking: hasPendingSpeech() });
               }
             }
 
@@ -321,7 +323,7 @@ const ChatInterface = (): JSX.Element => {
             }
             
             // Reset speaking state
-            useChatStore.setState({ isSpeaking: false });
+            useChatStore.setState({ isSpeaking: hasPendingSpeech() });
             return;
           }
 
@@ -335,8 +337,7 @@ const ChatInterface = (): JSX.Element => {
               )
             }));
 
-            // Speak the chunk immediately using Web Speech API
-            // No text sanitization - speak directly as received
+            // Queue speech through the selected voice provider.
             speakChunk(chunk.content);
           }
         },
@@ -594,6 +595,7 @@ const ChatInterface = (): JSX.Element => {
                 const newMutedState = !isMuted;
                 setIsMuted(newMutedState);
                 if (newMutedState) {
+                  stopStreamingSpeech();
                   // Cancel any ongoing speech when muting
                   if (window.speechSynthesis) {
                     window.speechSynthesis.cancel();

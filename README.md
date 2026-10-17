@@ -95,6 +95,28 @@ default to `openrouter/free` so a retired individual free model is not required.
 - No API key required
 - Accesses Microsoft Edge TTS service directly
 
+### ElevenLabs voices
+
+Add `ELEVENLABS_API_KEY` as a **sensitive server-side variable** in the Vercel
+project's Preview and Production environments, then redeploy. The key needs Text
+to Speech access and Voices read permission. Never prefix this key with `VITE_`
+or put it in chat, source code, or a browser setting.
+
+Signed-in users will see their account's first 100 voices in the existing Voice
+dropdown, grouped under ElevenLabs. Choose a voice there; the choice survives
+reloads. Existing browser voices remain available. Optional server settings:
+
+```env
+ELEVENLABS_MODEL_ID=eleven_flash_v2_5
+ELEVENLABS_VOICE_ID=your_preferred_voice_id
+```
+
+The preferred voice is used if a saved ElevenLabs selection becomes unavailable.
+`/api/elevenlabs` verifies the Supabase session before listing voices or generating
+audio. Chat text is buffered into sentences and played sequentially; Stop and
+mute cancel synthesis and playback. Without a key, existing speech is unchanged.
+Use `vercel dev` to run the API route locally.
+
 ### Supabase
 - Create a project at [Supabase](https://supabase.com/)
 - Set up email/password authentication

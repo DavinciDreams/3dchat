@@ -7,6 +7,8 @@ import { supabase } from './lib/supabaseClient';
 import type { AppError } from './types';
 import { AVAILABLE_VRM_MODELS, AVAILABLE_VOICES, AVAILABLE_ANIMATIONS } from './types';
 import { TypeaheadSelect, SelectOption } from './components/TypeaheadSelect';
+import { isElevenLabsVoice, loadElevenLabsVoices } from './services/elevenLabsService';
+import { stopStreamingSpeech } from './services/speechSynthesisService';
 
 type ChatPosition = 'right' | 'bottom';
 
@@ -19,6 +21,8 @@ function App() {
   const [error] = useState<AppError | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(false);
+  const [elevenLabsVoices, setElevenLabsVoices] = useState<SelectOption[]>([]);
+  const speechError = useChatStore(state => state.speechError);
   const { isMuted, setIsMuted, selectedModelId, setSelectedModelId, selectedVoiceId, setSelectedVoiceId, setCurrentAnimation, animationSpeed, setAnimationSpeed } = useChatStore();
 
   // Track chat position and collapsed state for layout calculations
@@ -58,7 +62,7 @@ function App() {
 
   // Transform voices to SelectOption format with grouping
   const voiceOptions: SelectOption[] = useMemo(() =>
-    AVAILABLE_VOICES.map(voice => {
+    [...elevenLabsVoices, ...AVAILABLE_VOICES.map(voice => {
       const langMap: Record<string, string> = {
         'en-US': 'US English',
         'en-GB': 'UK English',
@@ -72,8 +76,25 @@ function App() {
         description: voice.gender === 'female' ? '♀ Female' : '♂ Male',
         group: langMap[voice.language] || voice.language,
       };
-    }), []
+    })], [elevenLabsVoices]
   );
+
+  useEffect(() => {
+    if (!isAuthenticated) { setElevenLabsVoices([]); return; }
+    const controller = new AbortController();
+    loadElevenLabsVoices(controller.signal).then(({ voices, defaultVoiceId }) => {
+      if (controller.signal.aborted) return;
+      setElevenLabsVoices(voices);
+      useChatStore.setState({ speechError: null });
+      const selected = useChatStore.getState().selectedVoiceId;
+      if (isElevenLabsVoice(selected) && !voices.some(voice => voice.id === selected)) {
+        setSelectedVoiceId(defaultVoiceId || 'libby');
+      }
+    }).catch(() => {
+      if (!controller.signal.aborted) useChatStore.setState({ speechError: 'ElevenLabs voices could not load. Browser voices are still available.' });
+    });
+    return () => controller.abort();
+  }, [isAuthenticated, setSelectedVoiceId]);
 
   // Transform animations to SelectOption format
   const animationOptions: SelectOption[] = useMemo(() =>
@@ -128,6 +149,7 @@ function App() {
 
   const handleVolumeToggle = () => {
     setIsMuted(!isMuted);
+    if (!isMuted) stopStreamingSpeech();
   };
 
   const handleLogout = async () => {
@@ -219,6 +241,7 @@ function App() {
               value={selectedVoiceId}
               onChange={(id) => {
                 console.log('🎤 [App.tsx] Voice changed from', selectedVoiceId, 'to', id);
+                stopStreamingSpeech();
                 setSelectedVoiceId(id);
               }}
               label="Voice"
@@ -281,6 +304,7 @@ function App() {
 
         {/* Error Messages */}
         <AnimatePresence>
+          {speechError && <p role="status" className="px-4 py-2 text-amber-300">{speechError}</p>}
           {error && (
             <motion.div
               initial={{ opacity: 0, y: -20 }}
