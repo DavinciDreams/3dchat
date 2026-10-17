@@ -40,9 +40,9 @@ describe('ElevenLabs proxy', () => {
   });
 
   it('returns account voices for the existing picker without leaking the key', async () => {
-    fetchMock.mockResolvedValueOnce(Response.json({ voices: [{ voice_id: 'voice123', name: 'My voice', labels: { accent: 'British', gender: 'female' } }] }));
+    fetchMock.mockResolvedValueOnce(Response.json({ voices: [{ voice_id: 'voice123', name: 'My voice', category: 'premade', labels: { accent: 'British', gender: 'female' } }] }));
     const response = await handler(request());
-    expect(await response.json()).toEqual({ voices: [{ id: 'elevenlabs:voice123', label: 'My voice', description: 'British · female', group: 'ElevenLabs' }], defaultVoiceId: 'elevenlabs:voice123' });
+    expect(await response.json()).toEqual({ voices: [{ id: 'elevenlabs:voice123', label: 'My voice', description: 'British · female · Standard voice', group: 'ElevenLabs' }], defaultVoiceId: 'elevenlabs:voice123' });
     expect(response.headers.get('cache-control')).toBe('no-store');
     expect(fetchMock.mock.calls[1][1].headers['xi-api-key']).toBe('private-test-key');
   });
@@ -67,5 +67,13 @@ describe('ElevenLabs proxy', () => {
     const response = await handler(request(speech));
     expect(response.status).toBe(429);
     expect(await response.text()).not.toContain('private account details');
+  });
+
+  it('explains when a voice needs a paid plan without changing the selected voice', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('', { status: 402 }));
+    const response = await handler(request(speech));
+    expect(response.status).toBe(402);
+    expect(await response.text()).toContain('Try a standard voice');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

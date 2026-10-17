@@ -39,11 +39,11 @@ export default async function handler(req: Request): Promise<Response> {
         headers: { 'xi-api-key': key }, signal: AbortSignal.timeout(15000),
       });
       if (!result.ok) return error('Unable to load ElevenLabs voices. Check the key and Voices read permission.', 502);
-      const data = await result.json() as { voices: Array<{ voice_id: string; name: string; labels?: Record<string, string> }> };
+      const data = await result.json() as { voices: Array<{ voice_id: string; name: string; category?: string; labels?: Record<string, string> }> };
       const voices = data.voices.map(voice => ({
         id: `elevenlabs:${voice.voice_id}`,
         label: voice.name,
-        description: [voice.labels?.accent, voice.labels?.gender].filter(Boolean).join(' · '),
+        description: [voice.labels?.accent, voice.labels?.gender, voice.category === 'premade' ? 'Standard voice' : 'Library / custom voice'].filter(Boolean).join(' · '),
         group: 'ElevenLabs',
       }));
       const preferred = `elevenlabs:${process.env.ELEVENLABS_VOICE_ID || ''}`;
@@ -63,6 +63,7 @@ export default async function handler(req: Request): Promise<Response> {
       signal: AbortSignal.timeout(20000),
     });
     if (!audio.ok) {
+      if (audio.status === 402) return error('This ElevenLabs voice requires a paid plan or credits. Try a standard voice, or check your ElevenLabs account.', 402);
       return error(audio.status === 429 ? 'ElevenLabs quota or rate limit reached' : 'ElevenLabs could not generate speech', audio.status === 429 ? 429 : 502);
     }
     return new Response(audio.body, { headers: { ...headers, 'Content-Type': 'audio/mpeg' } });

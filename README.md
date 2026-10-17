@@ -115,6 +115,8 @@ The preferred voice is used if a saved ElevenLabs selection becomes unavailable.
 `/api/elevenlabs` verifies the Supabase session before listing voices or generating
 audio. Chat text is buffered into sentences and played sequentially; Stop and
 mute cancel synthesis and playback. Without a key, existing speech is unchanged.
+Standard and library/custom voices are labeled in the picker. If a voice requires
+a paid plan or credits, the app explains this instead of silently switching voices.
 Use `vercel dev` to run the API route locally.
 
 ### Supabase
