@@ -186,7 +186,7 @@ export function TypeaheadSelect({
                         {group}
                       </div>
                     )}
-                    {groupOptions.map((option, idx) => {
+                    {groupOptions.map((option) => {
                       const globalIndex = filteredOptions.indexOf(option);
                       const isSelected = option.id === value;
                       const isHighlighted = globalIndex === highlightedIndex;

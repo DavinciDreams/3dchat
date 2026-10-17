@@ -27,7 +27,6 @@ import type {
   IConfigurationManager,
   ICache,
   ILogger,
-  ChatMessage,
   QueuedAnimation,
   ScheduledAnimation,
   PriorityConfig,

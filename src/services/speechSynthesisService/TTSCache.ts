@@ -48,7 +48,7 @@ export class TTSCache {
     // Evict oldest if at capacity
     if (this.cache.size >= this.maxSize) {
       const oldestKey = this.cache.keys().next().value;
-      this.cache.delete(oldestKey);
+      if (oldestKey !== undefined) this.cache.delete(oldestKey);
       if (import.meta.env.DEV) {
         console.log('🗑️ [TTSCache] Evicted oldest entry:', oldestKey);
       }

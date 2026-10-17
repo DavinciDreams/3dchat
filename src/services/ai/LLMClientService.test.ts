@@ -2,7 +2,7 @@
  * Unit tests for LLMClientService
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { LLMClientService } from './LLMClientService';
 
 describe('LLMClientService', () => {
@@ -12,6 +12,23 @@ describe('LLMClientService', () => {
     // The OpenRouter key now lives server-side in the /api/openrouter proxy,
     // so the client no longer reads VITE_OPENROUTER_API_KEY.
     service = new LLMClientService();
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('streams browser response frames split across chunks', async () => {
+    const data = 'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\ndata: [DONE]\n\n';
+    const encoder = new TextEncoder();
+    const body = new ReadableStream<Uint8Array>({ start(controller) {
+      controller.enqueue(encoder.encode(data.slice(0, 18)));
+      controller.enqueue(encoder.encode(data.slice(18)));
+      controller.close();
+    } });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(body));
+    const onChunk = vi.fn();
+    await service.stream([{ role: 'user', content: 'Hello' }], onChunk);
+    expect(onChunk).toHaveBeenCalledTimes(1);
+    expect(onChunk).toHaveBeenCalledWith('Hello');
   });
 
   describe('getSystemPrompt', () => {

@@ -1,7 +1,7 @@
 import { VRM } from '@pixiv/three-vrm';
 import { VisemeName } from '../types';
 import { getVRMBlendShapes } from './visemePreprocessor';
-import type { PhonemeWeights, WLipSyncService } from './wLipSyncService';
+import type { PhonemeWeights } from './wLipSyncService';
 
 export class VisemeApplier {
   private vrm: VRM | null = null;
@@ -10,8 +10,6 @@ export class VisemeApplier {
   private transitionProgress: number = 1.0;
   private readonly transitionDuration: number = 0.1;
   private availableExpressions: Set<string> = new Set();
-  private wLipSyncService: WLipSyncService | null = null;
-  private useWLipSync: boolean = false;
 
   setVRM(vrm: VRM | null) {
     this.vrm = vrm;
@@ -89,9 +87,7 @@ export class VisemeApplier {
    *
    * @param wLipSyncService - The wLipSync service instance
    */
-  enableWLipSync(wLipSyncService: WLipSyncService): void {
-    this.wLipSyncService = wLipSyncService;
-    this.useWLipSync = true;
+  enableWLipSync(): void {
     console.log('[VisemeApplier] wLipSync enabled');
   }
 
@@ -99,8 +95,6 @@ export class VisemeApplier {
    * Disable wLipSync and fall back to text-based visemes
    */
   disableWLipSync(): void {
-    this.wLipSyncService = null;
-    this.useWLipSync = false;
     console.log('[VisemeApplier] wLipSync disabled, using text-based visemes');
   }
 

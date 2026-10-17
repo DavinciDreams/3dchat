@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ChatState, Message, Emotion, ProcessedMessage, AVAILABLE_VRM_MODELS, AVAILABLE_VOICES, AnimationTrigger } from '../types';
+import { ChatState, Message, Emotion, ProcessedMessage, AVAILABLE_VRM_MODELS, AnimationTrigger } from '../types';
 import type { ChatMessage } from '../di/ServiceInterfaces';
 import { animationStateService } from '../services/state/AnimationStateService';
 import { aiService } from '../services/aiService';

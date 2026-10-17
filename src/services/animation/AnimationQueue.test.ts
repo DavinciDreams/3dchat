@@ -4,7 +4,7 @@
 
 import { describe, it, beforeEach, afterEach, expect } from 'vitest';
 import { AnimationQueue } from './AnimationQueue';
-import type { QueuedAnimation, AnimationLayerType } from '../../types';
+import type { QueuedAnimation } from '../../types';
 
 describe('AnimationQueue', () => {
   let queue: AnimationQueue;

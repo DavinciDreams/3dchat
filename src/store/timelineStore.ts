@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import {
   TimelineState,
-  ScheduledAnimation,
-  Emotion
+
 } from '../types';
 
 /**

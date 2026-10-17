@@ -1,3 +1,5 @@
+import type { TimelineManager } from '../services/timelineManager';
+
 // Base types
 export type Emotion = 'neutral' | 'happy' | 'thinking' | 'sad';
 export type Role = 'user' | 'assistant';
@@ -212,7 +214,17 @@ export interface AIResponse {
 export interface SpeechResponse {
   audioBuffer: ArrayBuffer;
   duration: number;
+  visemes?: VisemeData[];
   error?: AppError;
+}
+
+export type VisemeName = 'sil' | 'PP' | 'FF' | 'TH' | 'DD' | 'kk' | 'CH' | 'SS' | 'nn' | 'RR' | 'aa' | 'E' | 'ih' | 'oh' | 'ou';
+
+export interface VisemeData {
+  name: VisemeName;
+  weight: number;
+  time?: number;
+  duration?: number;
 }
 
 export interface TTSResult {
@@ -741,7 +753,7 @@ export interface TimelineCoordinatorOptions {
   estimator: TextTimingEstimator;
 
   /** TimelineManager instance to coordinate with */
-  timelineManager: unknown; // Use unknown to avoid circular dependency with TimelineManager class
+  timelineManager: TimelineManager;
 
   /** Whether to enable debug logging */
   debug?: boolean;

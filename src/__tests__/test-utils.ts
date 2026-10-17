@@ -6,9 +6,9 @@
 
 import { vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
-import { beforeEach, afterEach, expect } from 'vitest';
+import { afterEach } from 'vitest';
 
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+
 
 /**
  * Reset all mocks before each test
@@ -28,9 +28,9 @@ export async function waitForTimeout(ms: number): Promise<void> {
  * Create a mock function that can be awaited
  */
 export function createAsyncMock<T extends (...args: unknown[]) => unknown>(
-  implementation: (...args: T[]) => unknown
-): () => Promise<T> {
-  return (...args: T[]) => Promise.resolve(implementation(...args));
+  implementation: T
+): (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>> {
+  return (...args) => Promise.resolve(implementation(...args)) as Promise<Awaited<ReturnType<T>>>;
 }
 
 /**
@@ -39,7 +39,7 @@ export function createAsyncMock<T extends (...args: unknown[]) => unknown>(
 export function createRejectingMock<T extends (...args: unknown[]) => unknown>(
   error: Error | string
 ): () => Promise<T> {
-  return (...args: T[]) => Promise.reject(new Error(error));
+  return () => Promise.reject(error instanceof Error ? error : new Error(error));
 }
 
 /**
@@ -49,9 +49,9 @@ export function getMockCalls(mock: ReturnType<typeof vi.fn>): Array<{
   args: unknown[];
   result: unknown;
 }> {
-  return mock.mock.calls.map((call) => ({
+  return mock.mock.calls.map((call, index) => ({
     args: call,
-    result: call.result as unknown,
+    result: mock.mock.results[index]?.value,
   }));
 }
 

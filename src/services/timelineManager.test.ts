@@ -3,7 +3,7 @@
  * Tests for MAX_EVENTS_PER_FRAME fix to prevent browser freeze
  */
 
-import { describe, it, beforeEach, afterEach, expect } from 'vitest';
+import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
 import { TimelineManager } from './timelineManager';
 
 describe('TimelineManager', () => {
@@ -165,10 +165,14 @@ describe('TimelineManager', () => {
     });
 
     it('should calculate progress correctly', () => {
+      const clock = vi.spyOn(performance, 'now').mockReturnValue(1000);
       manager.start(1000);
       
       // Progress should be 0 at start
       expect(manager.getProgress()).toBe(0);
+      clock.mockReturnValue(1500);
+      expect(manager.getProgress()).toBe(0.5);
+      clock.mockRestore();
     });
 
     it('should handle pause and resume', () => {

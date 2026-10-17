@@ -150,13 +150,13 @@ describe('AnimationQueueProcessorService', () => {
   describe('getBufferTime', () => {
     it('should return default buffer time', () => {
       const bufferTime = service.getBufferTime();
-      expect(bufferTime).toBe(500); // Default 500ms
+      expect(bufferTime).toBe(0); // Dance sequences play without gaps
     });
 
-    it('should return buffer time as positive number', () => {
+    it('should return a nonnegative buffer time', () => {
       const bufferTime = service.getBufferTime();
       expect(typeof bufferTime).toBe('number');
-      expect(bufferTime).toBeGreaterThan(0);
+      expect(bufferTime).toBeGreaterThanOrEqual(0);
     });
   });
 });

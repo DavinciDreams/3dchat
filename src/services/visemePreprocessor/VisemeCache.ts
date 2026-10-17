@@ -20,7 +20,7 @@ export class VisemeCache {
   set(text: string, visemes: VisemeData[]): void {
     if (this.cache.size >= this.maxSize) {
       const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      if (firstKey !== undefined) this.cache.delete(firstKey);
       if (import.meta.env.DEV) {
         console.log('🗑️ [VisemeCache] Evicted oldest entry:', firstKey);
       }

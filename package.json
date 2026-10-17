@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run generate:animation-config && vite build",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
     "preview": "vite preview",
     "fbx-to-vrm": "tsx scripts/fbx-to-vrm-converter.ts",
     "test": "vitest",
