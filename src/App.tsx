@@ -9,6 +9,7 @@ import { AVAILABLE_VRM_MODELS, AVAILABLE_VOICES, AVAILABLE_ANIMATIONS } from './
 import { TypeaheadSelect, SelectOption } from './components/TypeaheadSelect';
 import { isElevenLabsVoice, loadElevenLabsVoices } from './services/elevenLabsService';
 import { stopStreamingSpeech } from './services/speechSynthesisService';
+import { AvatarGraphicsBoundary } from './components/AvatarGraphicsBoundary';
 
 type ChatPosition = 'right' | 'bottom';
 
@@ -332,7 +333,9 @@ function App() {
                 className={avatarPaneProps.className}
                 style={avatarPaneProps.style}
               >
-                <AvatarModel />
+                <AvatarGraphicsBoundary>
+                  <AvatarModel />
+                </AvatarGraphicsBoundary>
                 {/* Subtle gradient overlay for depth */}
                 <div className="absolute inset-0 bg-gradient-to-t from-gray-900/30 to-transparent pointer-events-none" />
               </div>
