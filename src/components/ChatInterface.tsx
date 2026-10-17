@@ -253,7 +253,7 @@ const ChatInterface = (): JSX.Element => {
           if (chunk.isComplete) {
             // Make animation judgment when streaming completes
             // Only judge once per response to prevent multiple LLM API calls
-            if (!hasMadeJudgmentRef.current && fullText.length > 20) {
+            if (!hasMadeJudgmentRef.current && fullText.trim().length > 0) {
               hasMadeJudgmentRef.current = true;
 
               console.log('%c🎬 [SingleJudgment] Making final animation judgment at stream completion', 'background: #9b59b6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
@@ -261,7 +261,7 @@ const ChatInterface = (): JSX.Element => {
               // Cancel any previous animation queue timeouts before final judgment
               cancelActiveQueueTimeouts();
 
-              const animationJudgment = await judgeAnimations(input, fullText);
+              const animationJudgment = await judgeAnimations(content, fullText);
 
               // Log animation judgment result
               console.log('%c🎬 ANIMATION JUDGMENT RESULT (Final)', 'background: #4ecdc4; color: black; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
