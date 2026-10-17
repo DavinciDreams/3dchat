@@ -26,7 +26,7 @@ import { aiService } from '../services/aiService';
 import { LLMClientService } from '../services/ai/LLMClientService';
 
 // VRMA Services
-import { VRMALoaderService, vrmaLoaderService } from '../services/animation/VRMALoaderService';
+import { vrmaLoaderService } from '../services/animation/VRMALoaderService';
 import { VRMACacheService } from '../services/animation/VRMACacheService';
 import { VRMARetargetingService } from '../services/animation/VRMARetargetingService';
 
@@ -72,7 +72,7 @@ export function initializePhase5Services(): void {
     container.register({
       token: SERVICE_TOKENS.ANIMATION_SCHEDULER_SERVICE,
       factory: () => new AnimationScheduler({
-        timelineManager: container.resolve(SERVICE_TOKENS.TIMELINE_MANAGER) as any,
+        timelineManager: container.resolve<typeof timelineManager>(SERVICE_TOKENS.TIMELINE_MANAGER),
         animationQueue: container.resolve(SERVICE_TOKENS.ANIMATION_QUEUE),
         debug: false,
       }),
@@ -98,7 +98,7 @@ export function initializePhase5Services(): void {
     container.register({
       token: SERVICE_TOKENS.TIMELINE_SCHEDULER,
       factory: () => new TimelineSchedulerService({
-        timelineManager: container.resolve(SERVICE_TOKENS.TIMELINE_MANAGER) as any,
+        timelineManager: container.resolve<typeof timelineManager>(SERVICE_TOKENS.TIMELINE_MANAGER),
         debug: false,
       }),
       lifetime: ServiceLifetime.Singleton,
@@ -110,7 +110,7 @@ export function initializePhase5Services(): void {
     container.register({
       token: SERVICE_TOKENS.STREAMING_TEXT_HANDLER,
       factory: () => new TextStreamHandler({
-        estimator: container.resolve(SERVICE_TOKENS.TEXT_TIMING_ESTIMATOR) as any,
+        estimator: container.resolve<typeof textTimingEstimator>(SERVICE_TOKENS.TEXT_TIMING_ESTIMATOR),
         debug: false,
       }),
       lifetime: ServiceLifetime.Singleton,
@@ -139,7 +139,7 @@ export function initializePhase5Services(): void {
   if (!container.has(SERVICE_TOKENS.VRMA_RETARGETING)) {
     container.register({
       token: SERVICE_TOKENS.VRMA_RETARGETING,
-      factory: () => new VRMARetargetingService(container.resolve(SERVICE_TOKENS.VRMA_CACHE) as any),
+      factory: () => new VRMARetargetingService(container.resolve<VRMACacheService>(SERVICE_TOKENS.VRMA_CACHE)),
       lifetime: ServiceLifetime.Singleton,
     });
   }

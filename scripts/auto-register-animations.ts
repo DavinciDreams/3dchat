@@ -441,7 +441,7 @@ function autoUpdateConfigFiles(report: RegistrationReport): void {
 
   // Update generate-animation-config.ts for breakdance animations
   if (report.unregisteredAnimations.some(a => a.suggestedCategory === 'breakdance')) {
-    let configContent = fs.readFileSync(GENERATE_CONFIG_TS, 'utf-8');
+    const configContent = fs.readFileSync(GENERATE_CONFIG_TS, 'utf-8');
 
     // Find BREAKDANCE_ANIMATIONS array and add new animations
     const breakdanceAnims = report.unregisteredAnimations.filter(a => a.suggestedCategory === 'breakdance');

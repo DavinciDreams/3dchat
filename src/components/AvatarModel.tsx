@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, Suspense, useMemo, useState } from 'react';
+import React, { useRef, useEffect, Suspense, useMemo, useState, useCallback } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -38,7 +38,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 }) => {
   const store = useChatStore();
   const { selectedModelId, currentAnimation } = store;
-  const loadingStore = useAnimationLoadingStore();
+  const setCriticalLoaded = useAnimationLoadingStore(state => state.setCriticalLoaded);
 
   // Get model config based on the selected model ID
   const modelConfig = useMemo(() => {
@@ -60,7 +60,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   const sceneRef = useRef<THREE.Group | null>(null);
   const isInitialized = useRef<boolean>(false);
   // FIX: Track model ID separately to detect model changes for re-initialization
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const initializedModelId = useRef<string | null>(null);
   const [vrmaAnimationsLoaded, setVrmaAnimationsLoaded] = useState(false);
   
@@ -86,7 +86,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
    * Only loads the animation when first triggered, not all upfront
    * PERFORMANCE: Reduced console logging to minimize frame time impact
    */
-  const loadVRMAAnimation = async (animationName: string) => {
+  const loadVRMAAnimation = useCallback(async (animationName: string) => {
     if (!mixer.current || !vrm) {
       return;
     }
@@ -125,7 +125,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // Log errors but continue - some animations may not be compatible with all models
       console.warn(`Failed to load VRMA animation '${animationName}':`, error);
     }
-  };
+  }, [vrm, selectedModelId]);
 
   // Note: VRM T-pose violation warnings are cosmetic and don't affect animation playback
   // These warnings appear because some VRMA animations were converted from Mixamo/FBX files
@@ -185,7 +185,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
           const vrmScene = (vrmObj as any).scene;
           if (vrmScene) {
             vrmScene.traverse((node: THREE.Object3D) => {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
               const mesh = node as THREE.Mesh;
               if (mesh && mesh.material) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -196,7 +196,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
                 }
                 // Handle other texture types
                 ['emissiveMap', 'normalMap', 'roughnessMap', 'metalnessMap'].forEach((mapName) => {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
                   const map = material[mapName];
                   if (map && !map.colorSpace) {
                     map.colorSpace = THREE.SRGBColorSpace;
@@ -283,7 +283,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
             CRITICAL_ANIMATIONS.map(animName => loadVRMAAnimation(animName))
           );
           
-          loadingStore.setCriticalLoaded(true);
+          setCriticalLoaded(true);
           setVrmaAnimationsLoaded(true);
           isInitialized.current = true;
 
@@ -398,73 +398,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       isInitialized.current = false;
       currentPlayingAction.current = null;
     };
-  }, [position, scale, rotation, selectedModelId, modelConfig]);
-
-  // Apply a natural standing pose to the VRM model
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const applyNaturalPose = (vrm: unknown) => {
-    const vrmObj = vrm as Record<string, unknown>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const humanoid = (vrmObj.humanoid as unknown) as any;
-    if (!humanoid) return;
-
-    // Helper function to set bone rotation in degrees
-    const setBoneRotation = (boneName: string, x: number, y: number, z: number) => {
-      try {
-        const bone = humanoid.getNormalizedBoneNode(boneName);
-        if (bone) {
-          bone.rotation.set(
-            THREE.MathUtils.degToRad(x),
-            THREE.MathUtils.degToRad(y),
-            THREE.MathUtils.degToRad(z)
-          );
-        }
-      } catch {
-        // Silently ignore bone errors - different VRM models may have different bone structures
-      }
-    };
-
-    // Apply a natural standing pose
-    // Arms down slightly from T-pose
-    setBoneRotation('leftUpperArm', 10, 0, -5);
-    setBoneRotation('rightUpperArm', 10, 0, 5);
-    
-    setBoneRotation('leftLowerArm', 0, 0, 5);
-    setBoneRotation('rightLowerArm', 0, 0, -5);
-    
-    // Slight bend at elbows
-    setBoneRotation('leftHand', 0, 0, 10);
-    setBoneRotation('rightHand', 0, 0, -10);
-    
-    // Slight shoulder adjustment
-    setBoneRotation('leftShoulder', 0, 0, -2);
-    setBoneRotation('rightShoulder', 0, 0, 2);
-    
-    // Natural head position (slight tilt down)
-    setBoneRotation('head', 5, 0, 0);
-    
-    // Slight spine curve for natural posture
-    setBoneRotation('spine', 0, 0, 0);
-    setBoneRotation('chest', 0, 0, 0);
-    
-    // Legs in neutral standing position
-    setBoneRotation('leftUpperLeg', 0, 0, 0);
-    setBoneRotation('rightUpperLeg', 0, 0, 0);
-    setBoneRotation('leftLowerLeg', 0, 0, 0);
-    setBoneRotation('rightLowerLeg', 0, 0, 0);
-    
-    // Feet flat
-    setBoneRotation('leftFoot', 0, 0, 0);
-    setBoneRotation('rightFoot', 0, 0, 0);
-    
-    // Update the VRM to apply changes - wrap in try-catch to handle null bone nodes
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (vrmObj as any).update();
-    } catch (error) {
-      console.warn('Failed to update VRM pose (this is normal for some VRM models):', error);
-    }
-  };
+  }, [position, scale, rotation, selectedModelId, modelConfig, gltf.animations, gltf.scene, scene, vrm, loadVRMAAnimation, setCriticalLoaded]);
 
   // Simple frame loop - just update mixer and VRM
   useFrame((_, delta) => {
@@ -523,7 +457,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 
   // Helper function to play animation using animation layering service for smooth transitions
   // PERFORMANCE: Reduced console logging to minimize frame time impact
-  const playAnimationDirectly = async (animationName: string) => {
+  const playAnimationDirectly = useCallback(async (animationName: string): Promise<void> => {
     if (!mixer.current) {
       return;
     }
@@ -652,7 +586,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // Update the currently playing action reference
       currentPlayingAction.current = action;
     }
-  };
+  }, [loadVRMAAnimation]);
 
   // Handle explicit animation triggers from the LLM judge
   // PERFORMANCE: Removed all console logging to minimize frame time impact
@@ -675,7 +609,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         playAnimationDirectly('modelPose');
       }
     }
-  }, [currentAnimation]);
+  }, [currentAnimation, playAnimationDirectly, vrmaAnimationsLoaded]);
 
   // Note: Emotion-based animations are now handled by the judge system
   // The judge system determines appropriate animations based on context
@@ -689,36 +623,6 @@ const MemoizedCharacter = React.memo(Character);
 const Scene: React.FC<SceneProps> = ({
   shadows = true,
 }) => {
-  const controlsRef = useRef<any>(null);
-
-  // PERFORMANCE FIX: Configure OrbitControls to use passive wheel event listener
-  // This fixes the "[Violation] Added non-passive event listener to a scroll-blocking 'wheel' event" warning
-  useEffect(() => {
-    if (!controlsRef.current) return;
-
-    const controls = controlsRef.current;
-
-    // Access the underlying THREE.OrbitControls instance
-    // The @react-three/drei OrbitControls component wraps THREE.OrbitControls
-    const orbitControls = controls as any;
-
-    // Store original wheel handler
-    const originalWheelHandler = orbitControls._wheel;
-
-    // Remove original non-passive wheel event listener
-    orbitControls.domElement.removeEventListener('wheel', originalWheelHandler, false);
-
-    // Add wheel event listener with passive: true
-    // This makes the page more responsive by allowing scroll to continue
-    // while the event handler is processing
-    orbitControls.domElement.addEventListener('wheel', originalWheelHandler, { passive: true } as any);
-
-    // Cleanup function to restore original behavior
-    return () => {
-      orbitControls.domElement.removeEventListener('wheel', originalWheelHandler, { passive: true } as any);
-      orbitControls.domElement.addEventListener('wheel', originalWheelHandler, false);
-    };
-  }, []);
 
   return (
     <>
@@ -738,7 +642,6 @@ const Scene: React.FC<SceneProps> = ({
       </Suspense>
       
       <OrbitControls
-        ref={controlsRef}
         enablePan={false}
         enableZoom={true}
         minPolarAngle={Math.PI / 6}

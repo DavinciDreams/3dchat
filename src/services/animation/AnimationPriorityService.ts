@@ -285,13 +285,13 @@ export class AnimationPriorityService implements IAnimationPriorityProvider {
    * @returns The priority tier
    */
   getPriorityTier(animationName: string): AnimationPriority {
-    if (CRITICAL_ANIMATIONS.includes(animationName as any)) {
+    if ((CRITICAL_ANIMATIONS as readonly string[]).includes(animationName)) {
       return 'CRITICAL';
     }
-    if (HIGH_PRIORITY_ANIMATIONS.includes(animationName as any)) {
+    if ((HIGH_PRIORITY_ANIMATIONS as readonly string[]).includes(animationName)) {
       return 'HIGH';
     }
-    if (MEDIUM_PRIORITY_ANIMATIONS.includes(animationName as any)) {
+    if ((MEDIUM_PRIORITY_ANIMATIONS as readonly string[]).includes(animationName)) {
       return 'MEDIUM';
     }
     return 'LOW';
@@ -333,13 +333,13 @@ export class AnimationPriorityService implements IAnimationPriorityProvider {
   isInTier(animationName: string, tier: AnimationPriority): boolean {
     switch (tier) {
       case 'CRITICAL':
-        return CRITICAL_ANIMATIONS.includes(animationName as any);
+        return (CRITICAL_ANIMATIONS as readonly string[]).includes(animationName);
       case 'HIGH':
-        return HIGH_PRIORITY_ANIMATIONS.includes(animationName as any);
+        return (HIGH_PRIORITY_ANIMATIONS as readonly string[]).includes(animationName);
       case 'MEDIUM':
-        return MEDIUM_PRIORITY_ANIMATIONS.includes(animationName as any);
+        return (MEDIUM_PRIORITY_ANIMATIONS as readonly string[]).includes(animationName);
       case 'LOW':
-        return LOW_PRIORITY_ANIMATIONS.includes(animationName as any);
+        return (LOW_PRIORITY_ANIMATIONS as readonly string[]).includes(animationName);
     }
   }
 

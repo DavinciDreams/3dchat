@@ -141,7 +141,7 @@ const ChatInterface = (): JSX.Element => {
     if (isMobile && position !== 'bottom') {
       setPosition('bottom');
     }
-  }, [isMobile]);
+  }, [isMobile, position]);
 
   // Helper function to cancel all active animation queue timeouts
   // Cancel previous animation queues to prevent multiple independent queues

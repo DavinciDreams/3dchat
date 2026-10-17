@@ -8,7 +8,8 @@
  * layering through Three.js native AnimationMixer blending.
  */
 
-import { createVRMAnimationClip } from '@pixiv/three-vrm-animation';
+import { createVRMAnimationClip, type VRMAnimation } from '@pixiv/three-vrm-animation';
+import type { VRM } from '@pixiv/three-vrm';
 import type { IVMARetargetingService } from '../../di/ServiceInterfaces';
 import type { IVMACacheService } from '../../di/ServiceInterfaces';
 import vrmaAnimationService from '../vrmaAnimationService';
@@ -47,8 +48,8 @@ export class VRMARetargetingService implements IVMARetargetingService {
     }
     
     // Create new retargeted clip
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const retargetedClip = createVRMAnimationClip(vrmAnimation as any, vrm as any);
+
+    const retargetedClip = createVRMAnimationClip(vrmAnimation as VRMAnimation, vrm as VRM);
     
     // Note: Bone masking has been removed. AnimationLayeringService handles
     // layering through Three.js native AnimationMixer blending.
@@ -92,8 +93,8 @@ export class VRMARetargetingService implements IVMARetargetingService {
     animations: { name: string; layer?: string }[]
   ): Promise<void> {
     // Get model ID from VRM (extract from VRM object)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const modelId = (vrm as any)?.scene?.uuid || 'default';
+
+    const modelId = (vrm as VRM)?.scene?.uuid || 'default';
     
     // Process in batches to avoid blocking main thread
     const BATCH_SIZE = 3;
@@ -106,18 +107,18 @@ export class VRMARetargetingService implements IVMARetargetingService {
             try {
               // Load VRMA animation file
               const loadedAnim = await vrmaAnimationService.loadAnimation(
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                { name, path: `/animations/vrma/${name}.vrma` } as any
+
+                { name, path: `/animations/vrma/${name}.vrma` }
               );
               if (!loadedAnim) {
                 return;
               }
               
               // Create retargeted clip
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
               const retargetedClip = createVRMAnimationClip(
-                loadedAnim.vrmAnimation as any,
-                vrm as any
+                loadedAnim.vrmAnimation as VRMAnimation,
+                vrm as VRM
               );
               
               // Cache result

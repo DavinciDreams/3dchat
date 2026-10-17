@@ -13,42 +13,6 @@ const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openrouter/fr
 
 const SYSTEM_PROMPT = ANIMATION_JUDGE_SYSTEM_PROMPT;
 
-const TOOL_DEFINITION = {
-  type: 'function',
-  function: {
-    name: 'trigger_animations',
-    description: 'Trigger avatar animations based on conversation context',
-    parameters: {
-      type: 'object',
-      properties: {
-        animations: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              name: {
-                type: 'string',
-                enum: AVAILABLE_ANIMATIONS,
-                description: 'The animation to play'
-              },
-              delay: {
-                type: 'number',
-                description: 'Seconds to wait before playing this animation (0 for immediate)'
-              }
-            },
-            required: ['name']
-          },
-          description: 'List of animations to play in order'
-        },
-        reasoning: {
-          type: 'string',
-          description: 'Brief explanation of why these animations were chosen'
-        }
-      },
-      required: ['animations', 'reasoning']
-    }
-  }
-};
 
 /**
  * Calls an LLM to judge which animations should play based on conversation
@@ -93,7 +57,7 @@ export async function judgeAnimations(
         return { animations: [], reasoning: 'No animation decision made' };
       }
 
-      const args = JSON.parse(toolCall.function.arguments);
+      const args = JSON.parse(toolCall.function.arguments) as AnimationJudgment;
 
       console.log('%c🎬 [AnimationJudge] Tool call received!', 'background: #ff6b6b; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
       console.log('%c🎬 [AnimationJudge] Raw args:', 'color: #ff6b6b; font-weight: bold;', args);
@@ -140,7 +104,7 @@ export async function judgeAnimations(
 
       // Validate animations are in our allowed list with fuzzy matching
       const validAnimations: AnimationTrigger[] = args.animations
-        .map((a: AnimationTrigger) => {
+        .map((a: AnimationTrigger): AnimationTrigger | null => {
           const matchedName = findClosestAnimationName(a.name);
           if (matchedName) {
             return {
@@ -369,7 +333,6 @@ export async function judgeAnimationsWithTiming(
   const baseJudgment = await judgeAnimations(userMessage, aiResponse);
 
   // Analyze response for timing and layer suggestions
-  const responseLower = aiResponse.toLowerCase();
   let suggestedTiming: AnimationJudgmentWithTiming['suggestedTiming'] = 'distributed';
   let suggestedLayer: AnimationLayerType = 'gesture';
 
@@ -377,7 +340,7 @@ export async function judgeAnimationsWithTiming(
   const animationSelectionService = getContainer().resolve<IAnimationSelectionService>('ANIMATION_SELECTION_SERVICE');
   if (baseJudgment.animations.length > 0) {
     suggestedTiming = animationSelectionService.suggestTiming(aiResponse);
-    suggestedLayer;
+    suggestedLayer = animationSelectionService.suggestLayer(baseJudgment.animations[0].name);
   }
 
   console.log('%c🎬 [judgeAnimationsWithTiming] Suggested timing:',
@@ -437,7 +400,7 @@ export function cleanupAnimationJudgeCache() {
 
 // Expose cache functions to window for debugging in development
 if (import.meta.env.DEV) {
-  (window as any).animationJudgeCache = {
+  (window as Window & { animationJudgeCache?: unknown }).animationJudgeCache = {
     getStats: getAnimationJudgeCacheStats,
     logStats: logAnimationJudgeCacheStats,
     clear: clearAnimationJudgeCache,

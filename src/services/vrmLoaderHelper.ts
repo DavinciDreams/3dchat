@@ -46,12 +46,12 @@ export class VRMOptimizedLoader extends GLTFLoader {
       url: string,
       onLoad?: (texture: THREE.Texture) => void,
       onProgress?: (event: ProgressEvent) => void,
-      onError?: (error: unknown) => void
+      _onError?: (error: unknown) => void
     ) => {
       // Check if the URL is a data URI (embedded texture)
       if (url.startsWith('data:')) {
         // Allow embedded textures to load normally
-        return originalLoad(url, onLoad, onProgress, onError);
+        return originalLoad(url, onLoad, onProgress, _onError);
       }
       
       // For non-data URIs (external textures), skip the load attempt
@@ -148,7 +148,7 @@ export function createSafeVRMLoader(): GLTFLoader {
     url: string,
     onLoad?: (texture: THREE.Texture) => void,
     onProgress?: (event: ProgressEvent) => void,
-    onError?: (error: unknown) => void
+
   ) => {
     // Call the original load method with a custom error handler
     return originalLoad(
@@ -160,7 +160,7 @@ export function createSafeVRMLoader(): GLTFLoader {
         }
       },
       onProgress,
-      (error) => {
+      () => {
         console.warn(`Texture loading failed for ${url}, providing fallback`);
         
         // Create a fallback dummy texture

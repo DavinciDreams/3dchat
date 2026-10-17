@@ -124,7 +124,7 @@ export class AnimationPrefetchService {
     if (this.loadingPromises.has(name)) {
       console.log(`%c⏳ [AnimationPrefetch] ${name} already loading, waiting...`, 'color: #f39c12;');
       const existing = this.loadingPromises.get(name);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       return existing as Promise<void>;
     }
 

@@ -67,23 +67,6 @@ export async function initSpeechRecognition(): Promise<void> {
   }
 }
 
-async function checkMicrophonePermission(): Promise<void> {
-  try {
-    console.log('🎤 [checkMicrophonePermission] Requesting microphone access (user-triggered)...');
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    console.log('🎤 [checkMicrophonePermission] Microphone access granted!');
-    // Clean up stream after permission check
-    stream.getTracks().forEach(track => track.stop());
-  } catch (error) {
-    console.error('🎤 [checkMicrophonePermission] Microphone permission denied:', error);
-    throw new ServiceError(
-      'speech',
-      'auth',
-      'Microphone permission denied or not available'
-    );
-  }
-}
-
 function setupRecognitionHandlers(): void {
   if (!recognition) return;
 

@@ -72,7 +72,7 @@ export const useAnimationLoadingStore = create<AnimationLoadingStore>((set, get)
     return { currentlyLoading: newLoading };
   }),
 
-  setFailedAnimation: (name, error) => set((store) => {
+  setFailedAnimation: (name) => set((store) => {
     const newFailed = new Set(store.failedAnimations);
     newFailed.add(name);
     const newStates = new Map(store.loadingStates);

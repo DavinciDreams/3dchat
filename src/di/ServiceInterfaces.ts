@@ -20,6 +20,8 @@ import type {
   TextTimeline,
 } from '../types';
 
+export type { AnimationLayerType, QueuedAnimation, ScheduledAnimation } from '../types';
+
 // ChatMessage type for LLM services
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';

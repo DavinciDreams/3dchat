@@ -8,49 +8,14 @@
 import axios from 'axios';
 import type { ChatMessage, LLMResponse } from '../../di/ServiceInterfaces';
 import { truncateString } from '../../utils/safeLogger';
+import { ANIMATION_JUDGE_SYSTEM_PROMPT } from '../../generated/animationPrompt.generated';
 
 const OPENROUTER_PROXY_URL = '/api/openrouter';
 const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openrouter/free';
 const LLM_TIMEOUT_MS = parseInt(import.meta.env.VITE_LLM_TIMEOUT_MS || '60000'); // Default 60 seconds
 const MAX_RETRIES = parseInt(import.meta.env.VITE_LLM_MAX_RETRIES || '2'); // Default 2 retries
 
-const SYSTEM_PROMPT = `You are an animation director for a 3D avatar. Given a conversation exchange, decide which animations avatar should perform to accompany speaking its response.
-
-Available animations:
-
-CORE: peace (victory), shoot (finger guns), spin (twirling), modelPose (idle), thinking
-GREETINGS: standingGreeting, waving, greeting, shakingHands1, entry
-IDLE/SOCIAL: idle, happyIdle, sillyDancing, weightShift, talkingOnPhone, lookAround, talking, hipHopDancing
-TRANSITIONS: sitToStand, standToSit, gettingUp, crouchToStand, startWalking, squat, jumpingDown
-DANCE: swinging, catwalk
-BREAKDANCE: breakdance1990 (spin), breakdance1990_2/_2_alt/_3 (spin variants), breakdanceEnding1/2/3, breakdanceFootwork1/2/3, breakdanceFootworkToFreeze, breakdanceFreezes, breakdanceFreezeVar1/2/3/4, breakdanceReady/_2/_3, breakdanceSwipes, breakdanceUprock/_2, breakdanceUprockToGround/_2, breakdanceUprockVar1/Var1End/Var1Start/Var2, brooklynUprock, crosslegFreeze, flair/_2/_3
-MARTIAL ARTS: punch, dropKick, flyingKnee, ninjaIdle, kipUp, bowing (elbow), bodyBlock, centerBlock
-COMBAT: daggerStab, reloading, magicCast, takeCover, aimingGun, salute
-LOCOMOTION: walking, jogBackwards, jumping, climbing, turnLeft, turnRight, standardRun, runningUpStairs
-SPORTS: golfBadShot, golfPrePutt, golfDrive, golfPuttVictory, skateboarding, defeatIdle, victoryIdle, victory
-FITNESS: plank, throwing, catch, situps, jumpingJacks, cartwheel, backflip, standingJump
-MUSIC: guitarPlaying, pianoPlaying, playingDrums, playingTheViolin, singing, singing_1
-STEALTH: lowCrawl, sneakingForward, sneakyWalking, lookOverShoulder, nervouslyLookAround, plotting, militarySignaling
-SITTING: sitting, sittingClap, sittingTalking, sittingDisapproval, kneeling
-AFFECTION: patting, kissing, blowAKiss
-ANIMALS: pettingAnimal, petting
-EMOTIONS: sadIdle, sadWalk, strongGesture (flex), disappointed, relievedSigh, bashful, lookAwayGesture
-DANCES: rumbaDancing, sambaDancing, dancingTwerk, twistDance
-AGGRESSIVE: roar, yelling, angryGesture, beingCocky, standingArguing, angryGesture_1, pacingAndTalkingOnAPhone
-OBJECTS: openDoor, push, pushStart, startClimbingLadder, vaultOverBox, rummaging, searchingPockets, snatch, buttonPushing, typing
-WATER: swimming, floating, paddling, fishingCast
-TIRED: smoking, yawn, layingIdle, lyingDown, shrugging, zombieStandUp
-HEAD GESTURES: headNod (agree), hardHeadNod (emphatic), lengthyHeadNod (thoughtful), sarcasticHeadNod, shakingHeadNo, annoyedHeadShake, thoughtfulHeadShake, cockyHeadTurn
-HAND GESTURES: standingClap, happyHandGesture, dismissingGesture, acknowledging, beckoning, pointing
-
-Rules:
-1. Only trigger animations that naturally match what the avatar is saying
-2. Can return multiple animations to be played in sequence with delays
-3. Return empty array if no animation fits the context
-4. Consider the user's request AND the AI's response
-5. Be selective - not every response needs an animation
-6. If the user explicitly asks for an action (spin, wave, dance, etc), definitely include it
-7. Prefer core animations for basic interactions, extended for more specific scenarios`;
+const SYSTEM_PROMPT = ANIMATION_JUDGE_SYSTEM_PROMPT;
 
 const TOOL_DEFINITION = {
   type: 'function' as const,
@@ -123,7 +88,7 @@ export class LLMClientService {
     let lastError: Error | null = null;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
-        const response = await axios.post(
+        const response = await axios.post<{ choices?: Array<{ message: { content?: string; tool_calls?: LLMResponse['tool_calls'] } }> }>(
           OPENROUTER_PROXY_URL,
           {
             model: JUDGE_MODEL,
@@ -176,7 +141,7 @@ export class LLMClientService {
 
         return {
           content: message.content || '',
-          tool_calls: toolCalls.map((call: any) => ({
+          tool_calls: toolCalls.map((call) => ({
             function: {
               name: call.function.name,
               arguments: call.function.arguments
@@ -239,62 +204,32 @@ export class LLMClientService {
    * @param onChunk - Callback for each chunk of the response
    */
   async stream(messages: ChatMessage[], onChunk: (chunk: string) => void): Promise<void> {
-    const startTime = performance.now();
-
-    console.log('%c🤖 [LLMClient] Starting stream request', 'color: #3498db; font-weight: bold;');
-
+    const response = await fetch(OPENROUTER_PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: JUDGE_MODEL, messages, tools: [TOOL_DEFINITION], tool_choice: { type: 'function', function: { name: 'trigger_animations' } }, stream: true }),
+    });
+    if (!response.ok || !response.body) throw new Error('Animation model stream failed: ' + response.status);
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
     try {
-      const response = await axios.post(
-        OPENROUTER_PROXY_URL,
-        {
-          model: JUDGE_MODEL,
-          messages,
-          tools: [TOOL_DEFINITION],
-          tool_choice: { type: 'function', function: { name: 'trigger_animations' } },
-          stream: true
-        },
-        {
-          headers: { 'Content-Type': 'application/json' },
-          responseType: 'stream'
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) return;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') return;
+          const parsed = JSON.parse(data) as { choices?: Array<{ delta?: { content?: string } }> };
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) onChunk(content);
         }
-      );
-
-      const elapsed = performance.now() - startTime;
-      console.log(`%c🤖 [LLMClient] Stream setup took ${elapsed.toFixed(0)}ms`, 'color: #3498db;');
-
-      // Handle streaming response
-      return new Promise<void>((resolve, reject) => {
-        const stream = response.data as any;
-
-        stream.on('data', (chunk: Buffer) => {
-          const lines = chunk.toString().split('\n');
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              if (data === '[DONE]') {
-                resolve();
-                return;
-              }
-              try {
-                const parsed = JSON.parse(data);
-                const content = parsed.choices?.[0]?.delta?.content;
-                if (content) {
-                  onChunk(content);
-                }
-              } catch {
-                // Ignore parsing errors for incomplete chunks
-              }
-            }
-          }
-        });
-
-        stream.on('error', reject);
-        stream.on('end', resolve);
-      });
-    } catch (error) {
-      console.error('%c🤖 [LLMClient] Stream error:', 'color: #e74c3c;', error);
-      throw error;
-    }
+      }
+    } finally { reader.releaseLock(); }
   }
 
   /**
@@ -307,7 +242,7 @@ export class LLMClientService {
   /**
    * Get the tool definition used for animation judgment
    */
-  getToolDefinition(): any {
+  getToolDefinition() {
     return TOOL_DEFINITION;
   }
 

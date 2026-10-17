@@ -78,35 +78,6 @@ export class AnimationLayeringService {
   // PERFORMANCE FIX: Conditional debug logging to reduce production overhead
   private readonly DEBUG = process.env.NODE_ENV === 'development';
 
-  /** Default layer configurations */
-  private static readonly LAYER_CONFIGS: Record<AnimationLayerType, AnimationLayerConfig> = {
-    full_body: {
-      priority: 100,
-      blendMode: THREE.NormalBlending,
-      defaultWeight: 1.0
-    },
-    upper_body: {
-      priority: 75,
-      blendMode: THREE.NormalBlending,
-      defaultWeight: 0.8
-    },
-    lower_body: {
-      priority: 50,
-      blendMode: THREE.NormalBlending,
-      defaultWeight: 0.7
-    },
-    gesture: {
-      priority: 25,
-      blendMode: THREE.AdditiveBlending,
-      defaultWeight: 0.5
-    },
-    idle: {
-      priority: 0,
-      blendMode: THREE.NormalBlending,
-      defaultWeight: 1.0
-    }
-  };
-
   constructor(mixer?: THREE.AnimationMixer) {
     if (mixer) {
       this.setMixer(mixer);
@@ -226,10 +197,6 @@ export class AnimationLayeringService {
       hasCompleted: false
     });
 
-    // Store completion callback
-    if (onComplete) {
-      this.completionCallbacks.set(animationId, onComplete);
-    }
 
     // Update layer weight
     this.layerWeights.set(layer, weight);
@@ -296,7 +263,7 @@ export class AnimationLayeringService {
       console.log('%c🗑️ [AnimationLayering] Stopping all animations', 'color: #95a5a6;');
     }
 
-    this.activeAnimations.forEach((anim, id) => {
+    this.activeAnimations.forEach((_anim, id) => {
       this.stopAnimation(id, fadeOutDuration);
     });
 
@@ -338,7 +305,7 @@ export class AnimationLayeringService {
     if (this.DEBUG) {
       console.log('%c⏸️ [AnimationLayering] Pausing all animations', 'color: #f39c12;');
     }
-    this.activeAnimations.forEach((anim, id) => {
+    this.activeAnimations.forEach((_anim, id) => {
       this.pauseAnimation(id);
     });
   }
@@ -350,7 +317,7 @@ export class AnimationLayeringService {
     if (this.DEBUG) {
       console.log('%c▶️ [AnimationLayering] Resuming all animations', 'color: #27ae60;');
     }
-    this.activeAnimations.forEach((anim, id) => {
+    this.activeAnimations.forEach((_anim, id) => {
       this.resumeAnimation(id);
     });
   }
@@ -485,7 +452,14 @@ export class AnimationLayeringService {
     });
 
     // Update animation weights for smooth blending
-    this.activeAnimations.forEach((anim) => {
+    this.activeAnimations.forEach((anim, animationId) => {
+      if (!anim.isFadingOut && !anim.hasCompleted && anim.duration > 0 &&
+          (performance.now() - anim.startTime) / 1000 >= anim.duration) {
+        anim.hasCompleted = true;
+        this.stopAnimation(animationId, anim.fadeOutDuration);
+        anim.onComplete?.();
+      }
+
       if (anim.isFadingIn) {
         // Interpolate weight towards target for fade-in
         const fadeSpeed = 1 / anim.fadeInDuration;

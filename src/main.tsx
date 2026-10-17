@@ -72,7 +72,7 @@ if (!rootElement) {
 createRoot(rootElement).render(
   <StrictMode>
     <ErrorBoundary>
-      <App initialMuted={false} />
+      <App />
     </ErrorBoundary>
   </StrictMode>
 );

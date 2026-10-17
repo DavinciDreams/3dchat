@@ -8,12 +8,12 @@ import { textToVisemes } from './visemePreprocessor';
 import { TTSCache } from './speechSynthesisService/TTSCache';
 import { animationPrefetchService } from './animationPrefetchService';
 import { AnimationTrigger } from '../types';
-import { truncateArray } from '../utils/safeLogger';
+
 
 // Default voice (will be overridden by selected voice from store)
 const DEFAULT_VOICE_NAME = 'en-GB-LibbyNeural';
 // Fallback voice for streaming when selected voice is not available
-const FALLBACK_VOICE_NAME = 'en-GB-LibbyNeural';
+
 
 // Mapping from EdgeTTS voice names to Web Speech API voice name patterns
 const WEB_SPEECH_VOICE_PATTERNS: Record<string, string[]> = {
@@ -48,7 +48,7 @@ let audioContext: AudioContext | null = null;
 let currentAudioSource: AudioBufferSourceNode | null = null; // Track active audio source for cancellation
 let audioPlaybackStartTime: number = 0; // Track when audio started for timeline sync
 let audioPlaybackDuration: number = 0; // Track total duration for timeline sync
-let currentAudioSourceForLipSync: AudioBufferSourceNode | null = null; // Track audio source for wLipSync connection
+
 
 // TTS Cache instance
 const ttsCache = new TTSCache(50, 5 * 60 * 1000); // 50 entries, 5 minute TTL

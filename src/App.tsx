@@ -1,7 +1,7 @@
 import React, { useEffect, Suspense, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, Volume2, VolumeX, LogOut, User, Mic, Sparkles, Gauge } from 'lucide-react';
-import { initSpeechRecognition } from './services/speechService';
+
 import { useChatStore } from './store/chatStore';
 import { supabase } from './lib/supabaseClient';
 import type { AppError } from './types';
@@ -16,10 +16,10 @@ const AvatarModel = React.lazy(() => import('./components/AvatarModel'));
 const LoginForm = React.lazy(() => import('./components/LoginForm'));
 
 function App() {
-  const [error, setError] = useState<AppError | null>(null);
+  const [error] = useState<AppError | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(false);
-  const { setProcessing, isMuted, setIsMuted, selectedModelId, setSelectedModelId, selectedVoiceId, setSelectedVoiceId, setCurrentAnimation, animationSpeed, setAnimationSpeed } = useChatStore();
+  const { isMuted, setIsMuted, selectedModelId, setSelectedModelId, selectedVoiceId, setSelectedVoiceId, setCurrentAnimation, animationSpeed, setAnimationSpeed } = useChatStore();
 
   // Track chat position and collapsed state for layout calculations
   const [chatPosition, setChatPosition] = useState<ChatPosition>(() => {

@@ -193,7 +193,7 @@ export class AnimationQueueProcessorService {
    */
   judgeAnimationsWithTiming(
     baseJudgment: AnimationJudgment,
-    aiResponse: string,
+    _aiResponse: string,
     suggestedLayer: AnimationLayerType = 'gesture',
     suggestedTiming: AnimationJudgmentWithTiming['suggestedTiming'] = 'distributed'
   ): AnimationJudgmentWithTiming {
