@@ -9,7 +9,7 @@ import { truncateString } from '../utils/safeLogger';
 import { getAnimationJudgeCache } from './animationJudgeService/AnimationJudgeCache';
 
 // Use a fast, cheap model for judge - falls back to free model if not specified
-const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openai/gpt-oss-20b:free';
+const JUDGE_MODEL = import.meta.env.VITE_ANIMATION_JUDGE_MODEL || 'openrouter/free';
 
 const SYSTEM_PROMPT = ANIMATION_JUDGE_SYSTEM_PROMPT;
 
