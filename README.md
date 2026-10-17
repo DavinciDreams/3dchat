@@ -46,12 +46,13 @@ For detailed information about branding assets, color scheme, and how to regener
    ```
 3. Create a `.env` file with your configuration:
    ```bash
-   VITE_OPENROUTER_API_KEY=your_openrouter_api_key
-   VITE_OPENROUTER_MODEL=google/gemini-2.0-flash-exp:free  # optional
+   VITE_OPENROUTER_MODEL=openrouter/free  # optional, for the OpenRouter provider
    VITE_SUPABASE_URL=your_supabase_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
-4. Start the development server:
+4. Configure server-side provider credentials below. Use `vercel dev` when testing
+   model requests locally; the Vite-only development server does not run API functions.
+   Start the UI development server:
    ```bash
    npm run dev
    ```
@@ -65,10 +66,29 @@ For detailed information about branding assets, color scheme, and how to regener
 ## API Integration
 
 ### OpenRouter API
+
+The browser sends dialogue and animation requests through `/api/openrouter`.
+For Z.ai GLM-5.3-Flash, configure these **server-side Vercel environment variables**:
+
+```env
+LLM_PROVIDER=zai
+ZAI_API_KEY=your_zai_coding_api_key
+ZAI_MODEL=glm-5.3-flash
+```
+
+This uses `https://api.z.ai/api/coding/paas/v4/chat/completions` for both dialogue
+and animation selection. The proxy selects the GLM model even for cached clients,
+adapts animation tool calls to Z.ai's format, and streams only the model's dialogue
+to the chat. Never use a `VITE_` prefix for provider API keys.
+
+To use OpenRouter instead, set `LLM_PROVIDER=openrouter` and
+`OPENROUTER_API_KEY` on the server. The client model variables are optional and
+default to `openrouter/free` so a retired individual free model is not required.
+
 - Sign up at [OpenRouter](https://openrouter.ai/)
 - Get your API key from the dashboard
 - Free tier available with usage limits
-- Default model: Gemini 2.0 Flash (free tier)
+- Default model: OpenRouter's free-model router
 
 ### Edge TTS
 - Uses `edge-tts-universal` package
