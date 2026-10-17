@@ -126,6 +126,7 @@ export interface AnimationTrigger {
 
 // Chat state management
 export interface ChatState {
+  speechError: string | null;
   messages: Message[];
   processedMessages: ProcessedMessage[];
   isProcessing: boolean;

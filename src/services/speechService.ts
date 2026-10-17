@@ -1,6 +1,6 @@
 import { useChatStore } from '../store/chatStore';
 import { getAIResponse } from './aiService';
-import { textToSpeech, playAudio } from './speechSynthesisService';
+import { beginStreamingSpeech, finishStreamingSpeech, speakChunk } from './speechSynthesisService';
 import { judgeAnimations, processAnimationQueue } from './animationJudgeService';
 import { SpeechResponse } from '../types';
 import { ServiceError } from '../errors/AppError';
@@ -81,6 +81,7 @@ function setupRecognitionHandlers(): void {
       });
       
       store.setListening(false);
+      beginStreamingSpeech();
       
       const response = await getAIResponse(speechResult);
       if (response) {
@@ -128,10 +129,8 @@ function setupRecognitionHandlers(): void {
         }
         
         // Use text directly for speech synthesis
-        const audioResult = await textToSpeech(text);
-        if (audioResult) {
-          await playAudio(audioResult.audioBuffer);
-        }
+        speakChunk(text);
+        finishStreamingSpeech();
       }
     } catch (error) {
       console.error('Error processing speech result:', error);

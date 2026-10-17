@@ -16,6 +16,7 @@ const generateId = (): string => {
 export const useChatStore = create<ChatState>()(
   persist(
     (set) => ({
+      speechError: null,
       messages: [],
       processedMessages: [],
       isProcessing: false,
@@ -148,10 +149,3 @@ export const useChatStore = create<ChatState>()(
     }
   )
 );
-
-// Migration: Clear old selectedVoiceId to use new default
-const storedState = JSON.parse(localStorage.getItem('chat-preferences') || '{}');
-if (storedState.state?.selectedVoiceId && storedState.state.selectedVoiceId !== 'libby') {
-  delete storedState.state.selectedVoiceId;
-  localStorage.setItem('chat-preferences', JSON.stringify(storedState));
-}
