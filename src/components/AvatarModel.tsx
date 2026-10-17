@@ -14,6 +14,7 @@ import { getAnimationTimeScale } from '../config/animationSpeedConfig';
 import { CRITICAL_ANIMATIONS, HIGH_PRIORITY_ANIMATIONS, animationPriorityService } from '../services/animation/AnimationPriorityService';
 import { getVRMARetargetingService } from '../services/animation/VRMARetargetingService';
 import { animationDurationService } from '../services/animation/AnimationDurationService';
+import { AvatarContextMonitor } from './AvatarContextMonitor';
 
 export interface ExtendedCharacterProps extends CharacterProps {
   selectedModel?: string;
@@ -683,6 +684,7 @@ const AvatarModel: React.FC<AvatarModelProps> = ({ className = '' }) => {
         }}
         dpr={[1, 2]}
       >
+        <AvatarContextMonitor />
         <Scene />
       </Canvas>
     </div>
