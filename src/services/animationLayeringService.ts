@@ -42,6 +42,8 @@ interface ActiveAnimation {
   duration: number;
   onComplete?: () => void;
   hasCompleted: boolean;
+  fadeStartWeight: number;
+  fadeElapsed: number;
 }
 
 /**
@@ -57,23 +59,12 @@ interface ActiveAnimation {
  * - Smooth crossfade transitions
  * - Layer priority management
  */
-/**
- * Cleanup queue item for frame-based animation disposal
- */
-interface CleanupQueueItem {
-  animationId: string;
-  action: THREE.AnimationAction;
-  frameNum: number;
-}
-
 export class AnimationLayeringService {
   private mixer: THREE.AnimationMixer | null = null;
   private actionCache: Map<string, THREE.AnimationAction> = new Map();
   private activeAnimations: Map<string, ActiveAnimation> = new Map();
   private layerWeights: Map<AnimationLayerType, number> = new Map();
   private animationCounter: number = 0;
-  private frameCount: number = 0;
-  private cleanupQueue: CleanupQueueItem[] = [];
 
   // PERFORMANCE FIX: Conditional debug logging to reduce production overhead
   private readonly DEBUG = process.env.NODE_ENV === 'development';
@@ -146,11 +137,22 @@ export class AnimationLayeringService {
       onComplete
     } = options;
 
+    // A queued repeat of the same move continues at its current phase.
+    let startWeight = 0;
+    let resume = false;
+    for (const [id, active] of this.activeAnimations) {
+      if (active.action !== action) continue;
+      if (active.layer === layer && !active.isFadingOut) return id;
+      startWeight = active.weight;
+      resume = true;
+      this.activeAnimations.delete(id);
+    }
+
     // Generate unique animation ID
     const animationId = `anim_${this.animationCounter++}`;
 
     // Fade out existing animations on same layer
-    this.fadeOutLayer(layer, fadeOutDuration);
+    this.fadeOutLayer(layer, fadeInDuration);
 
     // FIX: Implement cross-layer weight management
     // When new animation starts, reduce weights on other layers proportionally
@@ -163,13 +165,15 @@ export class AnimationLayeringService {
         const priorityRatio = existingLayerPriority / (existingLayerPriority + newLayerPriority);
         const newWeight = anim.weight * priorityRatio * 0.5; // Reduce to 50% or less based on priority
         
-        anim.action.weight = newWeight;
+        anim.weight = newWeight;
+        anim.action.setEffectiveWeight(newWeight);
         anim.targetWeight = newWeight;
       }
     });
 
     // Configure action
-    action.reset();
+    if (!resume) action.reset();
+    action.stopFading();
     action.loop = loop;
     
     // Set blend mode based on layer configuration
@@ -178,14 +182,14 @@ export class AnimationLayeringService {
     action.enabled = true;
 
     // Fade in new animation
-    action.fadeIn(fadeInDuration);
+    action.setEffectiveWeight(startWeight);
     action.play();
 
     // Track active animation
     this.activeAnimations.set(animationId, {
       action,
       layer,
-      weight: 0,
+      weight: startWeight,
       targetWeight: weight,
       fadeInDuration,
       fadeOutDuration,
@@ -194,7 +198,9 @@ export class AnimationLayeringService {
       isFadingOut: false,
       duration,
       onComplete,
-      hasCompleted: false
+      hasCompleted: false,
+      fadeStartWeight: startWeight,
+      fadeElapsed: 0,
     });
 
 
@@ -213,8 +219,7 @@ export class AnimationLayeringService {
 
   /**
    * Stop and fade out an animation by ID
-   * PERFORMANCE FIX: Replaced setTimeout with frame-based cleanup queue
-   * to prevent memory leaks on component unmount
+   * Fade and cleanup use elapsed animation time at any refresh rate.
    * @param animationId - ID of animation to stop
    * @param fadeOutDuration - Duration of fade-out in seconds
    */
@@ -225,20 +230,15 @@ export class AnimationLayeringService {
     }
 
     anim.isFadingOut = true;
-    anim.action.fadeOut(fadeOutDuration);
+    anim.isFadingIn = false;
+    anim.fadeStartWeight = anim.weight;
+    anim.fadeElapsed = 0;
+    anim.fadeOutDuration = fadeOutDuration;
 
     if (this.DEBUG) {
       console.log(`%c⏹ [AnimationLayering] Stopping: ${animationId}`, 'color: #f39c12;');
     }
 
-    // Queue for cleanup in update loop (frame-based, prevents memory leaks)
-    // Assuming 60fps, calculate target frame number
-    const framesToWait = Math.ceil(fadeOutDuration * 60);
-    this.cleanupQueue.push({
-      animationId,
-      action: anim.action,
-      frameNum: this.frameCount + framesToWait
-    });
   }
 
   /**
@@ -248,7 +248,7 @@ export class AnimationLayeringService {
    */
   fadeOutLayer(layer: AnimationLayerType, duration: number = 0.3): void {
     this.activeAnimations.forEach((anim, animationId) => {
-      if (anim.layer === layer && !anim.isFadingOut) {
+      if (anim.layer === layer) {
         this.stopAnimation(animationId, duration);
       }
     });
@@ -377,9 +377,6 @@ export class AnimationLayeringService {
 
     this.stopAll(0);
 
-    // Clear the cleanup queue to prevent memory leaks
-    this.cleanupQueue = [];
-    this.frameCount = 0;
 
     // Properly dispose THREE.js AnimationActions to free GPU memory
     this.actionCache.forEach((action, name) => {
@@ -424,7 +421,6 @@ export class AnimationLayeringService {
   /**
    * Update animation weights for smooth blending
    * Called each frame to interpolate weights
-   * PERFORMANCE FIX: Added frame-based cleanup queue processing
    * @param delta - Time since last frame in seconds
    */
   update(delta: number): void {
@@ -432,24 +428,6 @@ export class AnimationLayeringService {
     // The mixer is already updated in AvatarModel.tsx useFrame hook
     // Calling it again causes triple processing of same time delta
     // which leads to choppy animations (58-86ms per frame instead of ~16ms)
-
-    // Increment frame counter for cleanup queue
-    this.frameCount++;
-
-    // Process cleanup queue (replaces setTimeout to prevent memory leaks)
-    this.cleanupQueue = this.cleanupQueue.filter(item => {
-      if (item.frameNum <= this.frameCount) {
-        // Time to clean up this animation
-        try {
-          item.action.stop();
-          this.activeAnimations.delete(item.animationId);
-        } catch (error) {
-          console.warn(`%c⚠️ [AnimationLayering] Failed to cleanup animation ${item.animationId}:`, 'color: #f39c12;', error);
-        }
-        return false; // Remove from queue
-      }
-      return true; // Keep in queue
-    });
 
     // Update animation weights for smooth blending
     this.activeAnimations.forEach((anim, animationId) => {
@@ -460,24 +438,21 @@ export class AnimationLayeringService {
         anim.onComplete?.();
       }
 
-      if (anim.isFadingIn) {
-        // Interpolate weight towards target for fade-in
-        const fadeSpeed = 1 / anim.fadeInDuration;
-        anim.weight = Math.min(anim.weight + fadeSpeed * delta, anim.targetWeight);
-
-        if (anim.weight >= anim.targetWeight) {
-          anim.isFadingIn = false;
+      if (anim.action.paused) return;
+      anim.fadeElapsed += Math.max(0, delta);
+      if (anim.isFadingOut) {
+        const progress = anim.fadeOutDuration > 0 ? Math.min(1, anim.fadeElapsed / anim.fadeOutDuration) : 1;
+        anim.weight = anim.fadeStartWeight * (1 - progress);
+        anim.action.setEffectiveWeight(anim.weight);
+        if (progress === 1) {
+          anim.action.stop();
+          this.activeAnimations.delete(animationId);
         }
-
-        // Apply weight to action
-        anim.action.weight = anim.weight;
-      } else if (anim.isFadingOut) {
-        // Interpolate weight towards 0 for fade-out
-        const fadeSpeed = 1 / anim.fadeOutDuration;
-        anim.weight = Math.max(anim.weight - fadeSpeed * delta, 0);
-        
-        // Apply weight during fade-out
-        anim.action.weight = anim.weight;
+      } else if (anim.isFadingIn) {
+        const progress = anim.fadeInDuration > 0 ? Math.min(1, anim.fadeElapsed / anim.fadeInDuration) : 1;
+        anim.weight = anim.fadeStartWeight + (anim.targetWeight - anim.fadeStartWeight) * progress;
+        anim.action.setEffectiveWeight(anim.weight);
+        if (progress === 1) anim.isFadingIn = false;
       }
     });
   }
