@@ -226,6 +226,12 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       VRMUtils.combineSkeletons((vrmObj as any).scene);
 
+      // Three.js caches skin bounds in the rest pose. A following camera can
+      // otherwise cull a dancer whose animated bones have moved outside them.
+      scene.traverse(object => {
+        if ((object as THREE.SkinnedMesh).isSkinnedMesh) object.frustumCulled = false;
+      });
+
       normalizeAvatar(scene, (modelConfig.scale ?? 1) * scale, position[1] + (modelConfig.positionY ?? 0));
       scene.position.x = position[0];
       scene.position.z = position[2];
@@ -660,11 +666,12 @@ const AvatarModel: React.FC<AvatarModelProps> = ({ className = '' }) => {
   const [autoFrame, setAutoFrame] = useState(true);
   const [resetView, setResetView] = useState(0);
   return (
-    <div className={`relative w-full h-full ${className}`}>
-      <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-2 text-xs">
+    <div className={`relative flex w-full h-full flex-col ${className}`}>
+      <div className="z-10 flex shrink-0 flex-wrap gap-2 px-3 py-2 text-xs">
         <button type="button" aria-pressed={autoFrame} onClick={() => setAutoFrame(value => !value)} className="rounded-md bg-gray-900/90 px-3 py-2 text-white hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-400">{autoFrame ? '✓ ' : ''}Keep body in frame</button>
         <button type="button" onClick={() => { setAutoFrame(true); setResetView(value => value + 1); }} className="rounded-md bg-gray-900/90 px-3 py-2 text-white hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-400">Reset view</button>
       </div>
+      <div className="min-h-0 flex-1">
       <Canvas
         shadows
         gl={{
@@ -688,6 +695,7 @@ const AvatarModel: React.FC<AvatarModelProps> = ({ className = '' }) => {
         <AvatarContextMonitor />
         <Scene autoFrame={autoFrame} resetView={resetView} />
       </Canvas>
+      </div>
     </div>
   );
 };
