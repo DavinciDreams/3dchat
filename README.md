@@ -126,6 +126,22 @@ Use `vercel dev` to run the API route locally.
 
 ## VRM Model Setup
 
+### VRoid lip-sync test characters
+
+The Character picker includes **Goldie** (VRM 1.0, by lisa) and **Red Peach**
+(VRM 0.x, by lisa watts), shared by their author for this app. Their original VRM
+metadata is preserved; in-app credits link to the source models:
+
+- [Goldie](https://3d.flobots.xyz/model/6a212bd6cf0cffae65faf4a6)
+- [Red Peach](https://3d.flobots.xyz/model/6a212b9290ef2a93f06a2a59)
+
+Select a character and an ElevenLabs voice, then send a short spoken reply to
+check the mouth shapes. Text-derived visemes are fitted to each decoded audio
+segment's duration and sampled against the audio clock. This is approximate
+lip sync, not calibrated audio phoneme recognition. Silence, Stop, and mute close
+the mouth, and changing characters clears the previous model's mouth weights.
+Browser-native speech does not expose decoded audio to this playback path.
+
 VRM models are located in `public/model/`. The application includes:
 - Billy.vrm
 - Glenda.vrm

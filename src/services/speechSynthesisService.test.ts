@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { beginStreamingSpeech, finishStreamingSpeech, hasPendingSpeech, speakChunk, stopStreamingSpeech } from './speechSynthesisService';
+import { lipSyncPlaybackService } from './lipSyncPlaybackService';
 
 const { synthesize, state } = vi.hoisted(() => ({
   synthesize: vi.fn(),
@@ -8,12 +9,13 @@ const { synthesize, state } = vi.hoisted(() => ({
 vi.mock('./elevenLabsService', () => ({ isElevenLabsVoice: (id: string) => id.startsWith('elevenlabs:'), synthesizeElevenLabs: synthesize }));
 vi.mock('../store/chatStore', () => ({ useChatStore: { getState: () => state, setState: (update: object) => Object.assign(state, update) } }));
 vi.mock('./animationPrefetchService', () => ({ animationPrefetchService: {} }));
-vi.mock('./visemePreprocessor', () => ({ textToVisemes: () => [] }));
+vi.mock('./visemePreprocessor', () => ({ textToVisemes: () => [{ name: 'aa', weight: 1, duration: 1 }], getCurrentViseme: () => 'aa' }));
 
 const started = vi.fn();
 const decodeAudio = vi.fn();
 const sources: Array<{ onended: (() => void) | null; stop: ReturnType<typeof vi.fn> }> = [];
 class AudioContextMock {
+  currentTime = 0;
   state = 'running';
   destination = {};
   decodeAudioData = decodeAudio;
@@ -55,6 +57,17 @@ describe('ElevenLabs streaming speech queue', () => {
     sources[0].onended?.();
     await vi.waitFor(() => expect(started).toHaveBeenCalledTimes(2));
     expect(synthesize.mock.calls.map(call => call[0])).toEqual(['Hello!', 'Next sentence.']);
+  });
+
+  it('starts lip sync with decoded audio and closes it when playback ends', async () => {
+    const start = vi.spyOn(lipSyncPlaybackService, 'start');
+    speakChunk('Hello!');
+    await vi.waitFor(() => expect(started).toHaveBeenCalledTimes(1));
+    expect(start).toHaveBeenCalledWith('Hello!', 1, expect.any(Function));
+    expect(lipSyncPlaybackService.getViseme()).toBe('aa');
+    sources[0].onended?.();
+    await vi.waitFor(() => expect(lipSyncPlaybackService.getViseme()).toBe('sil'));
+    start.mockRestore();
   });
 
   it('aborts in-flight synthesis and ignores later chunks after Stop', async () => {

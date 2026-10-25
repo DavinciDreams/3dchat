@@ -227,7 +227,7 @@ export const VRM_VISEME_MAPPING: Record<VisemeName, string[]> = {
   'nn': ['aa', 'mouth_a'], // Alveolar nasal
   'RR': ['ou', 'mouth_u'], // Rhotic
   'aa': ['aa', 'mouth_a'], // Open A
-  'E': ['E', 'mouth_e'],   // E sound
+  'E': ['ee', 'E', 'mouth_e'],   // Standard VRM E vowel, with legacy aliases
   'ih': ['ih', 'mouth_i'], // I sound
   'oh': ['oh', 'mouth_o'], // O sound
   'ou': ['ou', 'mouth_u'], // U sound

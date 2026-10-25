@@ -2,7 +2,7 @@ import React, { useRef, useEffect, Suspense, useMemo, useState, useCallback } fr
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { VRMUtils } from '@pixiv/three-vrm';
+import { VRMUtils, type VRM } from '@pixiv/three-vrm';
 import { useChatStore } from '../store/chatStore';
 import { CharacterProps, SceneProps, AVAILABLE_VRM_MODELS } from '../types';
 import vrmaAnimationService, { VRMA_ANIMATIONS } from '../services/vrmaAnimationService';
@@ -15,6 +15,8 @@ import { CRITICAL_ANIMATIONS, HIGH_PRIORITY_ANIMATIONS, animationPriorityService
 import { getVRMARetargetingService } from '../services/animation/VRMARetargetingService';
 import { animationDurationService } from '../services/animation/AnimationDurationService';
 import { AvatarContextMonitor } from './AvatarContextMonitor';
+import { VisemeApplier } from '../services/visemeApplicationService';
+import { lipSyncPlaybackService } from '../services/lipSyncPlaybackService';
 
 export interface ExtendedCharacterProps extends CharacterProps {
   selectedModel?: string;
@@ -81,6 +83,12 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 
   const vrm = gltf.userData.vrm as unknown;
   const scene = gltf.scene;
+  const mouth = useMemo(() => new VisemeApplier(), []);
+
+  useEffect(() => {
+    mouth.setVRM(vrm as VRM);
+    return () => mouth.setVRM(null);
+  }, [mouth, vrm]);
 
   /**
    * Load a single VRMA animation on-demand with caching
@@ -430,6 +438,9 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       
       lastAnimationUpdateRef.current = now;
     }
+
+    // Apply mouth expressions even while the body is idle.
+    mouth.applyViseme(useChatStore.getState().isMuted ? 'sil' : lipSyncPlaybackService.getViseme(), clampedDelta);
 
     // PERFORMANCE FIX: Only update VRM when animations are actually playing
     // VRM.update() is expensive as it recalculates all bone transforms
