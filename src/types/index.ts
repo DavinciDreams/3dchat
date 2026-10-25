@@ -10,6 +10,9 @@ export interface VRMModel {
   id: string;
   name: string;
   path: string;
+  author?: string;
+  sourceUrl?: string;
+  group?: string;
   // Normalization adjustments (models have different default orientations/positions)
   rotationY?: number;      // Y-axis rotation in radians to face forward (default: 0)
   positionY?: number;      // Y-axis offset to align feet with ground (default: 0)
@@ -24,6 +27,8 @@ export interface VRMModel {
 // positionY: negative = model origin is above feet, positive = below
 export const AVAILABLE_VRM_MODELS: VRMModel[] = [
   { id: 'robot', name: 'Auton', path: '/model/robot.vrm', rotationY: Math.PI, positionY: 0, scale: 1 },
+  { id: 'goldie', name: 'Goldie', path: '/model/goldie.vrm', group: 'VRoid', author: 'lisa', sourceUrl: 'https://3d.flobots.xyz/model/6a212bd6cf0cffae65faf4a6' },
+  { id: 'red-peach', name: 'Red Peach', path: '/model/red-peach.vrm', rotationY: Math.PI, group: 'VRoid', author: 'lisa watts', sourceUrl: 'https://3d.flobots.xyz/model/6a212b9290ef2a93f06a2a59' },
   { id: 'auton2', name: 'Auton 2', path: '/model/auton2.vrm', rotationY: undefined, positionY: 0, scale: 1 },
   { id: 'auton3', name: 'Auton 3', path: '/model/auton3.vrm', rotationY: undefined, positionY: 0, scale: 1 },
   { id: 'auton4', name: 'Auton 4', path: '/model/auton4.vrm', rotationY: undefined, positionY: 0, scale: 1 },

@@ -9,6 +9,7 @@ import { TTSCache } from './speechSynthesisService/TTSCache';
 import { animationPrefetchService } from './animationPrefetchService';
 import { AnimationTrigger } from '../types';
 import { isElevenLabsVoice, synthesizeElevenLabs } from './elevenLabsService';
+import { lipSyncPlaybackService } from './lipSyncPlaybackService';
 
 
 // Default voice (will be overridden by selected voice from store)
@@ -442,7 +443,7 @@ function processSpeechQueue(): void {
     synthesizeElevenLabs(text, store.selectedVoiceId, request.signal)
       .then(audio => {
         if (generation === speechGeneration && !useChatStore.getState().isMuted) {
-          return playAudio(audio, request.signal);
+          return playAudio(audio, request.signal, text);
         }
       }).catch(error => {
         if (!request.signal.aborted && generation === speechGeneration) {
@@ -553,6 +554,7 @@ function processSpeechQueue(): void {
  * Stop currently streaming speech and clear all buffers
  */
 export function stopStreamingSpeech(): void {
+  lipSyncPlaybackService.stop();
   speechStopped = true;
   speechGeneration++;
   speechRequest?.abort();
@@ -600,7 +602,7 @@ export const cancelSpeech = () => {
   }
 };
 
-export async function playAudio(audioBuffer: ArrayBuffer, signal?: AbortSignal): Promise<void> {
+export async function playAudio(audioBuffer: ArrayBuffer, signal?: AbortSignal, text = ''): Promise<void> {
   console.log('🔊 [playAudio] Starting audio playback');
   console.log('🔊 [playAudio] Current audio source:', currentAudioSource ? 'active' : 'none');
   
@@ -647,15 +649,19 @@ export async function playAudio(audioBuffer: ArrayBuffer, signal?: AbortSignal):
     gainNode.connect(audioContext.destination);
     // Play and handle completion
     await new Promise<void>((resolve, reject) => {
+      const startedAt = audioContext!.currentTime;
+      const stopLipSync = lipSyncPlaybackService.start(text, decodedData.duration, () => audioContext!.currentTime - startedAt);
       const abort = () => source.stop();
       signal?.addEventListener('abort', abort, { once: true });
       source.onended = () => {
+        stopLipSync();
         signal?.removeEventListener('abort', abort);
         console.log('🔊 [playAudio] Audio playback ended naturally');
         if (currentAudioSource === source) currentAudioSource = null;
         resolve();
       };
       source.addEventListener('error', (error) => {
+        stopLipSync();
         signal?.removeEventListener('abort', abort);
         console.error('🔊 [playAudio] AudioSource error:', error);
         currentAudioSource = null;
@@ -665,6 +671,7 @@ export async function playAudio(audioBuffer: ArrayBuffer, signal?: AbortSignal):
         source.start(0);
         console.log('🔊 [playAudio] Audio started successfully');
       } catch (startError) {
+        stopLipSync();
         signal?.removeEventListener('abort', abort);
         console.error('🔊 [playAudio] Error starting audio source:', startError);
         currentAudioSource = null;
@@ -690,6 +697,7 @@ export async function playAudio(audioBuffer: ArrayBuffer, signal?: AbortSignal):
  * Stop currently playing audio
  */
 export function stopAudio(): void {
+  lipSyncPlaybackService.stop();
   console.log('🔊 [stopAudio] Called');
   console.log('🔊 [stopAudio] Current audio source:', currentAudioSource ? 'active' : 'none');
   

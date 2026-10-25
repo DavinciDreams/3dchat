@@ -56,10 +56,12 @@ function App() {
     AVAILABLE_VRM_MODELS.map(model => ({
       id: model.id,
       label: model.name,
-      description: 'VRM Character',
-      group: 'Characters',
+      description: model.author ? `By ${model.author}` : 'VRM Character',
+      group: model.group || 'Characters',
     })), []
   );
+
+  const selectedModel = AVAILABLE_VRM_MODELS.find(model => model.id === selectedModelId);
 
   // Transform voices to SelectOption format with grouping
   const voiceOptions: SelectOption[] = useMemo(() =>
@@ -338,6 +340,11 @@ function App() {
                 </AvatarGraphicsBoundary>
                 {/* Subtle gradient overlay for depth */}
                 <div className="absolute inset-0 bg-gradient-to-t from-gray-900/30 to-transparent pointer-events-none" />
+                {selectedModel?.sourceUrl && (
+                  <a href={selectedModel.sourceUrl} target="_blank" rel="noreferrer" className="absolute bottom-4 left-4 z-10 text-xs text-gray-400 hover:text-white">
+                    {selectedModel.name} · {selectedModel.author}
+                  </a>
+                )}
               </div>
 
               {/* Chat Interface - uses fixed positioning to overlay */}
