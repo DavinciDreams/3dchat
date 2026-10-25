@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, Suspense, useMemo, useState, useCallback } from 'react';
-import { Canvas, useFrame, useLoader } from '@react-three/fiber';
+import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { VRMUtils, type VRM } from '@pixiv/three-vrm';
@@ -13,10 +13,10 @@ import { animationLayeringService } from '../services/animationLayeringService';
 import { getAnimationTimeScale } from '../config/animationSpeedConfig';
 import { CRITICAL_ANIMATIONS, HIGH_PRIORITY_ANIMATIONS, animationPriorityService } from '../services/animation/AnimationPriorityService';
 import { getVRMARetargetingService } from '../services/animation/VRMARetargetingService';
-import { animationDurationService } from '../services/animation/AnimationDurationService';
 import { AvatarContextMonitor } from './AvatarContextMonitor';
 import { VisemeApplier } from '../services/visemeApplicationService';
 import { lipSyncPlaybackService } from '../services/lipSyncPlaybackService';
+import { AnimatedAvatarBounds, fitAvatarDistance, normalizeAvatar } from '../services/avatarFraming';
 
 export interface ExtendedCharacterProps extends CharacterProps {
   selectedModel?: string;
@@ -28,8 +28,8 @@ const DEFAULT_ROTATION: [number, number, number] = [0, 0, 0];
 
 // Animation blending constants for smooth transitions
 // Using shorter fade durations (0.15-0.3s) for more responsive animation blending
-const ANIMATION_FADE_IN_DURATION = 0.3;  // 0.3 seconds for responsive fade-in
-const ANIMATION_FADE_OUT_DURATION = 0.2; // 0.2 seconds for responsive fade-out
+const ANIMATION_FADE_IN_DURATION = 0.45;
+const ANIMATION_FADE_OUT_DURATION = 0.45;
 const ANIMATION_CROSS_FADE_DURATION = 0.3; // 0.3 seconds for cross-fade transitions
 const IDLE_FADE_DURATION = 0.2; // 0.2 seconds for idle transitions
 const QUICK_FADE_DURATION = 0.15; // 0.15 seconds for quick transitions (background loading)
@@ -67,14 +67,13 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   const initializedModelId = useRef<string | null>(null);
   const [vrmaAnimationsLoaded, setVrmaAnimationsLoaded] = useState(false);
   
-  // Track if we're in a transition to avoid triggering multiple animations
-  const isTransitioningToIdle = useRef(false);
   
   // PERFORMANCE FIX: Track last VRM update time for throttling
   // This reduces CPU usage by 30-50% by limiting VRM.update() calls
   const lastVrmUpdateRef = useRef(0);
   const VRM_UPDATE_INTERVAL = 33; // Update every ~33ms (30fps target) - reduced from 16ms for better performance
   const lastAnimationUpdateRef = useRef(0);
+  const animationDeltaRef = useRef(0);
   const ANIMATION_UPDATE_INTERVAL = 16; // Update animations every ~16ms (60fps target)
 
   // Track currently playing action for smooth cross-fade transitions
@@ -99,6 +98,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     if (!mixer.current || !vrm) {
       return;
     }
+    const activeMixer = mixer.current;
 
     try {
       // First, load the VRMA file if not already loaded
@@ -111,6 +111,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
 
       // Load the VRMA animation file
       const loadedAnim = await vrmaAnimationService.loadAnimation(animConfig);
+      if (mixer.current !== activeMixer || vrmRef.current !== vrm) return;
       
       if (!loadedAnim) {
         console.warn(`Failed to load VRMA animation '${animationName}'`);
@@ -225,27 +226,9 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       VRMUtils.combineSkeletons((vrmObj as any).scene);
 
-      // Calculate model bounds for auto-scaling
-      const box = new THREE.Box3().setFromObject(scene);
-      const modelHeight = box.max.y - box.min.y;
-      const modelCenter = new THREE.Vector3();
-      box.getCenter(modelCenter);
-
-      // Target height for consistent avatar sizing (fits nicely in viewport)
-      const TARGET_HEIGHT = 1.6;
-      const autoScale = TARGET_HEIGHT / modelHeight;
-
-      // Apply scale: auto-scale * config scale * prop scale
-      const finalScale = autoScale * (modelConfig.scale ?? 1) * scale;
-      scene.scale.setScalar(finalScale);
-
-      // Recalculate bounds after scaling
-      const scaledBox = new THREE.Box3().setFromObject(scene);
-      const groundOffset = -scaledBox.min.y; // Move model so feet touch y=0
-
-      // Position model with feet on ground + any config offset
-      const modelPositionY = position[1] + groundOffset + (modelConfig.positionY ?? 0);
-      scene.position.set(position[0], modelPositionY, position[2]);
+      normalizeAvatar(scene, (modelConfig.scale ?? 1) * scale, position[1] + (modelConfig.positionY ?? 0));
+      scene.position.x = position[0];
+      scene.position.z = position[2];
 
       // Apply rotation with model-specific adjustment to face camera
       // VRM0.x models: rotateVRM0() already provides 180° rotation, so use 0 from config
@@ -283,6 +266,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // Load CRITICAL animations synchronously for immediate avatar functionality
       vrmaAnimationService.loadCoreAnimations()
         .then(async () => {
+          if (vrmRef.current !== vrm) return;
           // CRITICAL FIX: Call loadVRMAAnimation for each CRITICAL animation to create THREE.js actions
           // The service only loads VRMA files, we need to create actions from them
           
@@ -291,6 +275,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
           await Promise.all(
             CRITICAL_ANIMATIONS.map(animName => loadVRMAAnimation(animName))
           );
+          if (vrmRef.current !== vrm) return;
           
           setCriticalLoaded(true);
           setVrmaAnimationsLoaded(true);
@@ -322,6 +307,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
               // After HIGH priority animations are loaded, create THREE.js actions for them
               
               for (const animName of HIGH_PRIORITY_ANIMATIONS) {
+                if (vrmRef.current !== vrm) return;
                 // Skip if already loaded (may overlap with CRITICAL animations)
                 if (!vrmaActions.current[animName] && !vrmaClips.current[animName]) {
                   await loadVRMAAnimation(animName);
@@ -336,6 +322,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
           // This preloads dance, combat, and other animations that may be requested
           // Loading them in batches prevents on-demand delays of 500-1000ms
           setTimeout(async () => {
+            if (vrmRef.current !== vrm) return;
             const MEDIUM_PRIORITY_ANIMATIONS = [
               // Dance animations (most commonly requested)
               'hipHopDance', 'hipHopDancing', 'swinging', 'catwalk', 'catwalkWalking',
@@ -355,6 +342,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
             ];
             
             for (const animName of MEDIUM_PRIORITY_ANIMATIONS) {
+              if (vrmRef.current !== vrm) return;
               if (!vrmaActions.current[animName] && !vrmaClips.current[animName]) {
                 try {
                   await loadVRMAAnimation(animName);
@@ -366,27 +354,14 @@ const Character: React.FC<ExtendedCharacterProps> = ({
             }
           }, 2000); // Start loading after 2 seconds to avoid blocking initial load
 
-          // Only start idle animation if no explicit animation is playing
-          const store = useChatStore.getState();
-          if (!store.currentAnimation) {
-            if (vrmaActions.current['modelPose']) {
-              try {
-                const action = vrmaActions.current['modelPose'];
-                // FIX: Never use reset() - it causes T-pose snapping
-                // Use fadeIn() without reset for smooth initial animation
-                action.fadeIn(IDLE_FADE_DURATION).play();
-                currentPlayingAction.current = action;
-              } catch {
-                console.warn('Failed to play modelPose animation');
-              }
-            }
-          }
-
           // Register 'modelPose' with the layering service for use as fallback
           if (vrmaActions.current['modelPose']) {
             const clip = vrmaClips.current['modelPose'];
             if (clip) {
               animationLayeringService.registerAnimation('modelPose', clip);
+              if (!useChatStore.getState().currentAnimation) {
+                animationLayeringService.playAnimation('modelPose', 'full_body', { fadeInDuration: IDLE_FADE_DURATION });
+              }
             }
           }
         })
@@ -400,6 +375,11 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       if (mixer.current) {
         mixer.current.stopAllAction();
       }
+      mixer.current = null;
+      vrmRef.current = null;
+      currentActions.current = {};
+      vrmaActions.current = {};
+      vrmaClips.current = {};
       // Clear animation service caches to free GPU memory when switching models
       simpleAnimationService.clear();
       animationLayeringService.clear();
@@ -422,19 +402,19 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     // The mixer is the most expensive operation in the frame loop
     // Updating it every frame at 60fps can cause 93ms+ frame times
     const timeSinceLastAnimationUpdate = now - lastAnimationUpdateRef.current;
+    animationDeltaRef.current += clampedDelta;
     
     if (timeSinceLastAnimationUpdate >= ANIMATION_UPDATE_INTERVAL) {
       // Update animation mixer to advance animations
       // Only update if mixer exists and delta is reasonable
-      if (mixer.current) {
-        mixer.current.update(clampedDelta);
-      }
-
       // PERFORMANCE FIX: Call animationLayeringService.update() to handle weight interpolation
       // This enables smooth blending between animation layers
       // Note: animationLayeringService.update() NO LONGER calls mixer.update() to avoid
       // triple processing of the same time delta (the main performance bottleneck)
-      animationLayeringService.update(clampedDelta);
+      const animationDelta = animationDeltaRef.current;
+      animationLayeringService.update(animationDelta);
+      if (mixer.current) mixer.current.update(animationDelta);
+      animationDeltaRef.current = 0;
       
       lastAnimationUpdateRef.current = now;
     }
@@ -458,14 +438,14 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       if (timeSinceLastUpdate >= VRM_UPDATE_INTERVAL || clampedDelta > 0.05) {
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (vrmRef.current as any).update(clampedDelta);
+          (vrmRef.current as any).update(Math.min(timeSinceLastUpdate / 1000, 0.1));
           lastVrmUpdateRef.current = now;
         } catch {
           // Some VRM models may not support update() - handle gracefully
         }
       }
     }
-  });
+  }, -0.5);
 
   // Helper function to play animation using animation layering service for smooth transitions
   // PERFORMANCE: Reduced console logging to minimize frame time impact
@@ -479,7 +459,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     // This eliminates 200-500ms delay for first-time animation playback
     if (!vrmaActions.current[animationName] && !currentActions.current[animationName]) {
       // Play a default "modelPose" animation while loading
-      if (vrmaActions.current['modelPose']) {
+      if (!animationLayeringService.getActiveAnimationOnLayer('full_body') && vrmaActions.current['modelPose']) {
         try {
           animationLayeringService.playAnimation('modelPose', 'full_body', {
             fadeInDuration: QUICK_FADE_DURATION,
@@ -503,8 +483,12 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       }
       // Load in background without blocking
       loadVRMAAnimation(animationName).then(() => {
-        // Once loaded, play the requested animation
-        playAnimationDirectly(animationName);
+        const current = useChatStore.getState();
+        // A late download must not restart a move the queue already passed.
+        if (current.selectedModelId === selectedModelId && current.currentAnimation === animationName &&
+            (vrmaActions.current[animationName] || currentActions.current[animationName])) {
+          playAnimationDirectly(animationName);
+        }
       });
       return;
     }
@@ -529,45 +513,16 @@ const Character: React.FC<ExtendedCharacterProps> = ({
         animationLayeringService.registerAnimation(animationName, clip);
       }
 
-      // Get animation duration for auto-transition to idle
-      const durationMs = animationDurationService.getDuration(animationName);
-      const durationSec = durationMs / 1000; // Convert to seconds
-
       // Play animation on full_body layer for maximum impact
       // Using layering service provides smooth cross-fade between animations
       animationLayeringService.playAnimation(animationName, 'full_body', {
-        fadeInDuration: ANIMATION_FADE_IN_DURATION, // 1.0s for smooth fade-in
-        fadeOutDuration: ANIMATION_FADE_OUT_DURATION, // 0.8s for smooth fade-out
+        fadeInDuration: ANIMATION_FADE_IN_DURATION,
+        fadeOutDuration: ANIMATION_FADE_OUT_DURATION,
         loop: THREE.LoopRepeat,
         weight: 1.0,
-        duration: durationSec, // Set duration for auto-transition
-        onComplete: () => {
-          // When animation completes, transition back to modelPose (idle)
-          // FIX: Directly play modelPose animation instead of setting store state
-          // This prevents T-pose by ensuring immediate animation playback
-          
-          // Check if we're already transitioning to avoid duplicate calls
-          if (isTransitioningToIdle.current) {
-            return;
-          }
-          
-          const store = useChatStore.getState();
-          if (!store.currentAnimation || store.currentAnimation === animationName) {
-            // Only transition to modelPose if no new animation has been triggered
-            isTransitioningToIdle.current = true;
-            
-            // FIX: Directly play modelPose animation using animation layering service
-            // This ensures immediate playback without timing gap that causes T-pose
-            // Previously: store.setCurrentAnimation('modelPose') triggered useEffect cycle
-            // Now: Direct playback prevents T-pose visibility
-            animationLayeringService.playAnimation('modelPose', 'full_body', {
-              fadeInDuration: IDLE_FADE_DURATION, // 0.8s for smooth idle transition
-              fadeOutDuration: IDLE_FADE_DURATION, // 0.8s for smooth idle transition
-              loop: THREE.LoopRepeat,
-              weight: 1.0
-            });
-          }
-        }
+        // The queue owns completion. A separate timer here used to insert idle
+        // between consecutive dance moves and race the next queued animation.
+        duration: 0,
       });
       
       // Update the currently playing action reference
@@ -598,7 +553,7 @@ const Character: React.FC<ExtendedCharacterProps> = ({
       // Update the currently playing action reference
       currentPlayingAction.current = action;
     }
-  }, [loadVRMAAnimation]);
+  }, [loadVRMAAnimation, selectedModelId]);
 
   // Handle explicit animation triggers from the LLM judge
   // PERFORMANCE: Removed all console logging to minimize frame time impact
@@ -611,8 +566,6 @@ const Character: React.FC<ExtendedCharacterProps> = ({
     }
 
     if (currentAnimation) {
-      // Reset transition flag when new animation is triggered
-      isTransitioningToIdle.current = false;
       playAnimationDirectly(currentAnimation);
     } else {
       // Play idle animation when currentAnimation is null
@@ -627,14 +580,56 @@ const Character: React.FC<ExtendedCharacterProps> = ({
   // The judge system determines appropriate animations based on context
   // This component only responds to explicit animation triggers via currentAnimation
 
-  return scene ? <primitive object={scene} /> : null;
+  // Suspense hides the previous cached scene while the next model loads.
+  // Restore visibility when that cached scene is selected again.
+  return scene ? <primitive object={scene} visible /> : null;
 };
 
 const MemoizedCharacter = React.memo(Character);
 
-const Scene: React.FC<SceneProps> = ({
+function AvatarCamera({ root, autoFrame, resetView }: { root: React.RefObject<THREE.Group>; autoFrame: boolean; resetView: number }) {
+  const camera = useThree(state => state.camera);
+  const controls = useRef<React.ElementRef<typeof OrbitControls>>(null);
+  const modelId = useChatStore(state => state.selectedModelId);
+  const tracker = useRef<{ scene: THREE.Object3D; bounds: AnimatedAvatarBounds }>();
+  const reset = useRef(true);
+  const scratch = useMemo(() => ({ box: new THREE.Box3(), center: new THREE.Vector3(), direction: new THREE.Vector3() }), []);
+  useEffect(() => { reset.current = true; }, [modelId, resetView, autoFrame]);
+
+  useFrame((_, delta) => {
+    if (!autoFrame || !controls.current || !(camera instanceof THREE.PerspectiveCamera)) return;
+    const scene = root.current?.children[0];
+    if (!scene) return;
+    if (tracker.current?.scene !== scene) tracker.current = { scene, bounds: new AnimatedAvatarBounds(scene) };
+    tracker.current.bounds.update(scratch.box);
+    if (scratch.box.isEmpty()) return;
+    const orbit = controls.current;
+    scratch.box.getCenter(scratch.center);
+    scratch.direction.copy(camera.position).sub(orbit.target).normalize();
+    const currentDistance = camera.position.distanceTo(orbit.target);
+    if (reset.current) {
+      scratch.direction.set(0, 0.08, 1).normalize();
+      orbit.target.copy(scratch.center);
+    } else {
+      orbit.target.lerp(scratch.center, 1 - Math.exp(-Math.min(delta, 0.1) * 6));
+    }
+    const needed = fitAvatarDistance(scratch.box, orbit.target, scratch.direction, camera.fov, camera.aspect);
+    // Pull back immediately to contain a wide move; ease back in after it ends.
+    const distance = reset.current || needed > currentDistance ? needed : THREE.MathUtils.lerp(currentDistance, needed, 1 - Math.exp(-Math.min(delta, 0.1) * 1.5));
+    camera.position.copy(orbit.target).addScaledVector(scratch.direction, distance);
+    reset.current = false;
+    orbit.update();
+  });
+
+  return <OrbitControls ref={controls} enablePan={false} enableZoom minPolarAngle={Math.PI / 6} maxPolarAngle={Math.PI / 2.05} minDistance={0.3} maxDistance={100} target={[0, 0.8, 0]} enableDamping dampingFactor={0.05} />;
+}
+
+const Scene: React.FC<SceneProps & { autoFrame: boolean; resetView: number }> = ({
   shadows = true,
+  autoFrame,
+  resetView,
 }) => {
+  const avatarRoot = useRef<THREE.Group>(null);
 
   return (
     <>
@@ -650,20 +645,9 @@ const Scene: React.FC<SceneProps> = ({
         intensity={0.3}
       />
       <Suspense fallback={null}>
-        <MemoizedCharacter />
+        <group ref={avatarRoot}><MemoizedCharacter /></group>
       </Suspense>
-      
-      <OrbitControls
-        enablePan={false}
-        enableZoom={true}
-        minPolarAngle={Math.PI / 6}
-        maxPolarAngle={Math.PI / 2.2}
-        minDistance={2}
-        maxDistance={5}
-        target={[0, 1.2, 0]}
-        enableDamping={true}
-        dampingFactor={0.05}
-      />
+      <AvatarCamera root={avatarRoot} autoFrame={autoFrame} resetView={resetView} />
     </>
   );
 };
@@ -673,8 +657,14 @@ interface AvatarModelProps {
 }
 
 const AvatarModel: React.FC<AvatarModelProps> = ({ className = '' }) => {
+  const [autoFrame, setAutoFrame] = useState(true);
+  const [resetView, setResetView] = useState(0);
   return (
-    <div className={`w-full h-full ${className}`}>
+    <div className={`relative w-full h-full ${className}`}>
+      <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-2 text-xs">
+        <button type="button" aria-pressed={autoFrame} onClick={() => setAutoFrame(value => !value)} className="rounded-md bg-gray-900/90 px-3 py-2 text-white hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-400">{autoFrame ? '✓ ' : ''}Keep body in frame</button>
+        <button type="button" onClick={() => { setAutoFrame(true); setResetView(value => value + 1); }} className="rounded-md bg-gray-900/90 px-3 py-2 text-white hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-400">Reset view</button>
+      </div>
       <Canvas
         shadows
         gl={{
@@ -696,7 +686,7 @@ const AvatarModel: React.FC<AvatarModelProps> = ({ className = '' }) => {
         dpr={[1, 2]}
       >
         <AvatarContextMonitor />
-        <Scene />
+        <Scene autoFrame={autoFrame} resetView={resetView} />
       </Canvas>
     </div>
   );

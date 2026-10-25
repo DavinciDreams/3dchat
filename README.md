@@ -142,6 +142,13 @@ lip sync, not calibrated audio phoneme recognition. Silence, Stop, and mute clos
 the mouth, and changing characters clears the previous model's mouth weights.
 Browser-native speech does not expose decoded audio to this playback path.
 
+**Keep body in frame** is enabled by default. The camera follows the animated
+body bounds and pulls back for jumps and wide moves, including when the chat pane
+resizes. Turn it off to zoom in manually for a mouth check; **Reset view** restores
+the front-facing full-body view. Cached models keep a consistent height when
+switching characters. Consecutive moves share one mixer crossfade, and only the
+animation queue decides when a sequence returns to idle.
+
 VRM models are located in `public/model/`. The application includes:
 - Billy.vrm
 - Glenda.vrm
